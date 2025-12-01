@@ -60,11 +60,11 @@ namespace GDM2026
 
             try
             {
-                var user = await AuthenticateAsync(username, password).ConfigureAwait(false);
+                var user = await AuthenticateAsync(username, password);
 
                 if (user != null)
                 {
-                    await _sessionService.SaveAsync(user, user.Token).ConfigureAwait(false);
+                    await _sessionService.SaveAsync(user, user.Token);
 
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
