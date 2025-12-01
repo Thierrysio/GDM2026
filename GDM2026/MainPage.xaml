@@ -56,6 +56,20 @@
                 SemanticProperties.Description="Formulaire de connexion administrateur"
                 BorderColor="#262626">
                 <VerticalStackLayout Spacing="16">
+                    <Image
+                        Source="logo.jpg"
+                        HeightRequest="120"
+                        HorizontalOptions="Center"
+                        Aspect="AspectFill"
+                        AutomationId="LoginLogo" />
+
+                    <Label
+                        Text="Dantec Market"
+                        FontSize="32"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
+
                     <Label
                         Text="Espace administrateur"
                         FontSize="28"

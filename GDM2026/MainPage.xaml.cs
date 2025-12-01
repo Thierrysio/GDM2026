@@ -9,10 +9,36 @@ namespace GDM2026
     {
         private readonly Apis _apis = new();
         private readonly SessionService _sessionService = new();
+        private bool _isCheckingSession;
 
         public MainPage()
         {
             InitializeComponent();
+        }
+
+        protected override async void OnAppearing()
+        {
+            base.OnAppearing();
+
+            if (_isCheckingSession)
+            {
+                return;
+            }
+
+            _isCheckingSession = true;
+
+            try
+            {
+                var hasSession = await _sessionService.LoadAsync().ConfigureAwait(false);
+                if (hasSession && _sessionService.IsAuthenticated)
+                {
+                    await NavigateToHomeAsync().ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                _isCheckingSession = false;
+            }
         }
 
         private async void OnLoginClicked(object? sender, EventArgs e)
@@ -44,6 +70,7 @@ namespace GDM2026
                         FeedbackLabel.TextColor = Colors.LimeGreen;
                         FeedbackLabel.Text = $"Bienvenue {(user.Nom ?? user.UserIdentifier ?? username)}";
                         await DisplayAlert("Connexion réussie", "Authentification validée via getfinduser.", "Continuer");
+                        await NavigateToHomeAsync();
                     });
                 }
                 else
@@ -75,6 +102,14 @@ namespace GDM2026
                 FeedbackLabel.Text = "Identifiant ou mot de passe incorrect.";
                 await DisplayAlert("Erreur", "Impossible de vous connecter avec ces identifiants.", "Réessayer");
             });
+        }
+
+        private static async Task NavigateToHomeAsync()
+        {
+            if (Shell.Current != null)
+            {
+                await Shell.Current.GoToAsync(nameof(HomePage));
+            }
         }
     }
 }
