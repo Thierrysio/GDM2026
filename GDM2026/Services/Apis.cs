@@ -1,4 +1,5 @@
 ﻿using GDM2026;
+using GDM2026.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
@@ -17,6 +18,8 @@ namespace GestDM.Services
         Task<TOut> GetAsync<TOut>(string relativeUrl, CancellationToken ct = default);
         Task<TResponse> PostAsync<TRequest, TResponse>(string relativeUrl, TRequest body, CancellationToken ct = default);
         Task<bool> PostBoolAsync<TRequest>(string relativeUrl, TRequest body, CancellationToken ct = default);
+
+        Task<User?> GetFindUserAsync(string identifiant, string motDePasse, CancellationToken ct = default);
 
         void SetBearerToken(string token);
     }
@@ -52,6 +55,12 @@ namespace GestDM.Services
         }
 
         public void Dispose() => _http?.Dispose();
+
+        public Task<User?> GetFindUserAsync(string identifiant, string motDePasse, CancellationToken ct = default)
+        {
+            var query = $"getfinduser?Identifiant={Uri.EscapeDataString(identifiant)}&Password={Uri.EscapeDataString(motDePasse)}";
+            return GetAsync<User?>(query, ct);
+        }
 
         public void SetBearerToken(string token)
         {
