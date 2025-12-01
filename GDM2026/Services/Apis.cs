@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace GestDM.Services
+namespace GDM2026.Services
 {
     public interface IApis : IDisposable
     {
