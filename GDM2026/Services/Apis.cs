@@ -63,7 +63,7 @@ namespace GDM2026.Services
         public async Task<List<T>> GetListAsync<T>(string relativeUrl, CancellationToken ct = default)
         {
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
-            using var resp = await _http.GetAsync(relativeUrl, reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.GetAsync(BuildUri(relativeUrl), reqCts.Token).ConfigureAwait(false);
             await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -74,7 +74,7 @@ namespace GDM2026.Services
         public async Task<TOut> GetAsync<TOut>(string relativeUrl, CancellationToken ct = default)
         {
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
-            using var resp = await _http.GetAsync(relativeUrl, reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.GetAsync(BuildUri(relativeUrl), reqCts.Token).ConfigureAwait(false);
             await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -88,7 +88,7 @@ namespace GDM2026.Services
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
-            using var resp = await _http.PostAsync(relativeUrl, content, reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.PostAsync(BuildUri(relativeUrl), content, reqCts.Token).ConfigureAwait(false);
             await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -102,7 +102,7 @@ namespace GDM2026.Services
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
-            using var resp = await _http.PostAsync(relativeUrl, content, reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.PostAsync(BuildUri(relativeUrl), content, reqCts.Token).ConfigureAwait(false);
             if (resp.IsSuccessStatusCode) return true;
 
             await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
@@ -132,6 +132,28 @@ namespace GDM2026.Services
             var cts = CancellationTokenSource.CreateLinkedTokenSource(external);
             cts.CancelAfter(perRequestTimeout);
             return cts;
+        }
+
+        private Uri BuildUri(string relativeUrl)
+        {
+            if (Uri.TryCreate(relativeUrl, UriKind.Absolute, out var absolute))
+            {
+                return absolute;
+            }
+
+            var baseUri = _http.BaseAddress;
+            if (baseUri == null && !string.IsNullOrWhiteSpace(Constantes.BaseApiAddress))
+            {
+                baseUri = new Uri(Constantes.BaseApiAddress, UriKind.Absolute);
+            }
+
+            if (baseUri == null)
+            {
+                throw new InvalidOperationException("BaseApiAddress n'est pas configurée.");
+            }
+
+            var sanitizedRelative = relativeUrl?.StartsWith('/') == true ? relativeUrl[1..] : relativeUrl;
+            return new Uri(baseUri, sanitizedRelative);
         }
     }
 }
