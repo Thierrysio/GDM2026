@@ -79,7 +79,10 @@
                         <Label Text="Se souvenir de moi" VerticalTextAlignment="Center" Grid.Column="1" />
                     </Grid>
 
-                    <Button Text="Se connecter" Clicked="OnLoginClicked" />
+                    <Button
+                        x:Name="LoginButton"
+                        Text="Se connecter"
+                        Clicked="OnLoginClicked" />
 
                     <Label x:Name="FeedbackLabel" Text="" FontSize="14" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
