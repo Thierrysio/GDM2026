@@ -63,10 +63,10 @@ namespace GDM2026.Services
         // ---------- GET : renvoie List<T> ----------
         public async Task<List<T>> GetListAsync<T>(string relativeUrl, CancellationToken ct = default)
         {
-            var path = NormalizeUrl(relativeUrl);
+            var uri = BuildUri(relativeUrl);
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
-            using var resp = await _http.GetAsync(path, reqCts.Token).ConfigureAwait(false);
-            await EnsureSuccess(resp, path).ConfigureAwait(false);
+            using var resp = await _http.GetAsync(uri, reqCts.Token).ConfigureAwait(false);
+            await EnsureSuccess(resp, uri.ToString()).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
             return JsonConvert.DeserializeObject<List<T>>(json, _json) ?? new List<T>();
@@ -75,10 +75,10 @@ namespace GDM2026.Services
         // ---------- GET : renvoie un TOut ----------
         public async Task<TOut> GetAsync<TOut>(string relativeUrl, CancellationToken ct = default)
         {
-            var path = NormalizeUrl(relativeUrl);
+            var uri = BuildUri(relativeUrl);
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
-            using var resp = await _http.GetAsync(path, reqCts.Token).ConfigureAwait(false);
-            await EnsureSuccess(resp, path).ConfigureAwait(false);
+            using var resp = await _http.GetAsync(uri, reqCts.Token).ConfigureAwait(false);
+            await EnsureSuccess(resp, uri.ToString()).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
             return JsonConvert.DeserializeObject<TOut>(json, _json);
@@ -87,13 +87,13 @@ namespace GDM2026.Services
         // ---------- POST : renvoie un type de réponse ----------
         public async Task<TResponse> PostAsync<TRequest, TResponse>(string relativeUrl, TRequest body, CancellationToken ct = default)
         {
-            var path = NormalizeUrl(relativeUrl);
+            var uri = BuildUri(relativeUrl);
             var payload = JsonConvert.SerializeObject(body, _json);
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
-            using var resp = await _http.PostAsync(path, content, reqCts.Token).ConfigureAwait(false);
-            await EnsureSuccess(resp, path, payload).ConfigureAwait(false);
+            using var resp = await _http.PostAsync(uri, content, reqCts.Token).ConfigureAwait(false);
+            await EnsureSuccess(resp, uri.ToString(), payload).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
             return JsonConvert.DeserializeObject<TResponse>(json, _json);
@@ -102,16 +102,29 @@ namespace GDM2026.Services
         // ---------- POST : bool succès/échec ----------
         public async Task<bool> PostBoolAsync<TRequest>(string relativeUrl, TRequest body, CancellationToken ct = default)
         {
-            var path = NormalizeUrl(relativeUrl);
+            var uri = BuildUri(relativeUrl);
             var payload = JsonConvert.SerializeObject(body, _json);
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
-            using var resp = await _http.PostAsync(path, content, reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.PostAsync(uri, content, reqCts.Token).ConfigureAwait(false);
             if (resp.IsSuccessStatusCode) return true;
 
-            await EnsureSuccess(resp, path, payload).ConfigureAwait(false);
+            await EnsureSuccess(resp, uri.ToString(), payload).ConfigureAwait(false);
             return false; // n’est jamais atteint si EnsureSuccess lève
+        }
+
+        private Uri BuildUri(string relativeUrl)
+        {
+            var path = NormalizeUrl(relativeUrl);
+
+            if (Uri.TryCreate(path, UriKind.Absolute, out var absolute))
+                return absolute;
+
+            if (_http.BaseAddress == null)
+                throw new InvalidOperationException("HttpClient.BaseAddress is not set; cannot resolve relative URL.");
+
+            return new Uri(_http.BaseAddress, path);
         }
 
         private static string NormalizeUrl(string relativeUrl)
