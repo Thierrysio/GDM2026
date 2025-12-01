@@ -26,13 +26,19 @@ namespace GDM2026.Services
     {
         private readonly HttpClient _http;
         private readonly JsonSerializerSettings _json;
+        private readonly Uri _configuredBaseUri;
 
         public Apis(HttpClient httpClient = null)
         {
             _http = httpClient ?? new HttpClient();
 
-            if (_http.BaseAddress == null && !string.IsNullOrWhiteSpace(Constantes.BaseApiAddress))
-                _http.BaseAddress = new Uri(Constantes.BaseApiAddress, UriKind.Absolute);
+            if (!string.IsNullOrWhiteSpace(Constantes.BaseApiAddress)
+                && Uri.TryCreate(Constantes.BaseApiAddress.Trim(), UriKind.Absolute, out var parsedBase))
+            {
+                _configuredBaseUri = EnsureTrailingSlash(parsedBase);
+                if (_http.BaseAddress == null)
+                    _http.BaseAddress = _configuredBaseUri;
+            }
 
             if (_http.Timeout == Timeout.InfiniteTimeSpan)
                 _http.Timeout = TimeSpan.FromSeconds(30);
@@ -117,6 +123,11 @@ namespace GDM2026.Services
         // ========== Helpers ==========
         private Uri BuildUri(string path)
         {
+            if (string.IsNullOrWhiteSpace(path))
+                throw new ArgumentException("relativeUrl cannot be null or empty", nameof(path));
+
+            path = path.Trim();
+
             if (Uri.TryCreate(path, UriKind.Absolute, out var absolute))
             {
                 return absolute;
@@ -127,8 +138,16 @@ namespace GDM2026.Services
                 return new Uri(_http.BaseAddress, path);
             }
 
+            if (_configuredBaseUri != null)
+            {
+                return new Uri(_configuredBaseUri, path);
+            }
+
             throw new InvalidOperationException("BaseAddress must be configured to call relative URLs.");
         }
+
+        private static Uri EnsureTrailingSlash(Uri uri)
+            => uri?.ToString().EndsWith("/") == true ? uri : new Uri(uri + "/");
 
         private static async Task EnsureSuccess(HttpResponseMessage response, string path, string payload = null)
         {
