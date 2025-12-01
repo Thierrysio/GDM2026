@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -110,6 +111,43 @@ namespace GDM2026.Services
         }
 
         // ========== Helpers ==========
+        private Uri BuildUri(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                throw new ArgumentException("relativeUrl cannot be null or empty", nameof(path));
+
+            path = path.Trim();
+            var parts = path.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // Allow callers to supply a base URL and relative path in a single argument, e.g.
+            // "https://dantecmarket.com" and "/api/mobile/GetFindUser" => "https://dantecmarket.com/api/mobile/GetFindUser".
+            if (parts.Length >= 2 && Uri.TryCreate(parts[0], UriKind.Absolute, out var suppliedBase))
+            {
+                var relativePath = string.Join("/", parts.Skip(1).Select(p => p.Trim('/')));
+                return new Uri(EnsureTrailingSlash(suppliedBase), relativePath);
+            }
+
+            if (Uri.TryCreate(path, UriKind.Absolute, out var absolute))
+            {
+                return absolute;
+            }
+
+            if (_http.BaseAddress != null)
+            {
+                return new Uri(_http.BaseAddress, path);
+            }
+
+            if (_configuredBaseUri != null)
+            {
+                return new Uri(_configuredBaseUri, path);
+            }
+
+            throw new InvalidOperationException("BaseAddress must be configured to call relative URLs.");
+        }
+
+        private static Uri EnsureTrailingSlash(Uri uri)
+            => uri?.ToString().EndsWith("/") == true ? uri : new Uri(uri + "/");
+
         private static async Task EnsureSuccess(HttpResponseMessage response, string path, string payload = null)
         {
             if (response.IsSuccessStatusCode) return;
