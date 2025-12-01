@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -127,6 +128,15 @@ namespace GDM2026.Services
                 throw new ArgumentException("relativeUrl cannot be null or empty", nameof(path));
 
             path = path.Trim();
+            var parts = path.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // Allow callers to supply a base URL and relative path in a single argument, e.g.
+            // "https://dantecmarket.com" and "/api/mobile/GetFindUser" => "https://dantecmarket.com/api/mobile/GetFindUser".
+            if (parts.Length >= 2 && Uri.TryCreate(parts[0], UriKind.Absolute, out var suppliedBase))
+            {
+                var relativePath = string.Join("/", parts.Skip(1).Select(p => p.Trim('/')));
+                return new Uri(EnsureTrailingSlash(suppliedBase), relativePath);
+            }
 
             if (Uri.TryCreate(path, UriKind.Absolute, out var absolute))
             {
