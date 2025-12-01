@@ -1,9 +1,15 @@
+using GestDM.Services;
+using GDM2026.Models;
+using GDM2026.Services;
+using System;
+using System.Threading.Tasks;
+
 namespace GDM2026
 {
     public partial class MainPage : ContentPage
     {
-        private const string AdminUsername = "admin";
-        private const string AdminPassword = "GDM2026!";
+        private readonly Apis _apis = new();
+        private readonly SessionService _sessionService = new();
 
         public MainPage()
         {
@@ -15,24 +21,61 @@ namespace GDM2026
             var username = UsernameEntry.Text?.Trim() ?? string.Empty;
             var password = PasswordEntry.Text ?? string.Empty;
 
-            if (IsAdminCredentials(username, password))
-            {
-                FeedbackLabel.TextColor = Colors.LimeGreen;
-                FeedbackLabel.Text = "Connexion réussie. Accès administrateur accordé.";
-                await DisplayAlert("Bienvenue", "Vous êtes connecté en tant qu'administrateur.", "Continuer");
-            }
-            else
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
                 FeedbackLabel.TextColor = Colors.OrangeRed;
-                FeedbackLabel.Text = "Identifiants invalides. Accès refusé.";
-                await DisplayAlert("Erreur", "Seuls les administrateurs avec des identifiants valides peuvent continuer.", "Réessayer");
+                FeedbackLabel.Text = "Merci de renseigner un identifiant et un mot de passe.";
+                return;
+            }
+
+            LoginButton.IsEnabled = false;
+            FeedbackLabel.TextColor = Colors.LightGray;
+            FeedbackLabel.Text = "Vérification de vos identifiants...";
+
+            try
+            {
+                var user = await AuthenticateAsync(username, password).ConfigureAwait(false);
+
+                if (user != null)
+                {
+                    await _sessionService.SaveAsync(user, user.Token).ConfigureAwait(false);
+
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                    {
+                        FeedbackLabel.TextColor = Colors.LimeGreen;
+                        FeedbackLabel.Text = $"Bienvenue {(user.Nom ?? user.UserIdentifier ?? username)}";
+                        await DisplayAlert("Connexion réussie", "Authentification validée via getfinduser.", "Continuer");
+                    });
+                }
+                else
+                {
+                    await ShowAuthenticationErrorAsync();
+                }
+            }
+            catch (Exception)
+            {
+                await ShowAuthenticationErrorAsync();
+            }
+            finally
+            {
+                LoginButton.IsEnabled = true;
             }
         }
 
-        private static bool IsAdminCredentials(string username, string password)
+        private async Task<User?> AuthenticateAsync(string username, string password)
         {
-            return username.Equals(AdminUsername, StringComparison.OrdinalIgnoreCase)
-                && password == AdminPassword;
+            var relativeUrl = $"getfinduser?user={Uri.EscapeDataString(username)}&pass={Uri.EscapeDataString(password)}";
+            return await _apis.GetAsync<User>(relativeUrl).ConfigureAwait(false);
+        }
+
+        private async Task ShowAuthenticationErrorAsync()
+        {
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                FeedbackLabel.TextColor = Colors.OrangeRed;
+                FeedbackLabel.Text = "Identifiant ou mot de passe incorrect.";
+                await DisplayAlert("Erreur", "Impossible de vous connecter avec ces identifiants.", "Réessayer");
+            });
         }
     }
 }
