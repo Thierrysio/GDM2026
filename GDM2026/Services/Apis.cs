@@ -1,5 +1,4 @@
-﻿
-using GDM2026;
+﻿using GDM2026;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
@@ -27,19 +26,13 @@ namespace GDM2026.Services
     {
         private readonly HttpClient _http;
         private readonly JsonSerializerSettings _json;
-        private readonly Uri _configuredBaseUri;
 
         public Apis(HttpClient httpClient = null)
         {
             _http = httpClient ?? new HttpClient();
 
-            if (!string.IsNullOrWhiteSpace(Constantes.BaseApiAddress)
-                && Uri.TryCreate(Constantes.BaseApiAddress.Trim(), UriKind.Absolute, out var parsedBase))
-            {
-                _configuredBaseUri = EnsureTrailingSlash(parsedBase);
-                if (_http.BaseAddress == null)
-                    _http.BaseAddress = _configuredBaseUri;
-            }
+            if (_http.BaseAddress == null && !string.IsNullOrWhiteSpace(Constantes.BaseApiAddress))
+                _http.BaseAddress = new Uri(Constantes.BaseApiAddress, UriKind.Absolute);
 
             if (_http.Timeout == Timeout.InfiniteTimeSpan)
                 _http.Timeout = TimeSpan.FromSeconds(30);
@@ -71,9 +64,8 @@ namespace GDM2026.Services
         public async Task<List<T>> GetListAsync<T>(string relativeUrl, CancellationToken ct = default)
         {
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
-            var requestUri = BuildUri(relativeUrl);
-            using var resp = await _http.GetAsync(requestUri, reqCts.Token).ConfigureAwait(false);
-            await EnsureSuccess(resp, requestUri.ToString()).ConfigureAwait(false);
+            using var resp = await _http.GetAsync(relativeUrl, reqCts.Token).ConfigureAwait(false);
+            await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
             return JsonConvert.DeserializeObject<List<T>>(json, _json) ?? new List<T>();
@@ -83,9 +75,8 @@ namespace GDM2026.Services
         public async Task<TOut> GetAsync<TOut>(string relativeUrl, CancellationToken ct = default)
         {
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
-            var requestUri = BuildUri(relativeUrl);
-            using var resp = await _http.GetAsync(requestUri, reqCts.Token).ConfigureAwait(false);
-            await EnsureSuccess(resp, requestUri.ToString()).ConfigureAwait(false);
+            using var resp = await _http.GetAsync(relativeUrl, reqCts.Token).ConfigureAwait(false);
+            await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
             return JsonConvert.DeserializeObject<TOut>(json, _json);
@@ -98,9 +89,8 @@ namespace GDM2026.Services
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
-            var requestUri = BuildUri(relativeUrl);
-            using var resp = await _http.PostAsync(requestUri, content, reqCts.Token).ConfigureAwait(false);
-            await EnsureSuccess(resp, requestUri.ToString(), payload).ConfigureAwait(false);
+            using var resp = await _http.PostAsync(relativeUrl, content, reqCts.Token).ConfigureAwait(false);
+            await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
             return JsonConvert.DeserializeObject<TResponse>(json, _json);
@@ -113,11 +103,10 @@ namespace GDM2026.Services
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
-            var requestUri = BuildUri(relativeUrl);
-            using var resp = await _http.PostAsync(requestUri, content, reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.PostAsync(relativeUrl, content, reqCts.Token).ConfigureAwait(false);
             if (resp.IsSuccessStatusCode) return true;
 
-            await EnsureSuccess(resp, requestUri.ToString(), payload).ConfigureAwait(false);
+            await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
             return false; // n’est jamais atteint si EnsureSuccess lève
         }
 
