@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DantecMarket2026.Services
+namespace GDM2026.Services
 {
     public interface IApis : IDisposable
     {
