@@ -63,9 +63,10 @@ namespace GDM2026.Services
         // ---------- GET : renvoie List<T> ----------
         public async Task<List<T>> GetListAsync<T>(string relativeUrl, CancellationToken ct = default)
         {
+            var path = NormalizeUrl(relativeUrl);
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
-            using var resp = await _http.GetAsync(relativeUrl, reqCts.Token).ConfigureAwait(false);
-            await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
+            using var resp = await _http.GetAsync(path, reqCts.Token).ConfigureAwait(false);
+            await EnsureSuccess(resp, path).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
             return JsonConvert.DeserializeObject<List<T>>(json, _json) ?? new List<T>();
@@ -74,9 +75,10 @@ namespace GDM2026.Services
         // ---------- GET : renvoie un TOut ----------
         public async Task<TOut> GetAsync<TOut>(string relativeUrl, CancellationToken ct = default)
         {
+            var path = NormalizeUrl(relativeUrl);
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
-            using var resp = await _http.GetAsync(relativeUrl, reqCts.Token).ConfigureAwait(false);
-            await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
+            using var resp = await _http.GetAsync(path, reqCts.Token).ConfigureAwait(false);
+            await EnsureSuccess(resp, path).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
             return JsonConvert.DeserializeObject<TOut>(json, _json);
@@ -85,12 +87,13 @@ namespace GDM2026.Services
         // ---------- POST : renvoie un type de réponse ----------
         public async Task<TResponse> PostAsync<TRequest, TResponse>(string relativeUrl, TRequest body, CancellationToken ct = default)
         {
+            var path = NormalizeUrl(relativeUrl);
             var payload = JsonConvert.SerializeObject(body, _json);
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
-            using var resp = await _http.PostAsync(relativeUrl, content, reqCts.Token).ConfigureAwait(false);
-            await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
+            using var resp = await _http.PostAsync(path, content, reqCts.Token).ConfigureAwait(false);
+            await EnsureSuccess(resp, path, payload).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
             return JsonConvert.DeserializeObject<TResponse>(json, _json);
@@ -99,15 +102,28 @@ namespace GDM2026.Services
         // ---------- POST : bool succès/échec ----------
         public async Task<bool> PostBoolAsync<TRequest>(string relativeUrl, TRequest body, CancellationToken ct = default)
         {
+            var path = NormalizeUrl(relativeUrl);
             var payload = JsonConvert.SerializeObject(body, _json);
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
-            using var resp = await _http.PostAsync(relativeUrl, content, reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.PostAsync(path, content, reqCts.Token).ConfigureAwait(false);
             if (resp.IsSuccessStatusCode) return true;
 
-            await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
+            await EnsureSuccess(resp, path, payload).ConfigureAwait(false);
             return false; // n’est jamais atteint si EnsureSuccess lève
+        }
+
+        private static string NormalizeUrl(string relativeUrl)
+        {
+            if (string.IsNullOrWhiteSpace(relativeUrl))
+                throw new ArgumentException("relativeUrl cannot be null or empty", nameof(relativeUrl));
+
+            if (Uri.TryCreate(relativeUrl, UriKind.Absolute, out var absolute))
+                return absolute.ToString();
+
+            var trimmed = relativeUrl.Trim();
+            return trimmed.StartsWith("/") ? trimmed : "/" + trimmed;
         }
 
         // ========== Helpers ==========
