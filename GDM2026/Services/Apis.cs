@@ -92,7 +92,7 @@ namespace GDM2026.Services
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
-            using var resp = await _http.PostAsync(path, content, reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.PostAsync("path", content, reqCts.Token).ConfigureAwait(false);
             await EnsureSuccess(resp, path, payload).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
