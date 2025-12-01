@@ -87,11 +87,14 @@ namespace GDM2026.Services
         // ---------- POST : renvoie un type de réponse ----------
         public async Task<TResponse> PostAsync<TRequest, TResponse>(string relativeUrl, TRequest body, CancellationToken ct = default)
         {
+
+            
             var uri = BuildUri(relativeUrl);
             var payload = JsonConvert.SerializeObject(body, _json);
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
-
+            Console.WriteLine($"[DEBUG] POST Full URL: {uri}");
+            Console.WriteLine($"[DEBUG] POST BaseAddress: {_http.BaseAddress}");
             using var resp = await _http.PostAsync(uri, content, reqCts.Token).ConfigureAwait(false);
             await EnsureSuccess(resp, uri.ToString(), payload).ConfigureAwait(false);
 
