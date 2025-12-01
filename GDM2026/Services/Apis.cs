@@ -1,4 +1,5 @@
-﻿using GDM2026;
+﻿
+using GDM2026;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
@@ -9,7 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace GDM2026.Services
+namespace DantecMarket2026.Services
 {
     public interface IApis : IDisposable
     {
@@ -39,8 +40,8 @@ namespace GDM2026.Services
             if (!_http.DefaultRequestHeaders.Accept.Contains(new MediaTypeWithQualityHeaderValue("application/json")))
                 _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            if (!_http.DefaultRequestHeaders.UserAgent.TryParseAdd("GestDM/1.0 (+maui)"))
-                _http.DefaultRequestHeaders.UserAgent.ParseAdd("GestDM/1.0");
+            if (!_http.DefaultRequestHeaders.UserAgent.TryParseAdd("DantecMarket2026/1.0 (+maui)"))
+                _http.DefaultRequestHeaders.UserAgent.ParseAdd("DantecMarket2026/1.0");
 
             _json = new JsonSerializerSettings
             {
@@ -63,7 +64,7 @@ namespace GDM2026.Services
         public async Task<List<T>> GetListAsync<T>(string relativeUrl, CancellationToken ct = default)
         {
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
-            using var resp = await _http.GetAsync(BuildUri(relativeUrl), reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.GetAsync(relativeUrl, reqCts.Token).ConfigureAwait(false);
             await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -74,7 +75,7 @@ namespace GDM2026.Services
         public async Task<TOut> GetAsync<TOut>(string relativeUrl, CancellationToken ct = default)
         {
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
-            using var resp = await _http.GetAsync(BuildUri(relativeUrl), reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.GetAsync(relativeUrl, reqCts.Token).ConfigureAwait(false);
             await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -88,7 +89,7 @@ namespace GDM2026.Services
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
-            using var resp = await _http.PostAsync(BuildUri(relativeUrl), content, reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.PostAsync(relativeUrl, content, reqCts.Token).ConfigureAwait(false);
             await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -102,7 +103,7 @@ namespace GDM2026.Services
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
-            using var resp = await _http.PostAsync(BuildUri(relativeUrl), content, reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.PostAsync(relativeUrl, content, reqCts.Token).ConfigureAwait(false);
             if (resp.IsSuccessStatusCode) return true;
 
             await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
@@ -132,33 +133,6 @@ namespace GDM2026.Services
             var cts = CancellationTokenSource.CreateLinkedTokenSource(external);
             cts.CancelAfter(perRequestTimeout);
             return cts;
-        }
-
-        private Uri BuildUri(string relativeUrl)
-        {
-            // Nous ne considérons comme absolus que les schémas http/https afin d'éviter
-            // qu'une valeur contenant un ':' (ex : "api:foo") soit interprétée comme schéma.
-            if (!string.IsNullOrWhiteSpace(relativeUrl) &&
-                (relativeUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-                 relativeUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) &&
-                Uri.TryCreate(relativeUrl, UriKind.Absolute, out var absolute))
-            {
-                return absolute;
-            }
-
-            var baseUri = _http.BaseAddress;
-            if (baseUri == null && !string.IsNullOrWhiteSpace(Constantes.BaseApiAddress))
-            {
-                baseUri = new Uri(Constantes.BaseApiAddress, UriKind.Absolute);
-            }
-
-            if (baseUri == null)
-            {
-                throw new InvalidOperationException("BaseApiAddress n'est pas configurée.");
-            }
-
-            var sanitizedRelative = relativeUrl?.StartsWith('/') == true ? relativeUrl[1..] : relativeUrl;
-            return new Uri(baseUri, sanitizedRelative);
         }
     }
 }
