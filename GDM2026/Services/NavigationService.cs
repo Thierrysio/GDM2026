@@ -23,7 +23,7 @@ public class NavigationService : INavigationService
         var finalRoute = absolute ? $"//{route}" : route;
         return parameters is null
             ? Shell.Current.GoToAsync(finalRoute, animate)
-            : Shell.Current.GoToAsync(finalRoute, parameters, animate);
+            : Shell.Current.GoToAsync(finalRoute, parameters);
     }
 
     public bool IsShellRoute(string route)
