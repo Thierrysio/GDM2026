@@ -116,27 +116,17 @@ namespace GDM2026.Services
 
         private Uri BuildUri(string relativeUrl)
         {
-            var path = NormalizeUrl(relativeUrl);
+            if (string.IsNullOrWhiteSpace(relativeUrl))
+                throw new ArgumentException("relativeUrl cannot be null or empty", nameof(relativeUrl));
 
-            if (Uri.TryCreate(path, UriKind.Absolute, out var absolute))
+            if (Uri.TryCreate(relativeUrl, UriKind.Absolute, out var absolute))
                 return absolute;
 
             if (_http.BaseAddress == null)
                 throw new InvalidOperationException("HttpClient.BaseAddress is not set; cannot resolve relative URL.");
 
-            return new Uri(_http.BaseAddress, path);
-        }
-
-        private static string NormalizeUrl(string relativeUrl)
-        {
-            if (string.IsNullOrWhiteSpace(relativeUrl))
-                throw new ArgumentException("relativeUrl cannot be null or empty", nameof(relativeUrl));
-
-            if (Uri.TryCreate(relativeUrl, UriKind.Absolute, out var absolute))
-                return absolute.ToString();
-
-            var trimmed = relativeUrl.Trim();
-            return trimmed.StartsWith("/") ? trimmed : "/" + trimmed;
+            var trimmed = relativeUrl.TrimStart('/');
+            return new Uri(_http.BaseAddress, trimmed);
         }
 
         // ========== Helpers ==========
