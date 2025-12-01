@@ -30,10 +30,10 @@ namespace GDM2026
 
             try
             {
-                var hasSession = await _sessionService.LoadAsync().ConfigureAwait(false);
+                var hasSession = await _sessionService.LoadAsync();
                 if (hasSession && _sessionService.IsAuthenticated)
                 {
-                    await NavigateToHomeAsync().ConfigureAwait(false);
+                    await NavigateToHomeAsync();
                 }
             }
             finally
