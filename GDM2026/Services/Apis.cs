@@ -118,7 +118,10 @@ namespace GDM2026.Services
             string body = null;
             try { body = await response.Content.ReadAsStringAsync().ConfigureAwait(false); } catch { }
 
-            var msg = $"API error {(int)response.StatusCode} {response.ReasonPhrase} on '{path}'. " +
+            var requestedUri = response.RequestMessage?.RequestUri?.ToString();
+
+            var msg = $"API error {(int)response.StatusCode} {response.ReasonPhrase} on '{path}'" +
+                      (string.IsNullOrWhiteSpace(requestedUri) ? ". " : $" (final URL: {requestedUri}). ") +
                       (payload == null ? "" : $"Payload: {Trim(payload)} ") +
                       (string.IsNullOrWhiteSpace(body) ? "" : $"Body: {Trim(body)}");
 
