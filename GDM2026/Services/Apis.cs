@@ -136,7 +136,12 @@ namespace GDM2026.Services
 
         private Uri BuildUri(string relativeUrl)
         {
-            if (Uri.TryCreate(relativeUrl, UriKind.Absolute, out var absolute))
+            // Nous ne considérons comme absolus que les schémas http/https afin d'éviter
+            // qu'une valeur contenant un ':' (ex : "api:foo") soit interprétée comme schéma.
+            if (!string.IsNullOrWhiteSpace(relativeUrl) &&
+                (relativeUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                 relativeUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) &&
+                Uri.TryCreate(relativeUrl, UriKind.Absolute, out var absolute))
             {
                 return absolute;
             }
