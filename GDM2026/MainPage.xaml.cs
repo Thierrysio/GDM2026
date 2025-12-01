@@ -104,7 +104,7 @@ namespace GDM2026
             try
             {
                 return await _apis
-                    .PostAsync<object, User>("/api/mobile/GetFindUser", loginData)
+                    .PostAsync<object, User>("/api/mobile/getFindUser", loginData)
                     .ConfigureAwait(false);
             }
             catch (HttpRequestException ex) when (ex.Message.StartsWith("API error", StringComparison.OrdinalIgnoreCase))
