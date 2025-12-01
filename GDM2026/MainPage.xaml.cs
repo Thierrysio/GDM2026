@@ -1,6 +1,7 @@
 using GDM2026.Models;
 using GDM2026.Services;
 using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace GDM2026
@@ -68,19 +69,23 @@ namespace GDM2026
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
                         FeedbackLabel.TextColor = Colors.LimeGreen;
-                        FeedbackLabel.Text = $"Bienvenue {(user.Nom ?? user.UserIdentifier ?? username)}";
-                        await DisplayAlert("Connexion réussie", "Authentification validée via getfinduser.", "Continuer");
+                        FeedbackLabel.Text = $"Bienvenue {(user.Prenom ?? user.Nom ?? user.UserIdentifier ?? username)}".Trim();
+                        await DisplayAlert("Connexion réussie", "Authentification validée.", "Continuer");
                         await NavigateToHomeAsync();
                     });
                 }
                 else
                 {
-                    await ShowAuthenticationErrorAsync();
+                    await ShowAuthenticationErrorAsync("Email ou mot de passe incorrect.");
                 }
             }
-            catch (Exception)
+            catch (TaskCanceledException)
             {
-                await ShowAuthenticationErrorAsync();
+                await ShowAuthenticationErrorAsync("Délai d'attente dépassé. Vérifiez votre connexion internet.");
+            }
+            catch (HttpRequestException)
+            {
+                await ShowAuthenticationErrorAsync("Impossible de contacter le serveur. Veuillez réessayer.");
             }
             finally
             {
@@ -90,16 +95,30 @@ namespace GDM2026
 
         private async Task<User?> AuthenticateAsync(string username, string password)
         {
-            var relativeUrl = $"getfinduser?user={Uri.EscapeDataString(username)}&pass={Uri.EscapeDataString(password)}";
-            return await _apis.GetAsync<User>(relativeUrl).ConfigureAwait(false);
+            var loginData = new
+            {
+                Email = username,
+                Password = password
+            };
+
+            try
+            {
+                return await _apis
+                    .PostAsync<object, User>("/api/mobile/GetFindUser", loginData)
+                    .ConfigureAwait(false);
+            }
+            catch (HttpRequestException ex) when (ex.Message.StartsWith("API error", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
         }
 
-        private async Task ShowAuthenticationErrorAsync()
+        private async Task ShowAuthenticationErrorAsync(string message = "Identifiant ou mot de passe incorrect.")
         {
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 FeedbackLabel.TextColor = Colors.OrangeRed;
-                FeedbackLabel.Text = "Identifiant ou mot de passe incorrect.";
+                FeedbackLabel.Text = message;
                 await DisplayAlert("Erreur", "Impossible de vous connecter avec ces identifiants.", "Réessayer");
             });
         }
