@@ -41,18 +41,43 @@ namespace GDM2026
 
             var items = new List<CategoryCard>
             {
-                new("Produits", "Gérez le catalogue, les fiches et les stocks."),
+                new("Dashboard", "Vue d'ensemble et indicateurs clés."),
+                new("Actualite", "Dernières nouvelles et publications."),
+                new("Categories", "Gestion des catégories principales."),
+                new("Super categories", "Organisation des catégories parentes."),
+                new("Catégories Evenements", "Sections dédiées aux événements."),
                 new("Commandes", "Suivi, validation et historique des commandes."),
-                new("Clients", "Informations, comptes et fidélité des acheteurs."),
-                new("Promotions", "Codes promo, remises et mises en avant."),
-                new("Livraisons", "Transporteurs, zones et suivi logistique."),
-                new("Paiements", "Modes de paiement et transactions sécurisées."),
-                new("Rapports", "Tableaux de bord et indicateurs clés."),
-                new("Paramètres", "Configuration générale du site Dantec Market."),
+                new("Images", "Bibliothèque et gestion des médias."),
+                new("Messages", "Communication et notifications utilisateurs."),
+                new("Partenaires", "Gestion des partenaires et fournisseurs."),
+                new("Reservations", "Planning et suivi des réservations."),
+                new("Produits", "Gérez le catalogue, les fiches et les stocks."),
+                new("Utilisateurs", "Comptes, rôles et informations des membres."),
+                new("Commentaires", "Modération et suivi des avis."),
+                new("Promo", "Codes promo, remises et campagnes."),
+                new("Planning", "Calendrier et organisation des activités."),
+                new("Histoire", "Présentation et historique de Dantec Market."),
+                new("Catalogue", "Consultation globale des offres."),
             };
 
             foreach (var item in items)
                 Categories.Add(item);
+        }
+
+        private async void OnCategoryTapped(object sender, TappedEventArgs e)
+        {
+            if (e.Parameter is not CategoryCard selectedCard)
+            {
+                return;
+            }
+
+            if (Shell.Current != null)
+            {
+                await Shell.Current.GoToAsync(nameof(CategoryDetailPage), new Dictionary<string, object>
+                {
+                    { "card", selectedCard }
+                });
+            }
         }
     }
 
