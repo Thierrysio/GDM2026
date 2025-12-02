@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:GDM2026"
              x:Class="GDM2026.OrderStatusPage"
              BackgroundColor="#0B0B0B">
     <ContentPage.Resources>
@@ -48,7 +49,7 @@
                             CornerRadius="14"
                             HasShadow="False"
                             BorderColor="#000000">
-                            <Grid ColumnDefinitions="auto,*" ColumnSpacing="12" VerticalOptions="Center">
+                            <Grid ColumnDefinitions="auto,*,auto" ColumnSpacing="12" VerticalOptions="Center">
                                 <Image
                                     Source="{Binding ImageUrl}"
                                     WidthRequest="72"
@@ -63,6 +64,20 @@
                                     FontSize="18"
                                     FontAttributes="Bold"
                                     TextColor="{StaticResource GoldText}" />
+                                <Picker
+                                    Grid.Column="2"
+                                    WidthRequest="120"
+                                    ItemsSource="{x:Static local:OrderStatusPage.StatusOptions}"
+                                    SelectedItem="{Binding CurrentStatus}"
+                                    SelectedIndexChanged="OnStatusChanged"
+                                    TextColor="{StaticResource GoldText}"
+                                    Title="État"
+                                    TitleColor="{StaticResource GoldText}"
+                                    BackgroundColor="Transparent"
+                                    FontSize="12"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center"
+                                    HeightRequest="36" />
                             </Grid>
                         </Frame>
                     </DataTemplate>
