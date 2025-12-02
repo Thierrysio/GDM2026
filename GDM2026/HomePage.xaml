@@ -16,7 +16,8 @@
                 BackgroundColor="{StaticResource CardBackground}"
                 CornerRadius="18"
                 Padding="24"
-                HasShadow="True">
+                HasShadow="True"
+                BorderColor="#000000">
                 <VerticalStackLayout Spacing="12">
                     <Label
                         Text="Accueil"
@@ -38,6 +39,45 @@
                         TextColor="{StaticResource GoldText}" />
                 </VerticalStackLayout>
             </Frame>
+
+            <Label
+                Text="Catégories administrateur"
+                FontSize="22"
+                FontAttributes="Bold"
+                TextColor="{StaticResource GoldText}" />
+
+            <CollectionView
+                ItemsSource="{Binding Categories}"
+                SelectionMode="None"
+                Margin="0,6,0,0">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical" Span="2" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame
+                            Margin="6"
+                            Padding="16"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            CornerRadius="16"
+                            HasShadow="False"
+                            BorderColor="#000000">
+                            <VerticalStackLayout Spacing="6">
+                                <Label
+                                    Text="{Binding Title}"
+                                    FontSize="18"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource GoldText}" />
+                                <Label
+                                    Text="{Binding Description}"
+                                    FontSize="13"
+                                    TextColor="{StaticResource GoldText}"
+                                    Opacity="0.75" />
+                            </VerticalStackLayout>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
