@@ -81,13 +81,13 @@
                                         Text="{Binding Name}"
                                         FontSize="18"
                                         FontAttributes="Bold"
-                                        TextColor="{StaticResource CardContentText}"
+                                        TextColor="{StaticResource GoldText}"
                                         LineBreakMode="TailTruncation"
                                         MaxLines="1" />
                                     <Label
                                         Text="{Binding CurrentStatus, StringFormat='Statut : {0}'}"
                                         FontSize="13"
-                                        TextColor="{StaticResource CardContentText}"
+                                        TextColor="{StaticResource GoldText}"
                                         Opacity="0.75"
                                         LineBreakMode="TailTruncation"
                                         MaxLines="1" />
