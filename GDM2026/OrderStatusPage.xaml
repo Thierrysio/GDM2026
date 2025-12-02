@@ -6,7 +6,9 @@
              BackgroundColor="#0B0B0B">
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
-        <Color x:Key="CardBackground">#151515</Color>
+        <Color x:Key="CardBackground">#F4D67A</Color>
+        <Color x:Key="CardBorder">#D4AF37</Color>
+        <Color x:Key="CardContentText">#000000</Color>
     </ContentPage.Resources>
 
     <ScrollView>
@@ -16,19 +18,21 @@
                 CornerRadius="18"
                 Padding="24"
                 HasShadow="True"
-                BorderColor="#000000">
+                BorderColor="{StaticResource CardBorder}">
                 <VerticalStackLayout Spacing="8">
                     <Label
                         x:Name="StatusTitle"
                         FontSize="28"
                         FontAttributes="Bold"
                         HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}" />
+                        TextColor="{StaticResource CardContentText}"
+                        LineBreakMode="TailTruncation"
+                        MaxLines="1" />
                     <Label
                         x:Name="StatusSubtitle"
                         FontSize="16"
                         HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}"
+                        TextColor="{StaticResource CardContentText}"
                         Opacity="0.85" />
                 </VerticalStackLayout>
             </Frame>
@@ -48,7 +52,7 @@
                             BackgroundColor="{StaticResource CardBackground}"
                             CornerRadius="14"
                             HasShadow="False"
-                            BorderColor="#000000">
+                            BorderColor="{StaticResource CardBorder}">
                             <Grid ColumnDefinitions="auto,*,auto" ColumnSpacing="12" VerticalOptions="Center">
                                 <Image
                                     Source="{Binding ImageUrl}"
@@ -63,12 +67,16 @@
                                         Text="{Binding Name}"
                                         FontSize="18"
                                         FontAttributes="Bold"
-                                        TextColor="{StaticResource GoldText}" />
+                                        TextColor="{StaticResource CardContentText}"
+                                        LineBreakMode="TailTruncation"
+                                        MaxLines="1" />
                                     <Label
                                         Text="{Binding CurrentStatus, StringFormat='Statut : {0}'}"
                                         FontSize="13"
-                                        TextColor="{StaticResource GoldText}"
-                                        Opacity="0.75" />
+                                        TextColor="{StaticResource CardContentText}"
+                                        Opacity="0.75"
+                                        LineBreakMode="TailTruncation"
+                                        MaxLines="1" />
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Grid.Column="2" Spacing="4" HorizontalOptions="End" VerticalOptions="Center">
                                     <Picker
@@ -76,15 +84,20 @@
                                         HorizontalOptions="End"
                                         ItemsSource="{Binding AvailableStatuses, Source={x:Reference OrderStatusPageRoot}}"
                                         SelectedItem="{Binding CurrentStatus, Mode=OneWay}"
-                                        TextColor="{StaticResource GoldText}"
+                                        TextColor="{StaticResource CardContentText}"
                                         Title="Modifier l'état"
                                         SelectedIndexChanged="OnStatusSelectionChanged" />
                                     <Button
                                         Text="↩"
                                         FontSize="18"
-                                        BackgroundColor="Transparent"
+                                        BackgroundColor="#000000"
                                         TextColor="{StaticResource GoldText}"
-                                        Padding="8,0"
+                                        Padding="0"
+                                        WidthRequest="36"
+                                        HeightRequest="36"
+                                        CornerRadius="6"
+                                        BorderWidth="1"
+                                        BorderColor="{StaticResource CardBorder}"
                                         HorizontalOptions="End"
                                         VerticalOptions="Center"
                                         IsEnabled="{Binding CanRevert}"
