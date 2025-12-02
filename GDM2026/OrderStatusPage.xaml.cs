@@ -264,6 +264,8 @@ public partial class OrderStatusPage : ContentPage
                 }
             });
 
+            OrderStatusDeltaTracker.RecordChange(previousStatus, newStatus);
+
             return true;
         }
         catch (TaskCanceledException)

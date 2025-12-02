@@ -60,13 +60,15 @@
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Frame
+                        <Border
                             Margin="0,6"
-                            Padding="12"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            CornerRadius="14"
-                            HasShadow="False"
-                            BorderColor="{StaticResource CardBorder}">
+                            Padding="14"
+                            Stroke="{StaticResource GoldText}"
+                            StrokeThickness="2"
+                            BackgroundColor="{StaticResource CardBackground}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
                             <Grid ColumnDefinitions="auto,*,auto" ColumnSpacing="12" VerticalOptions="Center">
                                 <Image
                                     Source="{Binding ImageUrl}"
@@ -79,7 +81,7 @@
                                 <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
                                     <Label
                                         Text="{Binding Name}"
-                                        FontSize="16"
+                                        FontSize="15"
                                         FontAttributes="Bold"
                                         TextColor="{StaticResource GoldText}"
                                         LineBreakMode="TailTruncation"
@@ -115,7 +117,7 @@
                                     </Border>
                                 </VerticalStackLayout>
                             </Grid>
-                        </Frame>
+                        </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
