@@ -161,11 +161,19 @@ public partial class OrderStatusPage : ContentPage
 
         var previousStatus = product.CurrentStatus;
 
-        var updated = await UpdateOrderStatusAsync(product, selectedStatus, isReverting: false).ConfigureAwait(false);
-
-        if (!updated)
+        try
         {
-            picker.SelectedItem = previousStatus;
+            var updated = await UpdateOrderStatusAsync(product, selectedStatus, isReverting: false);
+
+            if (!updated)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() => picker.SelectedItem = previousStatus);
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowLoadErrorAsync("Une erreur est survenue lors de la mise à jour du statut.");
+            System.Diagnostics.Debug.WriteLine(ex);
         }
     }
 
@@ -181,7 +189,7 @@ public partial class OrderStatusPage : ContentPage
             return;
         }
 
-        await UpdateOrderStatusAsync(product, product.PreviousStatus, isReverting: true).ConfigureAwait(false);
+        await UpdateOrderStatusAsync(product, product.PreviousStatus, isReverting: true);
     }
 
     private async Task<bool> UpdateOrderStatusAsync(OrderStatusProduct product, string newStatus, bool isReverting)
@@ -238,6 +246,10 @@ public partial class OrderStatusPage : ContentPage
         catch (HttpRequestException)
         {
             await ShowLoadErrorAsync("Impossible de mettre à jour le statut de cette commande.");
+        }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue empêche la mise à jour du statut.");
         }
 
         return false;
