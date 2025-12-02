@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.OrderStatusPage"
+             BackgroundColor="#0B0B0B">
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+        <Color x:Key="CardBackground">#151515</Color>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16">
+            <Frame
+                BackgroundColor="{StaticResource CardBackground}"
+                CornerRadius="18"
+                Padding="24"
+                HasShadow="True"
+                BorderColor="#000000">
+                <VerticalStackLayout Spacing="8">
+                    <Label
+                        x:Name="StatusTitle"
+                        FontSize="28"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
+                    <Label
+                        x:Name="StatusSubtitle"
+                        FontSize="16"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <CollectionView ItemsSource="{Binding Products}" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="12" Spacing="6" HorizontalOptions="Center">
+                        <ActivityIndicator IsVisible="{Binding IsLoading}" IsRunning="{Binding IsLoading}" />
+                        <Label Text="Aucun produit à afficher pour cet état." TextColor="{StaticResource GoldText}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame
+                            Margin="0,6"
+                            Padding="12"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            CornerRadius="14"
+                            HasShadow="False"
+                            BorderColor="#000000">
+                            <Grid ColumnDefinitions="auto,*" ColumnSpacing="12" VerticalOptions="Center">
+                                <Image
+                                    Source="{Binding ImageUrl}"
+                                    WidthRequest="72"
+                                    HeightRequest="72"
+                                    Aspect="AspectFill"
+                                    HorizontalOptions="Start"
+                                    VerticalOptions="Center"
+                                    Clip="Rectangle" />
+                                <Label
+                                    Grid.Column="1"
+                                    Text="{Binding Name}"
+                                    FontSize="18"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource GoldText}" />
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
