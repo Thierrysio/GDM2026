@@ -19,6 +19,10 @@ public class OrderByStatus
 
     public string? Etat { get; set; }
 
+    public string? NomClient { get; set; }
+
+    public string? PrenomClient { get; set; }
+
     public string? PlanningDetails { get; set; }
 
     public string DisplayTitle => $"Commande #{Id}";

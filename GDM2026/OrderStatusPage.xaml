@@ -36,7 +36,7 @@
                 <VerticalStackLayout Spacing="8">
                     <Label
                         x:Name="StatusTitle"
-                        FontSize="28"
+                        FontSize="24"
                         FontAttributes="Bold"
                         HorizontalTextAlignment="Center"
                         TextColor="{StaticResource GoldText}"
@@ -44,7 +44,7 @@
                         MaxLines="1" />
                     <Label
                         x:Name="StatusSubtitle"
-                        FontSize="16"
+                        FontSize="14"
                         HorizontalTextAlignment="Center"
                         TextColor="{StaticResource GoldText}"
                         Opacity="0.85" />
@@ -79,14 +79,14 @@
                                 <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
                                     <Label
                                         Text="{Binding Name}"
-                                        FontSize="18"
+                                        FontSize="16"
                                         FontAttributes="Bold"
                                         TextColor="{StaticResource GoldText}"
                                         LineBreakMode="TailTruncation"
                                         MaxLines="1" />
                                     <Label
-                                        Text="{Binding CurrentStatus, StringFormat='Statut : {0}'}"
-                                        FontSize="13"
+                                        Text="{Binding CustomerName, StringFormat='Client : {0}'}"
+                                        FontSize="12"
                                         TextColor="{StaticResource GoldText}"
                                         Opacity="0.75"
                                         LineBreakMode="TailTruncation"
