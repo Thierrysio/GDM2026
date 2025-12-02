@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="GDM2026.OrderStatusPage"
+             x:Name="OrderStatusPageRoot"
              BackgroundColor="#0B0B0B">
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
@@ -69,16 +70,26 @@
                                         TextColor="{StaticResource GoldText}"
                                         Opacity="0.75" />
                                 </VerticalStackLayout>
-                                <Button
-                                    Grid.Column="2"
-                                    Text="⋮"
-                                    FontSize="18"
-                                    BackgroundColor="Transparent"
-                                    TextColor="{StaticResource GoldText}"
-                                    Padding="8,0"
-                                    HorizontalOptions="End"
-                                    VerticalOptions="Center"
-                                    Clicked="OnChangeStatusRequested" />
+                                <VerticalStackLayout Grid.Column="2" Spacing="4" HorizontalOptions="End" VerticalOptions="Center">
+                                    <Picker
+                                        WidthRequest="130"
+                                        HorizontalOptions="End"
+                                        ItemsSource="{Binding AvailableStatuses, Source={x:Reference OrderStatusPageRoot}}"
+                                        SelectedItem="{Binding CurrentStatus, Mode=OneWay}"
+                                        TextColor="{StaticResource GoldText}"
+                                        Title="Modifier l'état"
+                                        SelectedIndexChanged="OnStatusSelectionChanged" />
+                                    <Button
+                                        Text="↩"
+                                        FontSize="18"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{StaticResource GoldText}"
+                                        Padding="8,0"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="Center"
+                                        IsEnabled="{Binding CanRevert}"
+                                        Clicked="OnRevertStatusRequested" />
+                                </VerticalStackLayout>
                             </Grid>
                         </Frame>
                     </DataTemplate>
