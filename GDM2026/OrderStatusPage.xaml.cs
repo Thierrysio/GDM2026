@@ -32,6 +32,8 @@ public partial class OrderStatusPage : ContentPage
 
     public ObservableCollection<OrderStatusProduct> Products { get; } = new();
 
+    public IReadOnlyList<string> AvailableStatuses => _availableStatuses;
+
     public string? Status { get; set; }
 
     public bool IsLoading { get; private set; }
@@ -138,33 +140,49 @@ public partial class OrderStatusPage : ContentPage
         });
     }
 
-    private async void OnChangeStatusRequested(object sender, EventArgs e)
+    private async void OnStatusSelectionChanged(object sender, EventArgs e)
     {
-        if (sender is not BindableObject bindable || bindable.BindingContext is not OrderStatusProduct product)
+        if (sender is not Picker picker || picker.SelectedItem is not string selectedStatus)
         {
             return;
         }
 
-        var options = _availableStatuses
-            .Concat(string.IsNullOrWhiteSpace(product.CurrentStatus) ? Array.Empty<string>() : new[] { product.CurrentStatus })
-            .Distinct()
-            .ToArray();
-
-        var selection = await DisplayActionSheet(
-            "Modifier l'état de la commande",
-            "Annuler",
-            null,
-            options);
-
-        if (string.IsNullOrWhiteSpace(selection) || selection == product.CurrentStatus)
+        if (picker.BindingContext is not OrderStatusProduct product)
         {
             return;
         }
 
-        await UpdateOrderStatusAsync(product, selection).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(selectedStatus) || selectedStatus == product.CurrentStatus)
+        {
+            return;
+        }
+
+        var previousStatus = product.CurrentStatus;
+
+        var updated = await UpdateOrderStatusAsync(product, selectedStatus, isReverting: false).ConfigureAwait(false);
+
+        if (!updated)
+        {
+            picker.SelectedItem = previousStatus;
+        }
     }
 
-    private async Task UpdateOrderStatusAsync(OrderStatusProduct product, string newStatus)
+    private async void OnRevertStatusRequested(object sender, EventArgs e)
+    {
+        if (sender is not Button button || button.BindingContext is not OrderStatusProduct product)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(product.PreviousStatus))
+        {
+            return;
+        }
+
+        await UpdateOrderStatusAsync(product, product.PreviousStatus, isReverting: true).ConfigureAwait(false);
+    }
+
+    private async Task<bool> UpdateOrderStatusAsync(OrderStatusProduct product, string newStatus, bool isReverting)
     {
         var endpoint = "https://dantecmarket.com/api/mobile/modifierEtatCommande";
         var request = new UpdateOrderStatusRequest
@@ -173,6 +191,18 @@ public partial class OrderStatusPage : ContentPage
             Etat = newStatus
         };
 
+        var previousStatus = product.CurrentStatus;
+
+        if (string.Equals(previousStatus, newStatus, StringComparison.Ordinal))
+        {
+            if (isReverting)
+            {
+                product.ClearPreviousStatus();
+            }
+
+            return false;
+        }
+
         try
         {
             var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
@@ -180,13 +210,24 @@ public partial class OrderStatusPage : ContentPage
             if (!success)
             {
                 await ShowLoadErrorAsync("Impossible de modifier l'état de cette commande.");
-                return;
+                return false;
             }
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                product.CurrentStatus = newStatus;
+                if (isReverting)
+                {
+                    product.CurrentStatus = newStatus;
+                    product.ClearPreviousStatus();
+                }
+                else
+                {
+                    product.RememberPreviousStatus(previousStatus);
+                    product.CurrentStatus = newStatus;
+                }
             });
+
+            return true;
         }
         catch (TaskCanceledException)
         {
@@ -196,12 +237,15 @@ public partial class OrderStatusPage : ContentPage
         {
             await ShowLoadErrorAsync("Impossible de mettre à jour le statut de cette commande.");
         }
+
+        return false;
     }
 }
 
 public class OrderStatusProduct : INotifyPropertyChanged
 {
     private string _currentStatus = string.Empty;
+    private string? _previousStatus;
 
     public int OrderId { get; set; }
 
@@ -212,6 +256,24 @@ public class OrderStatusProduct : INotifyPropertyChanged
         get => _currentStatus;
         set => SetProperty(ref _currentStatus, value);
     }
+
+    public string? PreviousStatus
+    {
+        get => _previousStatus;
+        private set
+        {
+            if (SetProperty(ref _previousStatus, value))
+            {
+                OnPropertyChanged(nameof(CanRevert));
+            }
+        }
+    }
+
+    public bool CanRevert => !string.IsNullOrWhiteSpace(PreviousStatus);
+
+    public void RememberPreviousStatus(string status) => PreviousStatus = status;
+
+    public void ClearPreviousStatus() => PreviousStatus = null;
 
     public string Name { get; set; } = string.Empty;
 
