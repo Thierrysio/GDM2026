@@ -55,10 +55,13 @@ public partial class OrderStatusPage : ContentPage
 
         try
         {
-            var endpoint = $"https://dantecmarket.com/api/mobile/getCommandeParEtat/{Uri.EscapeDataString(Status)}";
-            var orders = await _apis.GetListAsync<OrderByStatus>(endpoint).ConfigureAwait(false);
+            var endpoint = "https://dantecmarket.com/api/mobile/commandesParEtat";
+            var request = new OrderStatusRequest { Cd = Status };
+            var orders = await _apis
+                .PostAsync<OrderStatusRequest, List<OrderByStatus>>(endpoint, request)
+                .ConfigureAwait(false);
 
-            var items = orders
+            var items = (orders ?? new List<OrderByStatus>())
                 .SelectMany(o => o.LesCommandes ?? new List<OrderLine>())
                 .Select(line => new OrderStatusProduct
                 {
