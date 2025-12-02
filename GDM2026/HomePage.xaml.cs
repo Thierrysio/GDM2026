@@ -131,6 +131,14 @@ namespace GDM2026
             }
         }
 
+        private async void OnOrderStatusTapped(object sender, TappedEventArgs e)
+        {
+            if (sender is BindableObject bindable && bindable.BindingContext is OrderStatus status)
+            {
+                await NavigateToOrderStatusAsync(status).ConfigureAwait(false);
+            }
+        }
+
         private Task NavigateToCategoryAsync(CategoryCard card)
         {
             if (Shell.Current == null)
@@ -141,6 +149,19 @@ namespace GDM2026
             return Shell.Current.GoToAsync(nameof(CategoryDetailPage), new Dictionary<string, object>
             {
                 { "card", card }
+            });
+        }
+
+        private Task NavigateToOrderStatusAsync(OrderStatus status)
+        {
+            if (Shell.Current == null)
+            {
+                return Task.CompletedTask;
+            }
+
+            return Shell.Current.GoToAsync(nameof(OrderStatusPage), new Dictionary<string, object>
+            {
+                { "status", status.Status }
             });
         }
     }
