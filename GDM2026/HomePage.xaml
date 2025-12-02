@@ -20,6 +20,57 @@
                 BorderColor="#000000">
                 <VerticalStackLayout Spacing="12">
                     <Label
+                        Text="Commandes par état"
+                        FontSize="22"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
+
+                    <CollectionView
+                        ItemsSource="{Binding OrderStatuses}"
+                        SelectionMode="None">
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout Orientation="Vertical" Span="2" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Frame
+                                    Margin="6"
+                                    Padding="12"
+                                    BackgroundColor="#1F1F1F"
+                                    CornerRadius="14"
+                                    HasShadow="False"
+                                    BorderColor="#000000">
+                                    <Frame.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnStatusTapped" />
+                                    </Frame.GestureRecognizers>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label
+                                            Text="{Binding Status}"
+                                            FontSize="16"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource GoldText}" />
+                                        <Label
+                                            Text="{Binding Count}"
+                                            FontSize="14"
+                                            TextColor="{StaticResource GoldText}"
+                                            Opacity="0.85" />
+                                    </VerticalStackLayout>
+                                </Frame>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame
+                BackgroundColor="{StaticResource CardBackground}"
+                CornerRadius="18"
+                Padding="24"
+                HasShadow="True"
+                BorderColor="#000000">
+                <VerticalStackLayout Spacing="12">
+                    <Label
                         Text="Accueil"
                         FontSize="32"
                         FontAttributes="Bold"
