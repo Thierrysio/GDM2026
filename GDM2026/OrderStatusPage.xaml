@@ -93,16 +93,26 @@
                                         MaxLines="1" />
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Grid.Column="2" Spacing="4" HorizontalOptions="End" VerticalOptions="End">
-                                    <Picker
-                                        WidthRequest="90"
-                                        HorizontalOptions="End"
-                                        ItemsSource="{Binding AvailableStatuses, Source={x:Reference OrderStatusPageRoot}}"
-                                        SelectedItem="{Binding CurrentStatus, Mode=OneWay}"
+                                    <Border
+                                        Stroke="{StaticResource GoldText}"
+                                        StrokeThickness="2"
                                         BackgroundColor="Transparent"
-                                        TextColor="{StaticResource GoldText}"
-                                        TitleColor="{StaticResource GoldText}"
-                                        Title="Modifier l'état"
-                                        SelectedIndexChanged="OnStatusSelectionChanged" />
+                                        Padding="6"
+                                        HorizontalOptions="End">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Picker
+                                            WidthRequest="90"
+                                            HorizontalOptions="End"
+                                            ItemsSource="{Binding AvailableStatuses, Source={x:Reference OrderStatusPageRoot}}"
+                                            SelectedItem="{Binding CurrentStatus, Mode=OneWay}"
+                                            BackgroundColor="Transparent"
+                                            TextColor="{StaticResource GoldText}"
+                                            TitleColor="{StaticResource GoldText}"
+                                            Title="Modifier l'état"
+                                            SelectedIndexChanged="OnStatusSelectionChanged" />
+                                    </Border>
                                 </VerticalStackLayout>
                             </Grid>
                         </Frame>
