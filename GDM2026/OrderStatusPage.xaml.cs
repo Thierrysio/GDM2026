@@ -198,10 +198,10 @@ public partial class OrderStatusPage : ContentPage
 
     private async Task<bool> UpdateOrderStatusAsync(OrderStatusProduct product, string newStatus, bool isReverting)
     {
-        var endpoint = "https://dantecmarket.com/api/mobile/modifierEtatCommande";
+        var endpoint = "https://dantecmarket.com/api/mobile/updateEtat";
         var request = new UpdateOrderStatusRequest
         {
-            CommandeId = product.OrderId,
+            Id = product.OrderId,
             Etat = newStatus
         };
 
