@@ -79,13 +79,28 @@ namespace GDM2026
                 collectionView.SelectedItem = null;
             }
 
-            if (Shell.Current != null)
+            await NavigateToCategoryAsync(selectedCard).ConfigureAwait(false);
+        }
+
+        private async void OnCategoryTapped(object sender, TappedEventArgs e)
+        {
+            if (sender is BindableObject bindable && bindable.BindingContext is CategoryCard card)
             {
-                await Shell.Current.GoToAsync(nameof(CategoryDetailPage), new Dictionary<string, object>
-                {
-                    { "card", selectedCard }
-                });
+                await NavigateToCategoryAsync(card).ConfigureAwait(false);
             }
+        }
+
+        private Task NavigateToCategoryAsync(CategoryCard card)
+        {
+            if (Shell.Current == null)
+            {
+                return Task.CompletedTask;
+            }
+
+            return Shell.Current.GoToAsync(nameof(CategoryDetailPage), new Dictionary<string, object>
+            {
+                { "card", card }
+            });
         }
     }
 
