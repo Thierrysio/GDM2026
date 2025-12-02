@@ -6,9 +6,9 @@
              BackgroundColor="#0B0B0B">
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
-        <Color x:Key="CardBackground">#F4D67A</Color>
-        <Color x:Key="CardBorder">#D4AF37</Color>
-        <Color x:Key="CardContentText">#000000</Color>
+        <Color x:Key="CardBackground">#0B0B0B</Color>
+        <Color x:Key="CardBorder">#000000</Color>
+        <Color x:Key="CardContentText">{StaticResource GoldText}</Color>
     </ContentPage.Resources>
 
     <ScrollView>
@@ -80,11 +80,13 @@
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Grid.Column="2" Spacing="4" HorizontalOptions="End" VerticalOptions="Center">
                                     <Picker
-                                        WidthRequest="130"
+                                        WidthRequest="110"
                                         HorizontalOptions="End"
                                         ItemsSource="{Binding AvailableStatuses, Source={x:Reference OrderStatusPageRoot}}"
                                         SelectedItem="{Binding CurrentStatus, Mode=OneWay}"
-                                        TextColor="{StaticResource CardContentText}"
+                                        BackgroundColor="{StaticResource GoldText}"
+                                        TextColor="#000000"
+                                        TitleColor="#000000"
                                         Title="Modifier l'état"
                                         SelectedIndexChanged="OnStatusSelectionChanged" />
                                     <Button
