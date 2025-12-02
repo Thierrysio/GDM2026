@@ -39,14 +39,14 @@
                         FontSize="28"
                         FontAttributes="Bold"
                         HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource CardContentText}"
+                        TextColor="{StaticResource GoldText}"
                         LineBreakMode="TailTruncation"
                         MaxLines="1" />
                     <Label
                         x:Name="StatusSubtitle"
                         FontSize="16"
                         HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource CardContentText}"
+                        TextColor="{StaticResource GoldText}"
                         Opacity="0.85" />
                 </VerticalStackLayout>
             </Frame>
