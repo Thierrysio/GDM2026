@@ -48,7 +48,8 @@
 
             <CollectionView
                 ItemsSource="{Binding Categories}"
-                SelectionMode="None"
+                SelectionMode="Single"
+                SelectionChanged="OnCategorySelected"
                 Margin="0,6,0,0">
                 <CollectionView.ItemsLayout>
                     <GridItemsLayout Orientation="Vertical" Span="2" />
