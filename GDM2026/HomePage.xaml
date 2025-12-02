@@ -63,6 +63,9 @@
                             CornerRadius="16"
                             HasShadow="False"
                             BorderColor="#000000">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnCategoryTapped" />
+                            </Frame.GestureRecognizers>
                             <VerticalStackLayout Spacing="6">
                                 <Label
                                     Text="{Binding Title}"
