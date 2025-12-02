@@ -38,6 +38,34 @@
                 BorderColor="#000000">
                 <VerticalStackLayout Spacing="12">
                     <Label
+                        Text="Accueil"
+                        FontSize="32"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
+
+                    <Label
+                        x:Name="WelcomeLabel"
+                        FontSize="18"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
+
+                    <Label
+                        Text="Vous êtes connecté à Dantec Market."
+                        FontSize="16"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame
+                BackgroundColor="{StaticResource CardBackground}"
+                CornerRadius="18"
+                Padding="24"
+                HasShadow="True"
+                BorderColor="#000000">
+                <VerticalStackLayout Spacing="12">
+                    <Label
                         Text="Commandes par état"
                         FontSize="22"
                         FontAttributes="Bold"
@@ -78,34 +106,6 @@
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
-                </VerticalStackLayout>
-            </Frame>
-
-            <Frame
-                BackgroundColor="{StaticResource CardBackground}"
-                CornerRadius="18"
-                Padding="24"
-                HasShadow="True"
-                BorderColor="#000000">
-                <VerticalStackLayout Spacing="12">
-                    <Label
-                        Text="Accueil"
-                        FontSize="32"
-                        FontAttributes="Bold"
-                        HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}" />
-
-                    <Label
-                        x:Name="WelcomeLabel"
-                        FontSize="18"
-                        HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}" />
-
-                    <Label
-                        Text="Vous êtes connecté à Dantec Market."
-                        FontSize="16"
-                        HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}" />
                 </VerticalStackLayout>
             </Frame>
 
