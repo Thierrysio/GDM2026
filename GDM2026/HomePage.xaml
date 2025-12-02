@@ -41,6 +41,9 @@
                                     CornerRadius="14"
                                     HasShadow="False"
                                     BorderColor="#000000">
+                                    <Frame.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnOrderStatusTapped" />
+                                    </Frame.GestureRecognizers>
                                     <VerticalStackLayout Spacing="4">
                                         <Label
                                             Text="{Binding Status}"

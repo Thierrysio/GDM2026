@@ -75,4 +75,6 @@ public class ProductSummary
     public string? NomProduit { get; set; }
 
     public string? Descriptioncourte { get; set; }
+
+    public string? ImageUrl { get; set; }
 }
