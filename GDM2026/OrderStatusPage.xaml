@@ -36,12 +36,13 @@
                 <VerticalStackLayout Spacing="8">
                     <Label
                         x:Name="StatusTitle"
-                        FontSize="24"
+                        FontSize="22"
                         FontAttributes="Bold"
                         HorizontalTextAlignment="Center"
                         TextColor="{StaticResource GoldText}"
-                        LineBreakMode="TailTruncation"
-                        MaxLines="1" />
+                        LineBreakMode="NoWrap"
+                        MaxLines="1"
+                        HorizontalOptions="CenterAndExpand" />
                     <Label
                         x:Name="StatusSubtitle"
                         FontSize="14"
