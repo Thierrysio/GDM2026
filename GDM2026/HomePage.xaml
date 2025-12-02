@@ -12,6 +12,24 @@
         <VerticalStackLayout
             Padding="24"
             Spacing="18">
+            <VerticalStackLayout
+                HorizontalOptions="Center"
+                Spacing="8"
+                Margin="0,12,0,6">
+                <Image
+                    Source="logo.jpg"
+                    HeightRequest="140"
+                    Aspect="AspectFit"
+                    AutomationId="HomeHeaderLogo" />
+
+                <Label
+                    Text="Dantec Market"
+                    FontSize="32"
+                    FontAttributes="Bold"
+                    HorizontalTextAlignment="Center"
+                    TextColor="{StaticResource GoldText}" />
+            </VerticalStackLayout>
+
             <Frame
                 BackgroundColor="{StaticResource CardBackground}"
                 CornerRadius="18"
