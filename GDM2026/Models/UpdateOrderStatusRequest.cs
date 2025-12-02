@@ -4,8 +4,8 @@ namespace GDM2026.Models;
 
 public class UpdateOrderStatusRequest
 {
-    [JsonProperty("commandeId")]
-    public int CommandeId { get; set; }
+    [JsonProperty("id")]
+    public int Id { get; set; }
 
     [JsonProperty("etat")]
     public string? Etat { get; set; }
