@@ -39,10 +39,31 @@
 
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="1*" />
         </Grid.RowDefinitions>
 
         <VerticalStackLayout
+            Grid.Row="0"
+            HorizontalOptions="Center"
+            Padding="24,36,24,12"
+            Spacing="12">
+            <Image
+                Source="logo.jpg"
+                HeightRequest="140"
+                Aspect="AspectFit"
+                AutomationId="PageHeaderLogo" />
+
+            <Label
+                Text="Dantec Market"
+                FontSize="32"
+                FontAttributes="Bold"
+                HorizontalTextAlignment="Center"
+                TextColor="{StaticResource GoldText}" />
+        </VerticalStackLayout>
+
+        <VerticalStackLayout
+            Grid.Row="1"
             VerticalOptions="Center"
             HorizontalOptions="Center"
             WidthRequest="420"
@@ -56,20 +77,6 @@
                 SemanticProperties.Description="Formulaire de connexion administrateur"
                 BorderColor="#262626">
                 <VerticalStackLayout Spacing="16">
-                    <Image
-                        Source="logo.jpg"
-                        HeightRequest="120"
-                        HorizontalOptions="Center"
-                        Aspect="AspectFill"
-                        AutomationId="LoginLogo" />
-
-                    <Label
-                        Text="Dantec Market"
-                        FontSize="32"
-                        FontAttributes="Bold"
-                        HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}" />
-
                     <Label
                         Text="Espace administrateur"
                         FontSize="28"
