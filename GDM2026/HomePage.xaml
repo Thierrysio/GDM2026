@@ -51,7 +51,7 @@
                                             FontAttributes="Bold"
                                             TextColor="{StaticResource GoldText}" />
                                         <Label
-                                            Text="{Binding Count}"
+                                            Text="{Binding DisplayCount}"
                                             FontSize="14"
                                             TextColor="{StaticResource GoldText}"
                                             Opacity="0.85" />

@@ -2,6 +2,7 @@ using GDM2026.Services;
 using Microsoft.Maui.ApplicationModel;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -28,6 +29,13 @@ namespace GDM2026
             base.OnAppearing();
 
             await Task.WhenAll(LoadSessionAsync(), LoadOrderStatusesAsync()).ConfigureAwait(false);
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+
+            OrderStatusDeltaTracker.Clear();
         }
 
         private async Task LoadSessionAsync()
@@ -75,12 +83,9 @@ namespace GDM2026
             {
                 var statuses = await _apis
                     .GetAsync<Dictionary<string, int>>("https://dantecmarket.com/api/mobile/getNombreCommandes")
-                    .ConfigureAwait(false);
+                    .ConfigureAwait(false) ?? new Dictionary<string, int>();
 
-                if (statuses == null)
-                {
-                    return;
-                }
+                var deltas = OrderStatusDeltaTracker.GetDeltas();
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
@@ -88,7 +93,13 @@ namespace GDM2026
 
                     foreach (var status in statuses)
                     {
-                        OrderStatuses.Add(new OrderStatus(status.Key, status.Value));
+                        var delta = deltas.TryGetValue(status.Key, out var change) ? change : 0;
+                        OrderStatuses.Add(new OrderStatus(status.Key, status.Value, delta));
+                    }
+
+                    foreach (var delta in deltas.Where(d => !statuses.ContainsKey(d.Key)))
+                    {
+                        OrderStatuses.Add(new OrderStatus(delta.Key, 0, delta.Value));
                     }
                 });
             }
@@ -167,5 +178,56 @@ namespace GDM2026
     }
 
     public record CategoryCard(string Title, string Description);
-    public record OrderStatus(string Status, int Count);
+
+    public class OrderStatus : INotifyPropertyChanged
+    {
+        private int _count;
+        private int _delta;
+
+        public OrderStatus(string status, int count, int delta = 0)
+        {
+            Status = status;
+            _count = count;
+            _delta = delta;
+        }
+
+        public string Status { get; }
+
+        public int Count
+        {
+            get => _count;
+            private set => SetProperty(ref _count, value);
+        }
+
+        public int Delta
+        {
+            get => _delta;
+            private set
+            {
+                if (SetProperty(ref _delta, value))
+                {
+                    OnPropertyChanged(nameof(DisplayCount));
+                }
+            }
+        }
+
+        public string DisplayCount => Delta != 0 ? $"{Count} ({(Delta > 0 ? "+" : string.Empty)}{Delta})" : Count.ToString();
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private bool SetProperty<T>(ref T backingStore, T value, [System.Runtime.CompilerServices.CallerMemberName] string propertyName = "")
+        {
+            if (EqualityComparer<T>.Default.Equals(backingStore, value))
+            {
+                return false;
+            }
+
+            backingStore = value;
+            OnPropertyChanged(propertyName);
+            return true;
+        }
+
+        private void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = "") =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
