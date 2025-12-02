@@ -144,37 +144,41 @@ public partial class OrderStatusPage : ContentPage
 
     private async void OnStatusSelectionChanged(object sender, EventArgs e)
     {
-        if (sender is not Picker picker || picker.SelectedItem is not string selectedStatus)
+        await MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            return;
-        }
-
-        if (picker.BindingContext is not OrderStatusProduct product)
-        {
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(selectedStatus) || selectedStatus == product.CurrentStatus)
-        {
-            return;
-        }
-
-        var previousStatus = product.CurrentStatus;
-
-        try
-        {
-            var updated = await UpdateOrderStatusAsync(product, selectedStatus, isReverting: false);
-
-            if (!updated)
+            if (sender is not Picker picker || picker.SelectedItem is not string selectedStatus)
             {
-                await MainThread.InvokeOnMainThreadAsync(() => picker.SelectedItem = previousStatus);
+                return;
             }
-        }
-        catch (Exception ex)
-        {
-            await ShowLoadErrorAsync("Une erreur est survenue lors de la mise à jour du statut.");
-            System.Diagnostics.Debug.WriteLine(ex);
-        }
+
+            if (picker.BindingContext is not OrderStatusProduct product)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(selectedStatus) || selectedStatus == product.CurrentStatus)
+            {
+                return;
+            }
+
+            var previousStatus = product.CurrentStatus;
+
+            try
+            {
+                var updated = await UpdateOrderStatusAsync(product, selectedStatus, isReverting: false);
+
+                if (!updated)
+                {
+                    picker.SelectedItem = previousStatus;
+                }
+            }
+            catch (Exception ex)
+            {
+                picker.SelectedItem = previousStatus;
+                await ShowLoadErrorAsync("Une erreur est survenue lors de la mise à jour du statut.");
+                System.Diagnostics.Debug.WriteLine(ex);
+            }
+        });
     }
 
     private async void OnRevertStatusRequested(object sender, EventArgs e)
