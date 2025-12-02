@@ -32,7 +32,7 @@
                 </VerticalStackLayout>
             </Frame>
 
-            <CollectionView ItemsSource="{Binding Products}" SelectionMode="None">
+            <CollectionView x:Name="ProductsCollection" ItemsSource="{Binding Products}" SelectionMode="None">
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Padding="12" Spacing="6" HorizontalOptions="Center">
                         <ActivityIndicator IsVisible="{Binding IsLoading}" IsRunning="{Binding IsLoading}" />
@@ -48,7 +48,7 @@
                             CornerRadius="14"
                             HasShadow="False"
                             BorderColor="#000000">
-                            <Grid ColumnDefinitions="auto,*" ColumnSpacing="12" VerticalOptions="Center">
+                            <Grid ColumnDefinitions="auto,*,auto" ColumnSpacing="12" VerticalOptions="Center">
                                 <Image
                                     Source="{Binding ImageUrl}"
                                     WidthRequest="72"
@@ -57,12 +57,28 @@
                                     HorizontalOptions="Start"
                                     VerticalOptions="Center"
                                     Clip="Rectangle" />
-                                <Label
-                                    Grid.Column="1"
-                                    Text="{Binding Name}"
+                                <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                    <Label
+                                        Text="{Binding Name}"
+                                        FontSize="18"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource GoldText}" />
+                                    <Label
+                                        Text="{Binding CurrentStatus, StringFormat='Statut : {0}'}"
+                                        FontSize="13"
+                                        TextColor="{StaticResource GoldText}"
+                                        Opacity="0.75" />
+                                </VerticalStackLayout>
+                                <Button
+                                    Grid.Column="2"
+                                    Text="⋮"
                                     FontSize="18"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource GoldText}" />
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource GoldText}"
+                                    Padding="8,0"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center"
+                                    Clicked="OnChangeStatusRequested" />
                             </Grid>
                         </Frame>
                     </DataTemplate>
