@@ -71,14 +71,15 @@ public partial class OrderStatusPage : ContentPage
                 .ConfigureAwait(false);
 
             var items = (orders ?? new List<OrderByStatus>())
-                .SelectMany(o => o.LesCommandes ?? new List<OrderLine>())
-                .Select(line => new OrderStatusProduct
+                .SelectMany(order => (order.LesCommandes ?? new List<OrderLine>())
+                    .Select(line => new { order, line }))
+                .Select(x => new OrderStatusProduct
                 {
-                    OrderId = o.Id,
-                    OrderLineId = line.Id,
-                    CurrentStatus = o.Etat ?? Status ?? "Inconnu",
-                    Name = line.LeProduit?.NomProduit ?? "Produit inconnu",
-                    ImageUrl = BuildImageUrl(line.LeProduit?.ImageUrl)
+                    OrderId = x.order.Id,
+                    OrderLineId = x.line.Id,
+                    CurrentStatus = x.order.Etat ?? Status ?? "Inconnu",
+                    Name = x.line.LeProduit?.NomProduit ?? "Produit inconnu",
+                    ImageUrl = BuildImageUrl(x.line.LeProduit?.ImageUrl)
                 })
                 .ToList();
 
