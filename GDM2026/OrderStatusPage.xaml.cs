@@ -61,7 +61,7 @@ public partial class OrderStatusPage : ContentPage
             IsLoading = true;
             OnPropertyChanged(nameof(IsLoading));
             StatusTitle.Text = $"Commandes : {Status}";
-            StatusSubtitle.Text = "Produits associés à cet état.";
+            StatusSubtitle.Text = "Produits : en cours de chargement...";
         });
 
         try
@@ -92,6 +92,8 @@ public partial class OrderStatusPage : ContentPage
                 {
                     Products.Add(item);
                 }
+
+                StatusSubtitle.Text = $"Produits : {Products.Count}";
             });
         }
         catch (TaskCanceledException)
