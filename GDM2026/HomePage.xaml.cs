@@ -3,14 +3,18 @@ using Microsoft.Maui.ApplicationModel;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace GDM2026
 {
     public partial class HomePage : ContentPage
     {
+        private readonly Apis _apis = new();
         private readonly SessionService _sessionService = new();
 
         public ObservableCollection<CategoryCard> Categories { get; } = new();
+        public ObservableCollection<OrderStatus> OrderStatuses { get; } = new();
 
         public HomePage()
         {
@@ -23,7 +27,7 @@ namespace GDM2026
         {
             base.OnAppearing();
 
-            await LoadSessionAsync().ConfigureAwait(false);
+            await Task.WhenAll(LoadSessionAsync(), LoadOrderStatusesAsync()).ConfigureAwait(false);
         }
 
         private async Task LoadSessionAsync()
@@ -63,6 +67,43 @@ namespace GDM2026
 
             foreach (var item in items)
                 Categories.Add(item);
+        }
+
+        private async Task LoadOrderStatusesAsync()
+        {
+            try
+            {
+                var statuses = await _apis
+                    .GetAsync<Dictionary<string, int>>("https://dantecmarket.com/api/mobile/getNombreCommandes")
+                    .ConfigureAwait(false);
+
+                if (statuses == null)
+                {
+                    return;
+                }
+
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    OrderStatuses.Clear();
+
+                    foreach (var status in statuses)
+                    {
+                        OrderStatuses.Add(new OrderStatus(status.Key, status.Value));
+                    }
+                });
+            }
+            catch (TaskCanceledException)
+            {
+                // Ignore timeout and keep the existing data.
+            }
+            catch (HttpRequestException)
+            {
+                // Ignore network/API errors and keep the existing data.
+            }
+            catch (Exception)
+            {
+                // Ignore unexpected errors to avoid breaking the UI lifecycle.
+            }
         }
 
         private async void OnCategorySelected(object sender, SelectionChangedEventArgs e)
@@ -105,4 +146,5 @@ namespace GDM2026
     }
 
     public record CategoryCard(string Title, string Description);
+    public record OrderStatus(string Status, int Count);
 }
