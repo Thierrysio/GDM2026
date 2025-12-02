@@ -79,6 +79,7 @@ public partial class OrderStatusPage : ContentPage
                 {
                     OrderId = x.order.Id,
                     OrderLineId = x.line.Id,
+                    CustomerName = BuildCustomerName(x.order),
                     CurrentStatus = x.order.Etat ?? Status ?? "Inconnu",
                     Name = x.line.LeProduit?.NomProduit ?? "Produit inconnu",
                     ImageUrl = BuildImageUrl(x.line.LeProduit?.ImageUrl)
@@ -140,6 +141,28 @@ public partial class OrderStatusPage : ContentPage
         {
             await DisplayAlert("Erreur", message, "OK");
         });
+    }
+
+    private static string BuildCustomerName(OrderByStatus order)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(order.PrenomClient))
+        {
+            parts.Add(order.PrenomClient);
+        }
+
+        if (!string.IsNullOrWhiteSpace(order.NomClient))
+        {
+            parts.Add(order.NomClient);
+        }
+
+        if (parts.Count > 0)
+        {
+            return string.Join(" ", parts);
+        }
+
+        return "Client inconnu";
     }
 
     private async void OnStatusSelectionChanged(object sender, EventArgs e)
@@ -239,6 +262,8 @@ public partial class OrderStatusPage : ContentPage
                     product.RememberPreviousStatus(previousStatus);
                     product.CurrentStatus = newStatus;
                 }
+
+                NotifyStatusChanged(previousStatus, newStatus);
             });
 
             return true;
@@ -258,11 +283,23 @@ public partial class OrderStatusPage : ContentPage
 
         return false;
     }
+
+    private void NotifyStatusChanged(string previousStatus, string newStatus)
+    {
+        if (string.IsNullOrWhiteSpace(previousStatus) || string.IsNullOrWhiteSpace(newStatus))
+        {
+            return;
+        }
+
+        var change = new OrderStatusChange(previousStatus, newStatus);
+        MessagingCenter.Send(this, "OrderStatusChanged", change);
+    }
 }
 
 public class OrderStatusProduct : INotifyPropertyChanged
 {
     private string _currentStatus = string.Empty;
+    private string _customerName = string.Empty;
     private string? _previousStatus;
 
     public int OrderId { get; set; }
@@ -273,6 +310,12 @@ public class OrderStatusProduct : INotifyPropertyChanged
     {
         get => _currentStatus;
         set => SetProperty(ref _currentStatus, value);
+    }
+
+    public string CustomerName
+    {
+        get => _customerName;
+        set => SetProperty(ref _customerName, value);
     }
 
     public string? PreviousStatus

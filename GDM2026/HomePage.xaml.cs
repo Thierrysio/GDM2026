@@ -1,7 +1,9 @@
 using GDM2026.Services;
 using Microsoft.Maui.ApplicationModel;
+using System;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -10,8 +12,10 @@ namespace GDM2026
 {
     public partial class HomePage : ContentPage
     {
+        private const string StatusChangedMessage = "OrderStatusChanged";
         private readonly Apis _apis = new();
         private readonly SessionService _sessionService = new();
+        private readonly Dictionary<string, int> _statusDeltas = new(StringComparer.Ordinal);
 
         public ObservableCollection<CategoryCard> Categories { get; } = new();
         public ObservableCollection<OrderStatus> OrderStatuses { get; } = new();
@@ -21,6 +25,8 @@ namespace GDM2026
             InitializeComponent();
             BindingContext = this;
             LoadCategories();
+
+            MessagingCenter.Subscribe<OrderStatusPage, OrderStatusChange>(this, StatusChangedMessage, OnOrderStatusChanged);
         }
 
         protected override async void OnAppearing()
@@ -28,6 +34,12 @@ namespace GDM2026
             base.OnAppearing();
 
             await Task.WhenAll(LoadSessionAsync(), LoadOrderStatusesAsync()).ConfigureAwait(false);
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            ClearStatusAdjustments();
         }
 
         private async Task LoadSessionAsync()
@@ -89,6 +101,11 @@ namespace GDM2026
                     foreach (var status in statuses)
                     {
                         OrderStatuses.Add(new OrderStatus(status.Key, status.Value));
+                    }
+
+                    foreach (var delta in _statusDeltas)
+                    {
+                        ApplyStatusDelta(delta.Key, delta.Value, updateTracker: false);
                     }
                 });
             }
@@ -164,8 +181,124 @@ namespace GDM2026
                 { "status", status.Status }
             });
         }
+
+        private void OnOrderStatusChanged(OrderStatusPage sender, OrderStatusChange change)
+        {
+            if (change is null)
+            {
+                return;
+            }
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                ApplyStatusDelta(change.PreviousStatus, -1);
+                ApplyStatusDelta(change.NewStatus, 1);
+            });
+        }
+
+        private void ApplyStatusDelta(string? status, int delta, bool updateTracker = true)
+        {
+            if (string.IsNullOrWhiteSpace(status))
+            {
+                return;
+            }
+
+            var existing = OrderStatuses.FirstOrDefault(s => string.Equals(s.Status, status, StringComparison.Ordinal));
+
+            if (existing == null)
+            {
+                existing = new OrderStatus(status, 0);
+                OrderStatuses.Add(existing);
+            }
+
+            existing.ApplyDelta(delta);
+
+            if (!updateTracker)
+            {
+                return;
+            }
+
+            _statusDeltas.TryGetValue(status, out var currentDelta);
+            var newDelta = currentDelta + delta;
+
+            if (newDelta == 0)
+            {
+                _statusDeltas.Remove(status);
+            }
+            else
+            {
+                _statusDeltas[status] = newDelta;
+            }
+        }
+
+        private void ClearStatusAdjustments()
+        {
+            foreach (var status in OrderStatuses)
+            {
+                status.ResetDelta();
+            }
+
+            _statusDeltas.Clear();
+        }
     }
 
     public record CategoryCard(string Title, string Description);
-    public record OrderStatus(string Status, int Count);
+
+    public class OrderStatus : INotifyPropertyChanged
+    {
+        private int _count;
+        private int _delta;
+
+        public OrderStatus(string status, int count)
+        {
+            Status = status;
+            _count = count;
+        }
+
+        public string Status { get; }
+
+        public int Count
+        {
+            get => _count;
+            set
+            {
+                if (_count != value)
+                {
+                    _count = value;
+                    OnPropertyChanged(nameof(Count));
+                    OnPropertyChanged(nameof(DisplayCount));
+                }
+            }
+        }
+
+        public int Delta
+        {
+            get => _delta;
+            private set
+            {
+                if (_delta != value)
+                {
+                    _delta = value;
+                    OnPropertyChanged(nameof(Delta));
+                    OnPropertyChanged(nameof(DisplayCount));
+                }
+            }
+        }
+
+        public string DisplayCount =>
+            Delta == 0
+                ? Count.ToString()
+                : $"{Count} ({(Delta > 0 ? "+" : string.Empty)}{Delta})";
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public void ApplyDelta(int delta) => Delta += delta;
+
+        public void ResetDelta() => Delta = 0;
+
+        protected void OnPropertyChanged(string propertyName) =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    public record OrderStatusChange(string PreviousStatus, string NewStatus);
 }
