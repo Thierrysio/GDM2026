@@ -2,6 +2,7 @@ using GDM2026.Services;
 using Microsoft.Maui.ApplicationModel;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace GDM2026
 {
@@ -62,6 +63,29 @@ namespace GDM2026
 
             foreach (var item in items)
                 Categories.Add(item);
+        }
+
+        private async void OnCategorySelected(object sender, SelectionChangedEventArgs e)
+        {
+            var selectedCard = e.CurrentSelection?.FirstOrDefault() as CategoryCard;
+
+            if (selectedCard == null)
+            {
+                return;
+            }
+
+            if (sender is CollectionView collectionView)
+            {
+                collectionView.SelectedItem = null;
+            }
+
+            if (Shell.Current != null)
+            {
+                await Shell.Current.GoToAsync(nameof(CategoryDetailPage), new Dictionary<string, object>
+                {
+                    { "card", selectedCard }
+                });
+            }
         }
     }
 
