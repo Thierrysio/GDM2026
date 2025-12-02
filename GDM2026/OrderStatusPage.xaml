@@ -78,32 +78,17 @@
                                         LineBreakMode="TailTruncation"
                                         MaxLines="1" />
                                 </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Column="2" Spacing="4" HorizontalOptions="End" VerticalOptions="Center">
+                                <VerticalStackLayout Grid.Column="2" Spacing="4" HorizontalOptions="End" VerticalOptions="End">
                                     <Picker
-                                        WidthRequest="110"
+                                        WidthRequest="90"
                                         HorizontalOptions="End"
                                         ItemsSource="{Binding AvailableStatuses, Source={x:Reference OrderStatusPageRoot}}"
                                         SelectedItem="{Binding CurrentStatus, Mode=OneWay}"
-                                        BackgroundColor="{StaticResource GoldText}"
-                                        TextColor="#000000"
-                                        TitleColor="#000000"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{StaticResource GoldText}"
+                                        TitleColor="{StaticResource GoldText}"
                                         Title="Modifier l'état"
                                         SelectedIndexChanged="OnStatusSelectionChanged" />
-                                    <Button
-                                        Text="↩"
-                                        FontSize="18"
-                                        BackgroundColor="#000000"
-                                        TextColor="{StaticResource GoldText}"
-                                        Padding="0"
-                                        WidthRequest="36"
-                                        HeightRequest="36"
-                                        CornerRadius="6"
-                                        BorderWidth="1"
-                                        BorderColor="{StaticResource CardBorder}"
-                                        HorizontalOptions="End"
-                                        VerticalOptions="Center"
-                                        IsEnabled="{Binding CanRevert}"
-                                        Clicked="OnRevertStatusRequested" />
                                 </VerticalStackLayout>
                             </Grid>
                         </Frame>
