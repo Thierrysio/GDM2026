@@ -309,7 +309,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         try
         {
-            var endpoint = $"https://dantecmarket.com/api/mobile/commandeDetails/{order.OrderId}";
+            var endpoint = $"/api/mobile/commandeDetails/{order.OrderId}";
             var details = await _apis.GetAsync<OrderDetailsResponse>(endpoint).ConfigureAwait(false);
 
             var lines = details?.LesCommandes ?? new List<OrderLine>();
