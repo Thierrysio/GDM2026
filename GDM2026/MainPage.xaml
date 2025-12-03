@@ -69,13 +69,17 @@
             WidthRequest="420"
             Padding="24"
             Spacing="18">
-            <Frame
+            <Border
                 BackgroundColor="{StaticResource CardBackground}"
                 Padding="24"
-                CornerRadius="18"
-                HasShadow="True"
-                SemanticProperties.Description="Formulaire de connexion administrateur"
-                BorderColor="#262626">
+                Stroke="#262626"
+                SemanticProperties.Description="Formulaire de connexion administrateur">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+                <Border.Shadow>
+                    <Shadow />
+                </Border.Shadow>
                 <VerticalStackLayout Spacing="16">
                     <Label
                         Text="Espace administrateur"
@@ -109,7 +113,7 @@
                            FontSize="14"
                            HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
         </VerticalStackLayout>
     </Grid>
 

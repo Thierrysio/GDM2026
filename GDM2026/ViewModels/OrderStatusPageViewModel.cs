@@ -10,20 +10,20 @@ using System.Windows.Input;
 
 namespace GDM2026.ViewModels;
 
-public class OrderStatusPageViewModel : BaseViewModel
+public partial class OrderStatusPageViewModel : BaseViewModel
 {
     private readonly Apis _apis = new();
-    private readonly IReadOnlyList<string> _availableStatuses = new List<string>
-    {
+    private readonly IReadOnlyList<string> _availableStatuses =
+    [
         "Confirmée",
         "En cours de traitement",
         "Traitée",
         "Livrée",
         "A confirmer"
-    };
+    ];
 
-    private readonly Dictionary<OrderStatusEntry, string> _lastKnownStatuses = new();
-    private readonly HashSet<OrderStatusEntry> _statusUpdatesInProgress = new();
+    private readonly Dictionary<OrderStatusEntry, string> _lastKnownStatuses = [];
+    private readonly HashSet<OrderStatusEntry> _statusUpdatesInProgress = [];
     private bool _hasLoaded;
     private string? _status;
     private string _pageTitle = string.Empty;
@@ -31,7 +31,7 @@ public class OrderStatusPageViewModel : BaseViewModel
 
     public OrderStatusPageViewModel()
     {
-        Orders = new ObservableCollection<OrderStatusEntry>();
+        Orders = [];
         RevertStatusCommand = new Command<OrderStatusEntry>(async order => await RevertStatusAsync(order));
     }
 

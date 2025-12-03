@@ -10,7 +10,7 @@ using System.Windows.Input;
 
 namespace GDM2026.ViewModels;
 
-public class HomePageViewModel : BaseViewModel
+public partial class HomePageViewModel : BaseViewModel
 {
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
@@ -18,8 +18,8 @@ public class HomePageViewModel : BaseViewModel
 
     public HomePageViewModel()
     {
-        Categories = new ObservableCollection<CategoryCard>();
-        OrderStatuses = new ObservableCollection<OrderStatusDisplay>();
+        Categories = [];
+        OrderStatuses = [];
 
         CategorySelectedCommand = new Command<CategoryCard>(async card => await NavigateToCategoryAsync(card));
         OrderStatusSelectedCommand = new Command<OrderStatusDisplay>(async status => await NavigateToOrderStatusAsync(status));
@@ -46,7 +46,7 @@ public class HomePageViewModel : BaseViewModel
         await Task.WhenAll(LoadSessionAsync(), LoadOrderStatusesAsync());
     }
 
-    public void OnDisappearing()
+    public static void OnDisappearing()
     {
         OrderStatusDeltaTracker.Clear();
     }
