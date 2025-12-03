@@ -44,7 +44,13 @@ public class OrderStatusPageViewModel : BaseViewModel
     public string? Status
     {
         get => _status;
-        set => SetProperty(ref _status, value);
+        set
+        {
+            if (SetProperty(ref _status, value) && !_hasLoaded)
+            {
+                _ = InitializeAsync();
+            }
+        }
     }
 
     public string PageTitle
@@ -66,17 +72,17 @@ public class OrderStatusPageViewModel : BaseViewModel
             return;
         }
 
+        if (string.IsNullOrWhiteSpace(Status))
+        {
+            return;
+        }
+
         _hasLoaded = true;
         await LoadStatusAsync().ConfigureAwait(false);
     }
 
     private async Task LoadStatusAsync()
     {
-        if (string.IsNullOrWhiteSpace(Status))
-        {
-            return;
-        }
-
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             IsBusy = true;
