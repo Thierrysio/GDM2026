@@ -52,81 +52,85 @@
                 </VerticalStackLayout>
             </Frame>
 
-            <CollectionView ItemsSource="{Binding Products}" SelectionMode="None">
+            <CollectionView ItemsSource="{Binding Orders}" SelectionMode="None">
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Padding="12" Spacing="6" HorizontalOptions="Center">
                         <ActivityIndicator IsVisible="{Binding IsBusy}" IsRunning="{Binding IsBusy}" />
-                        <Label Text="Aucun produit à afficher pour cet état." TextColor="{StaticResource GoldText}" />
+                        <Label Text="Aucune commande à afficher pour cet état." TextColor="{StaticResource GoldText}" />
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Border
                             Margin="0,6"
-                            Padding="14"
+                            Padding="18"
                             Stroke="{StaticResource GoldText}"
-                            StrokeThickness="2"
+                            StrokeThickness="1.5"
                             BackgroundColor="{StaticResource CardBackground}">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="16" />
                             </Border.StrokeShape>
-                            <Grid ColumnDefinitions="auto,*,auto" ColumnSpacing="12" VerticalOptions="Center">
-                                <Image
-                                    Source="{Binding ImageUrl}"
-                                    WidthRequest="72"
-                                    HeightRequest="72"
-                                    Aspect="AspectFill"
-                                    HorizontalOptions="Start"
-                                    VerticalOptions="Center"
-                                    Clip="Rectangle" />
-                                <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                            <VerticalStackLayout Spacing="10">
+                                <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto" ColumnSpacing="8">
                                     <Label
-                                        Text="{Binding Name}"
-                                        FontSize="15"
+                                        Grid.Row="0"
+                                        Grid.Column="0"
+                                        Text="{Binding OrderLabel}"
+                                        FontSize="16"
                                         FontAttributes="Bold"
-                                        TextColor="{StaticResource GoldText}"
-                                        LineBreakMode="TailTruncation"
-                                        MaxLines="1" />
+                                        TextColor="{StaticResource GoldText}" />
                                     <Label
-                                        Text="{Binding CustomerName, StringFormat='Client : {0}'}"
-                                        FontSize="12"
+                                        Grid.Row="0"
+                                        Grid.Column="1"
+                                        Text="{Binding DisplayAmount}"
+                                        FontSize="15"
                                         TextColor="{StaticResource GoldText}"
-                                        Opacity="0.75"
-                                        LineBreakMode="TailTruncation"
-                                        MaxLines="1" />
-                                </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Column="2" Spacing="4" HorizontalOptions="End" VerticalOptions="End">
+                                        HorizontalOptions="End" />
+                                    <Label
+                                        Grid.Row="1"
+                                        Grid.Column="0"
+                                        Text="{Binding DisplayDate}"
+                                        FontSize="13"
+                                        Opacity="0.7"
+                                        TextColor="{StaticResource GoldText}" />
                                     <Border
+                                        Grid.Row="1"
+                                        Grid.Column="1"
                                         Stroke="{StaticResource GoldText}"
-                                        StrokeThickness="2"
-                                        BackgroundColor="Transparent"
-                                        Padding="6"
+                                        StrokeThickness="1"
+                                        Padding="6,2"
+                                        BackgroundColor="#1A1A1A"
                                         HorizontalOptions="End">
                                         <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="10" />
+                                            <RoundRectangle CornerRadius="12" />
                                         </Border.StrokeShape>
-                                        <Picker
-                                            WidthRequest="90"
-                                            HorizontalOptions="End"
-                                            ItemsSource="{Binding BindingContext.AvailableStatuses, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
-                                            SelectedItem="{Binding CurrentStatus, Mode=TwoWay}"
-                                            BackgroundColor="Transparent"
-                                            TextColor="{StaticResource GoldText}"
-                                            TitleColor="{StaticResource GoldText}"
-                                            Title="Modifier l'état" />
+                                        <Label Text="{Binding CurrentStatus}" FontSize="12" TextColor="{StaticResource GoldText}" />
                                     </Border>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,auto" ColumnSpacing="12" RowDefinitions="auto">
+                                    <Picker
+                                        Grid.Column="0"
+                                        ItemsSource="{Binding BindingContext.AvailableStatuses, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                        SelectedItem="{Binding CurrentStatus, Mode=TwoWay}"
+                                        BackgroundColor="#121212"
+                                        Title="Modifier l'état"
+                                        FontSize="14"
+                                        TextColor="{StaticResource GoldText}"
+                                        TitleColor="{StaticResource GoldText}" />
                                     <Button
+                                        Grid.Column="1"
                                         Text="Annuler"
                                         Command="{Binding BindingContext.RevertStatusCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
                                         CommandParameter="{Binding .}"
                                         IsVisible="{Binding CanRevert}"
                                         BackgroundColor="Transparent"
                                         BorderColor="{StaticResource GoldText}"
-                                        BorderWidth="2"
+                                        BorderWidth="1.5"
                                         CornerRadius="10"
                                         TextColor="{StaticResource GoldText}" />
-                                </VerticalStackLayout>
-                            </Grid>
+                                </Grid>
+                            </VerticalStackLayout>
                         </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
