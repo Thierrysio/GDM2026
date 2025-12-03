@@ -33,6 +33,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     {
         Orders = [];
         RevertStatusCommand = new Command<OrderStatusEntry>(async order => await RevertStatusAsync(order));
+        ToggleOrderDetailsCommand = new Command<OrderStatusEntry>(async order => await ToggleOrderDetailsAsync(order));
+        MarkLineTreatedCommand = new Command<OrderLine>(async line => await MarkLineTreatedAsync(line));
     }
 
     public ObservableCollection<OrderStatusEntry> Orders { get; }
@@ -40,6 +42,10 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     public IReadOnlyList<string> AvailableStatuses => _availableStatuses;
 
     public ICommand RevertStatusCommand { get; }
+
+    public ICommand ToggleOrderDetailsCommand { get; }
+
+    public ICommand MarkLineTreatedCommand { get; }
 
     public string? Status
     {
@@ -263,6 +269,155 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         _statusUpdatesInProgress.Add(order);
         order.CurrentStatus = status;
         _statusUpdatesInProgress.Remove(order);
+    }
+
+    private async Task ToggleOrderDetailsAsync(OrderStatusEntry? order)
+    {
+        if (order is null)
+        {
+            return;
+        }
+
+        var isOpening = !order.IsExpanded;
+        order.IsExpanded = isOpening;
+
+        if (!isOpening)
+        {
+            return;
+        }
+
+        var isAlreadyInProgress = string.Equals(order.CurrentStatus, "En cours de traitement", StringComparison.OrdinalIgnoreCase);
+        var isAlreadyCompleted = string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase);
+
+        if (!isAlreadyInProgress && !isAlreadyCompleted)
+        {
+            await UpdateOrderStatusAsync(order, "En cours de traitement", isReverting: false);
+        }
+
+        await LoadOrderDetailsAsync(order);
+    }
+
+    private async Task LoadOrderDetailsAsync(OrderStatusEntry order)
+    {
+        if (order.IsLoadingDetails || order.HasLoadedDetails)
+        {
+            return;
+        }
+
+        order.IsLoadingDetails = true;
+        order.DetailsError = null;
+
+        try
+        {
+            var endpoint = $"https://dantecmarket.com/api/mobile/commandeDetails/{order.OrderId}";
+            var details = await _apis.GetAsync<OrderDetailsResponse>(endpoint).ConfigureAwait(false);
+
+            var lines = details?.LesCommandes ?? new List<OrderLine>();
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                order.OrderLines.Clear();
+
+                foreach (var line in lines)
+                {
+                    line.OrderId = order.OrderId;
+                    order.OrderLines.Add(line);
+                }
+
+                order.HasLoadedDetails = true;
+            });
+
+            await CheckAndUpdateOrderCompletionAsync(order).ConfigureAwait(false);
+        }
+        catch (TaskCanceledException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                order.DetailsError = "Le chargement des détails a expiré.";
+            });
+        }
+        catch (HttpRequestException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                order.DetailsError = "Impossible de récupérer les détails de cette commande.";
+            });
+        }
+        catch (Exception)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                order.DetailsError = "Une erreur inattendue empêche l'affichage des détails.";
+            });
+        }
+        finally
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => order.IsLoadingDetails = false);
+        }
+    }
+
+    private async Task MarkLineTreatedAsync(OrderLine? line)
+    {
+        if (line is null || line.Traite)
+        {
+            return;
+        }
+
+        var order = Orders.FirstOrDefault(o => o.OrderId == line.OrderId);
+
+        if (order is null)
+        {
+            return;
+        }
+
+        var endpoint = "https://dantecmarket.com/api/mobile/changerEtatCommander";
+        var request = new ChangeOrderLineStateRequest { Id = line.Id };
+
+        try
+        {
+            var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
+
+            if (!success)
+            {
+                await ShowLoadErrorAsync("Impossible de marquer ce produit comme traité.");
+                return;
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(() => line.Traite = true);
+            await CheckAndUpdateOrderCompletionAsync(order).ConfigureAwait(false);
+        }
+        catch (TaskCanceledException)
+        {
+            await ShowLoadErrorAsync("La mise à jour du produit a expiré. Veuillez réessayer.");
+        }
+        catch (HttpRequestException)
+        {
+            await ShowLoadErrorAsync("Impossible de mettre à jour ce produit.");
+        }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue empêche la mise à jour de ce produit.");
+        }
+    }
+
+    private async Task CheckAndUpdateOrderCompletionAsync(OrderStatusEntry order)
+    {
+        if (order.OrderLines.Count == 0)
+        {
+            return;
+        }
+
+        if (!order.OrderLines.All(line => line.Traite))
+        {
+            return;
+        }
+
+        if (string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        await UpdateOrderStatusAsync(order, "Traitée", isReverting: false);
     }
 
     private static async Task ShowLoadErrorAsync(string message)

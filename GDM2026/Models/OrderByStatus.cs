@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace GDM2026.Models;
 
@@ -59,9 +61,15 @@ public class OrderByStatus
     }
 }
 
-public class OrderLine
+public class OrderLine : INotifyPropertyChanged
 {
+    private bool _traite;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
     public int Id { get; set; }
+
+    public int OrderId { get; set; }
 
     public int Quantite { get; set; }
 
@@ -70,6 +78,27 @@ public class OrderLine
     public double Prixretenu { get; set; }
 
     public bool NoteDonnee { get; set; }
+
+    public bool Traite
+    {
+        get => _traite;
+        set => SetProperty(ref _traite, value);
+    }
+
+    protected bool SetProperty<T>(ref T backingStore, T value, [CallerMemberName] string propertyName = "")
+    {
+        if (EqualityComparer<T>.Default.Equals(backingStore, value))
+        {
+            return false;
+        }
+
+        backingStore = value;
+        OnPropertyChanged(propertyName);
+        return true;
+    }
+
+    protected void OnPropertyChanged([CallerMemberName] string propertyName = "") =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
 
 public class ProductSummary

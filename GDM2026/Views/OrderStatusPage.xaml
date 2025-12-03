@@ -64,6 +64,7 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Border
+                            x:Name="OrderCard"
                             Margin="0,6"
                             Padding="18"
                             Stroke="{StaticResource GoldText}"
@@ -72,6 +73,17 @@
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="16" />
                             </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding BindingContext.ToggleOrderDetailsCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Border.Triggers>
+                                <DataTrigger Binding="{Binding IsExpanded}" TargetType="Border" Value="True">
+                                    <Setter Property="StrokeThickness" Value="2.5" />
+                                    <Setter Property="BackgroundColor" Value="#121212" />
+                                </DataTrigger>
+                            </Border.Triggers>
                             <VerticalStackLayout Spacing="10">
                                 <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto" ColumnSpacing="8">
                                     <Label
@@ -138,6 +150,71 @@
                                         CornerRadius="10"
                                         TextColor="{StaticResource GoldText}" />
                                 </Grid>
+
+                                <VerticalStackLayout Spacing="10" IsVisible="{Binding IsExpanded}">
+                                    <Border BackgroundColor="#0D0D0D" Padding="10" StrokeThickness="0" >
+                                        <VerticalStackLayout Spacing="6">
+                                            <Grid ColumnDefinitions="auto,*" ColumnSpacing="8" IsVisible="{Binding IsLoadingDetails}">
+                                                <ActivityIndicator Grid.Column="0" IsVisible="True" IsRunning="True" />
+                                                <Label Grid.Column="1" Text="Chargement des détails..." Opacity="0.8" />
+                                            </Grid>
+
+                                            <Label
+                                                Text="{Binding DetailsError}"
+                                                TextColor="Tomato"
+                                                IsVisible="{Binding HasDetailsError}" />
+
+                                            <CollectionView
+                                                ItemsSource="{Binding OrderLines}"
+                                                SelectionMode="None"
+                                                IsVisible="{Binding HasLoadedDetails}">
+                                                <CollectionView.EmptyView>
+                                                    <Label Text="Aucun détail trouvé pour cette commande." />
+                                                </CollectionView.EmptyView>
+                                                <CollectionView.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto" Padding="8" ColumnSpacing="12">
+                                                            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                                                <Label Text="{Binding LeProduit.NomProduit}" FontAttributes="Bold" />
+                                                                <Label Text="{Binding Quantite, StringFormat='Quantité : {0}'}" Opacity="0.8" />
+                                                                <Label Text="{Binding Prixretenu, StringFormat='Prix : {0:C}'}" Opacity="0.8" />
+                                                                <Label Text="À traiter" Opacity="0.8">
+                                                                    <Label.Triggers>
+                                                                        <DataTrigger TargetType="Label" Binding="{Binding Traite}" Value="True">
+                                                                            <Setter Property="Text" Value="Traité" />
+                                                                            <Setter Property="TextColor" Value="#5BE35B" />
+                                                                            <Setter Property="Opacity" Value="1" />
+                                                                        </DataTrigger>
+                                                                    </Label.Triggers>
+                                                                </Label>
+                                                            </VerticalStackLayout>
+
+                                                            <ImageButton
+                                                                Grid.Column="1"
+                                                                Command="{Binding BindingContext.MarkLineTreatedCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                                                CommandParameter="{Binding .}"
+                                                                BackgroundColor="#1A1A1A"
+                                                                CornerRadius="12"
+                                                                Padding="10"
+                                                                HorizontalOptions="End"
+                                                                VerticalOptions="Center">
+                                                                <ImageButton.Source>
+                                                                    <FontImageSource Glyph="&#x2713;" Color="{StaticResource GoldText}" FontSize="22" />
+                                                                </ImageButton.Source>
+                                                                <ImageButton.Triggers>
+                                                                    <DataTrigger TargetType="ImageButton" Binding="{Binding Traite}" Value="True">
+                                                                        <Setter Property="Opacity" Value="0.4" />
+                                                                        <Setter Property="IsEnabled" Value="False" />
+                                                                    </DataTrigger>
+                                                                </ImageButton.Triggers>
+                                                            </ImageButton>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </CollectionView.ItemTemplate>
+                                            </CollectionView>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </VerticalStackLayout>
                             </VerticalStackLayout>
                         </Border>
                     </DataTemplate>

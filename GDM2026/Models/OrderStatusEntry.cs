@@ -1,5 +1,6 @@
 using Microsoft.Maui.ApplicationModel;
 using System;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -9,6 +10,10 @@ namespace GDM2026.Models;
 public class OrderStatusEntry : INotifyPropertyChanged
 {
     private string _currentStatus = string.Empty;
+    private string? _detailsError;
+    private bool _hasLoadedDetails;
+    private bool _isExpanded;
+    private bool _isLoadingDetails;
     private string? _previousStatus;
     private string? _selectedStatusOption;
 
@@ -21,6 +26,8 @@ public class OrderStatusEntry : INotifyPropertyChanged
     public string DisplayDate { get; set; } = string.Empty;
 
     public string DisplayAmount { get; set; } = string.Empty;
+
+    public ObservableCollection<OrderLine> OrderLines { get; } = [];
 
     public string CurrentStatus
     {
@@ -41,6 +48,38 @@ public class OrderStatusEntry : INotifyPropertyChanged
     }
 
     public bool CanRevert => !string.IsNullOrWhiteSpace(PreviousStatus);
+
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set => SetProperty(ref _isExpanded, value);
+    }
+
+    public bool IsLoadingDetails
+    {
+        get => _isLoadingDetails;
+        set => SetProperty(ref _isLoadingDetails, value);
+    }
+
+    public bool HasLoadedDetails
+    {
+        get => _hasLoadedDetails;
+        set => SetProperty(ref _hasLoadedDetails, value);
+    }
+
+    public string? DetailsError
+    {
+        get => _detailsError;
+        set
+        {
+            if (SetProperty(ref _detailsError, value))
+            {
+                OnPropertyChanged(nameof(HasDetailsError));
+            }
+        }
+    }
+
+    public bool HasDetailsError => !string.IsNullOrWhiteSpace(DetailsError);
 
     public string? SelectedStatusOption
     {
