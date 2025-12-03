@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
+using Newtonsoft.Json;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
@@ -75,14 +76,46 @@ public class OrderLine : INotifyPropertyChanged
 
     public ProductSummary? LeProduit { get; set; }
 
+    [JsonProperty("prixRetenu")]
     public double Prixretenu { get; set; }
 
+    [JsonProperty("noteDonnee")]
     public bool NoteDonnee { get; set; }
 
     public bool Traite
     {
         get => _traite;
         set => SetProperty(ref _traite, value);
+    }
+
+    [JsonProperty("nomProduit")]
+    public string? NomProduit
+    {
+        get => LeProduit?.NomProduit;
+        set
+        {
+            if (LeProduit is null)
+            {
+                LeProduit = new ProductSummary();
+            }
+
+            LeProduit.NomProduit = value;
+        }
+    }
+
+    [JsonProperty("produitId")]
+    public int ProduitId
+    {
+        get => LeProduit?.Id ?? default;
+        set
+        {
+            if (LeProduit is null)
+            {
+                LeProduit = new ProductSummary();
+            }
+
+            LeProduit.Id = value;
+        }
     }
 
     protected bool SetProperty<T>(ref T backingStore, T value, [CallerMemberName] string propertyName = "")
