@@ -7,9 +7,22 @@
     xmlns:views="clr-namespace:GDM2026.Views"
     Title="GDM2026">
 
+    <FlyoutItem Title="Navigation principale">
+        <ShellContent
+            Title="Connexion"
+            ContentTemplate="{DataTemplate local:MainPage}"
+            Route="MainPage" />
+
+        <ShellContent
+            Title="Accueil"
+            ContentTemplate="{DataTemplate local:HomePage}"
+            Route="HomePage" />
+    </FlyoutItem>
+
     <ShellContent
         Title="Chargement"
         ContentTemplate="{DataTemplate views:SplashPage}"
-        Route="SplashPage" />
+        Route="SplashPage"
+        Shell.FlyoutItemIsVisible="False" />
 
 </Shell>
