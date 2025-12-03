@@ -136,6 +136,10 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         {
             await ShowLoadErrorAsync("Impossible de récupérer les commandes pour cet état.");
         }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue est survenue pendant le chargement des commandes.");
+        }
         finally
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
@@ -277,24 +281,35 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         {
             return;
         }
-
-        var isOpening = !order.IsExpanded;
-        order.IsExpanded = isOpening;
-
-        if (!isOpening)
+        try
         {
-            return;
+            var isOpening = !order.IsExpanded;
+            order.IsExpanded = isOpening;
+
+            if (!isOpening)
+            {
+                return;
+            }
+
+            var isAlreadyInProgress = string.Equals(order.CurrentStatus, "En cours de traitement", StringComparison.OrdinalIgnoreCase);
+            var isAlreadyCompleted = string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase);
+
+            if (!isAlreadyInProgress && !isAlreadyCompleted)
+            {
+                await UpdateOrderStatusAsync(order, "En cours de traitement", isReverting: false);
+            }
+
+            await LoadOrderDetailsAsync(order);
         }
-
-        var isAlreadyInProgress = string.Equals(order.CurrentStatus, "En cours de traitement", StringComparison.OrdinalIgnoreCase);
-        var isAlreadyCompleted = string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase);
-
-        if (!isAlreadyInProgress && !isAlreadyCompleted)
+        catch (Exception)
         {
-            await UpdateOrderStatusAsync(order, "En cours de traitement", isReverting: false);
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                order.IsExpanded = false;
+                order.DetailsError = "Une erreur inattendue empêche l'affichage des détails.";
+                order.IsLoadingDetails = false;
+            });
         }
-
-        await LoadOrderDetailsAsync(order);
     }
 
     private async Task LoadOrderDetailsAsync(OrderStatusEntry order)
