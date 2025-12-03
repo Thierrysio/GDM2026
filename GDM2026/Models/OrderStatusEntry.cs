@@ -40,10 +40,10 @@ public class OrderStatusEntry : INotifyPropertyChanged
 
     public bool CanRevert => !string.IsNullOrWhiteSpace(PreviousStatus);
 
-    public void PopulateFromOrder(OrderByStatus order)
+    public void PopulateFromOrder(OrderByStatus order, string? fallbackStatus = null)
     {
         OrderId = order.Id;
-        CurrentStatus = order.Etat ?? string.Empty;
+        CurrentStatus = order.Etat ?? fallbackStatus ?? string.Empty;
         DisplayDate = order.DateCommande.ToString("dd MMM yyyy - HH:mm", CultureInfo.GetCultureInfo("fr-FR"));
         DisplayAmount = order.MontantTotal.ToString("C", CultureInfo.GetCultureInfo("fr-FR"));
     }
