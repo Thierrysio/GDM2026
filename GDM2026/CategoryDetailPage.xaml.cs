@@ -1,38 +1,23 @@
-using Microsoft.Maui.Controls;
+using GDM2026.Models;
+using GDM2026.ViewModels;
 
 namespace GDM2026
 {
     [QueryProperty(nameof(Card), "card")]
     public partial class CategoryDetailPage : ContentPage
     {
-        private CategoryCard? _card;
+        private readonly CategoryDetailViewModel _viewModel = new();
 
         public CategoryCard? Card
         {
-            get => _card;
-            set
-            {
-                _card = value;
-                UpdateContent();
-            }
+            get => _viewModel.Card;
+            set => _viewModel.Card = value;
         }
 
         public CategoryDetailPage()
         {
             InitializeComponent();
-        }
-
-        private void UpdateContent()
-        {
-            if (_card == null)
-            {
-                return;
-            }
-
-            Title = _card.Title;
-            TitleLabel.Text = _card.Title;
-            DescriptionLabel.Text = _card.Description;
-            HintLabel.Text = $"Vous êtes sur la page {_card.Title}. Ajoutez ici les fonctionnalités spécifiques à cette catégorie.";
+            BindingContext = _viewModel;
         }
     }
 }

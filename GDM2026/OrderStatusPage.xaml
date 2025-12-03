@@ -2,8 +2,8 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="GDM2026.OrderStatusPage"
-             x:Name="OrderStatusPageRoot"
-             BackgroundColor="#0B0B0B">
+             BackgroundColor="#0B0B0B"
+             Title="{Binding PageTitle}">
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
         <Color x:Key="CardBackground">#0B0B0B</Color>
@@ -35,27 +35,27 @@
                 BorderColor="{StaticResource CardBorder}">
                 <VerticalStackLayout Spacing="8">
                     <Label
-                        x:Name="StatusTitle"
                         FontSize="22"
                         FontAttributes="Bold"
                         HorizontalTextAlignment="Center"
                         TextColor="{StaticResource GoldText}"
                         LineBreakMode="NoWrap"
                         MaxLines="1"
-                        HorizontalOptions="CenterAndExpand" />
+                        HorizontalOptions="CenterAndExpand"
+                        Text="{Binding PageTitle}" />
                     <Label
-                        x:Name="StatusSubtitle"
                         FontSize="14"
                         HorizontalTextAlignment="Center"
                         TextColor="{StaticResource GoldText}"
-                        Opacity="0.85" />
+                        Opacity="0.85"
+                        Text="{Binding Subtitle}" />
                 </VerticalStackLayout>
             </Frame>
 
-            <CollectionView x:Name="ProductsCollection" ItemsSource="{Binding Products}" SelectionMode="None">
+            <CollectionView ItemsSource="{Binding Products}" SelectionMode="None">
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Padding="12" Spacing="6" HorizontalOptions="Center">
-                        <ActivityIndicator IsVisible="{Binding IsLoading}" IsRunning="{Binding IsLoading}" />
+                        <ActivityIndicator IsVisible="{Binding IsBusy}" IsRunning="{Binding IsBusy}" />
                         <Label Text="Aucun produit à afficher pour cet état." TextColor="{StaticResource GoldText}" />
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
@@ -108,14 +108,23 @@
                                         <Picker
                                             WidthRequest="90"
                                             HorizontalOptions="End"
-                                            ItemsSource="{Binding AvailableStatuses, Source={x:Reference OrderStatusPageRoot}}"
-                                            SelectedItem="{Binding CurrentStatus, Mode=OneWay}"
+                                            ItemsSource="{Binding BindingContext.AvailableStatuses, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                            SelectedItem="{Binding CurrentStatus, Mode=TwoWay}"
                                             BackgroundColor="Transparent"
                                             TextColor="{StaticResource GoldText}"
                                             TitleColor="{StaticResource GoldText}"
-                                            Title="Modifier l'état"
-                                            SelectedIndexChanged="OnStatusSelectionChanged" />
+                                            Title="Modifier l'état" />
                                     </Border>
+                                    <Button
+                                        Text="Annuler"
+                                        Command="{Binding BindingContext.RevertStatusCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding CanRevert}"
+                                        BackgroundColor="Transparent"
+                                        BorderColor="{StaticResource GoldText}"
+                                        BorderWidth="2"
+                                        CornerRadius="10"
+                                        TextColor="{StaticResource GoldText}" />
                                 </VerticalStackLayout>
                             </Grid>
                         </Border>
