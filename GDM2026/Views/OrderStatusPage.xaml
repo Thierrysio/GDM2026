@@ -199,7 +199,7 @@
                                                                 HorizontalOptions="End"
                                                                 VerticalOptions="Center">
                                                                 <ImageButton.Source>
-                                                                    <FontImageSource Glyph="&#x2713;" Color="{StaticResource GoldText}" FontSize="22" />
+                                                                    <FontImageSource Glyph="&#x2713;" Color="{StaticResource GoldText}" Size="22" />
                                                                 </ImageButton.Source>
                                                                 <ImageButton.Triggers>
                                                                     <DataTrigger TargetType="ImageButton" Binding="{Binding Traite}" Value="True">
