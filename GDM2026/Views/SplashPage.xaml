@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.Views.SplashPage"
+             BackgroundColor="#0B0B0B"
+             Shell.NavBarIsVisible="False">
+    <Grid>
+        <VerticalStackLayout
+            VerticalOptions="Center"
+            HorizontalOptions="Center"
+            Spacing="18">
+            <Frame
+                WidthRequest="180"
+                HeightRequest="180"
+                CornerRadius="90"
+                BackgroundColor="White"
+                HasShadow="True"
+                Padding="24">
+                <Image
+                    Source="logo.jpg"
+                    Aspect="AspectFit"
+                    AutomationId="SplashLogo" />
+            </Frame>
+
+            <ActivityIndicator
+                Color="#D4AF37"
+                IsRunning="True"
+                WidthRequest="56"
+                HeightRequest="56" />
+
+            <Label
+                Text="Vérification de votre session..."
+                TextColor="#D4AF37"
+                FontSize="16"
+                HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

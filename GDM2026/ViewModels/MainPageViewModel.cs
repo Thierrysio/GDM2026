@@ -180,7 +180,7 @@ public class MainPageViewModel : BaseViewModel
         {
             if (Shell.Current != null)
             {
-                await Shell.Current.GoToAsync(nameof(HomePage)).ConfigureAwait(false);
+                await Shell.Current.GoToAsync($"//{nameof(HomePage)}").ConfigureAwait(false);
             }
         });
     }
