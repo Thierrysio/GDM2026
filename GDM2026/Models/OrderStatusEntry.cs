@@ -43,7 +43,16 @@ public class OrderStatusEntry : INotifyPropertyChanged
     public void PopulateFromOrder(OrderByStatus order, string? fallbackStatus = null)
     {
         OrderId = order.Id;
-        CurrentStatus = order.Etat ?? fallbackStatus ?? string.Empty;
+        var status = order.Etat;
+
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            status = fallbackStatus;
+        }
+
+        CurrentStatus = string.IsNullOrWhiteSpace(status)
+            ? "État non renseigné"
+            : status;
         DisplayDate = order.DateCommande.ToString("dd MMM yyyy - HH:mm", CultureInfo.GetCultureInfo("fr-FR"));
         DisplayAmount = order.MontantTotal.ToString("C", CultureInfo.GetCultureInfo("fr-FR"));
     }
