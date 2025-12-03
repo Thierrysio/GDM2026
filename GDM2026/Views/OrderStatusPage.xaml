@@ -116,11 +116,7 @@
 
                                 <Grid ColumnDefinitions="*,auto" ColumnSpacing="12" RowDefinitions="auto">
                                     <VerticalStackLayout Spacing="4" Grid.Column="0">
-                                        <Label
-                                            Text="Modifier l'état"
-                                            FontSize="13"
-                                            TextColor="{StaticResource GoldText}" />
-                                    <Picker
+                                        <Picker
                                             Grid.Column="0"
                                         ItemsSource="{Binding BindingContext.AvailableStatuses, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
                                             SelectedItem="{Binding SelectedStatusOption, Mode=TwoWay}"
