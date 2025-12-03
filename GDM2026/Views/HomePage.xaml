@@ -17,11 +17,19 @@
                 HorizontalOptions="Center"
                 Spacing="8"
                 Margin="0,12,0,6">
-                <Image
-                    Source="logo.jpg"
-                    HeightRequest="140"
-                    Aspect="AspectFit"
-                    AutomationId="HomeHeaderLogo" />
+                <Frame
+                    HeightRequest="160"
+                    WidthRequest="160"
+                    CornerRadius="80"
+                    Padding="12"
+                    BackgroundColor="White"
+                    HasShadow="True"
+                    BorderColor="#E0E0E0">
+                    <Image
+                        Source="logo.jpg"
+                        Aspect="AspectFit"
+                        AutomationId="HomeHeaderLogo" />
+                </Frame>
 
                 <Label
                     Text="Dantec Market"
@@ -93,6 +101,22 @@
                                             Command="{Binding BindingContext.OrderStatusSelectedCommand, Source={x:Reference HomePageRoot}}"
                                             CommandParameter="{Binding .}" />
                                     </Frame.GestureRecognizers>
+                                    <VisualStateManager.VisualStateGroups>
+                                        <VisualStateGroup x:Name="CommonStates">
+                                            <VisualState x:Name="Normal">
+                                                <VisualState.Setters>
+                                                    <Setter Property="BackgroundColor" Value="#1F1F1F" />
+                                                    <Setter Property="Scale" Value="1" />
+                                                </VisualState.Setters>
+                                            </VisualState>
+                                            <VisualState x:Name="Pressed">
+                                                <VisualState.Setters>
+                                                    <Setter Property="BackgroundColor" Value="#2A2A2A" />
+                                                    <Setter Property="Scale" Value="0.98" />
+                                                </VisualState.Setters>
+                                            </VisualState>
+                                        </VisualStateGroup>
+                                    </VisualStateManager.VisualStateGroups>
                                     <VerticalStackLayout Spacing="4">
                                         <Label
                                             Text="{Binding Status}"
@@ -139,6 +163,22 @@
                                     Command="{Binding BindingContext.CategorySelectedCommand, Source={x:Reference HomePageRoot}}"
                                     CommandParameter="{Binding .}" />
                             </Frame.GestureRecognizers>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal">
+                                        <VisualState.Setters>
+                                            <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
+                                            <Setter Property="Scale" Value="1" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <VisualState.Setters>
+                                            <Setter Property="BackgroundColor" Value="#1E1E1E" />
+                                            <Setter Property="Scale" Value="0.98" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
                             <VerticalStackLayout Spacing="6">
                                 <Label
                                     Text="{Binding Title}"
