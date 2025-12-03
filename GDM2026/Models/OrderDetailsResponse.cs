@@ -20,6 +20,11 @@ public class OrderDetailsResponse
     public List<OrderLine> LesCommandes { get; set; } = new();
 }
 
+public class OrderDetailsRequest
+{
+    public int Id { get; set; }
+}
+
 public class ChangeOrderLineStateRequest
 {
     public int Id { get; set; }

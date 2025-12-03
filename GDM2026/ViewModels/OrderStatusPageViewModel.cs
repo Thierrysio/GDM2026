@@ -309,8 +309,11 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         try
         {
-            var endpoint = $"/api/mobile/commandeDetails/{order.OrderId}";
-            var details = await _apis.GetAsync<OrderDetailsResponse>(endpoint).ConfigureAwait(false);
+            var endpoint = "/api/mobile/commandeDetails";
+            var request = new OrderDetailsRequest { Id = order.OrderId };
+            var details = await _apis
+                .PostAsync<OrderDetailsRequest, OrderDetailsResponse>(endpoint, request)
+                .ConfigureAwait(false);
 
             var lines = details?.LesCommandes ?? new List<OrderLine>();
 
