@@ -1,4 +1,6 @@
-﻿namespace GDM2026
+using GDM2026.Views;
+
+namespace GDM2026
 {
     public partial class AppShell : Shell
     {
