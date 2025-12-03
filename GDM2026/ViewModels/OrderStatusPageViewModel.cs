@@ -16,10 +16,10 @@ public class OrderStatusPageViewModel : BaseViewModel
     private readonly IReadOnlyList<string> _availableStatuses = new List<string>
     {
         "Confirmée",
+        "En cours de traitement",
         "Traitée",
         "Livrée",
-        "En attente",
-        "Annulée"
+        "A confirmer"
     };
 
     private readonly Dictionary<OrderStatusEntry, string> _lastKnownStatuses = new();
