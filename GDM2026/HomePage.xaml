@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="GDM2026.HomePage"
+             x:Name="HomePageRoot"
              BackgroundColor="#0B0B0B">
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
@@ -45,10 +46,10 @@
                         TextColor="{StaticResource GoldText}" />
 
                     <Label
-                        x:Name="WelcomeLabel"
                         FontSize="18"
                         HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}" />
+                        TextColor="{StaticResource GoldText}"
+                        Text="{Binding WelcomeText}" />
 
                     <Label
                         Text="Vous êtes connecté à Dantec Market."
@@ -88,7 +89,9 @@
                                     HasShadow="False"
                                     BorderColor="#000000">
                                     <Frame.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnOrderStatusTapped" />
+                                        <TapGestureRecognizer
+                                            Command="{Binding BindingContext.OrderStatusSelectedCommand, Source={x:Reference HomePageRoot}}"
+                                            CommandParameter="{Binding .}" />
                                     </Frame.GestureRecognizers>
                                     <VerticalStackLayout Spacing="4">
                                         <Label
@@ -117,8 +120,7 @@
 
             <CollectionView
                 ItemsSource="{Binding Categories}"
-                SelectionMode="Single"
-                SelectionChanged="OnCategorySelected"
+                SelectionMode="None"
                 Margin="0,6,0,0">
                 <CollectionView.ItemsLayout>
                     <GridItemsLayout Orientation="Vertical" Span="2" />
@@ -133,7 +135,9 @@
                             HasShadow="False"
                             BorderColor="#000000">
                             <Frame.GestureRecognizers>
-                                <TapGestureRecognizer Tapped="OnCategoryTapped" />
+                                <TapGestureRecognizer
+                                    Command="{Binding BindingContext.CategorySelectedCommand, Source={x:Reference HomePageRoot}}"
+                                    CommandParameter="{Binding .}" />
                             </Frame.GestureRecognizers>
                             <VerticalStackLayout Spacing="6">
                                 <Label

@@ -18,25 +18,25 @@
                 BorderColor="#000000">
                 <VerticalStackLayout Spacing="12">
                     <Label
-                        x:Name="TitleLabel"
                         FontSize="28"
                         FontAttributes="Bold"
                         HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}" />
+                        TextColor="{StaticResource GoldText}"
+                        Text="{Binding Title}" />
 
                     <Label
-                        x:Name="DescriptionLabel"
                         FontSize="16"
                         HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}" />
+                        TextColor="{StaticResource GoldText}"
+                        Text="{Binding Description}" />
 
                     <Label
-                        x:Name="HintLabel"
                         FontSize="14"
                         HorizontalTextAlignment="Center"
                         TextColor="{StaticResource GoldText}"
                         Opacity="0.8"
-                        LineBreakMode="WordWrap" />
+                        LineBreakMode="WordWrap"
+                        Text="{Binding Hint}" />
                 </VerticalStackLayout>
             </Frame>
         </VerticalStackLayout>
