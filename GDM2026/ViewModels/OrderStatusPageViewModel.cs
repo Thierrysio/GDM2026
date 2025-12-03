@@ -309,7 +309,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         try
         {
-            var endpoint = "/api/mobile/commandeDetails";
+            var endpoint = "https://dantecmarket.com/api/mobile/commandeDetails";
             var request = new OrderDetailsRequest { Id = order.OrderId };
             var details = await _apis
                 .PostAsync<OrderDetailsRequest, OrderDetailsResponse>(endpoint, request)

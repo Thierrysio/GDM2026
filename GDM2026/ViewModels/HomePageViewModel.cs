@@ -98,7 +98,7 @@ public partial class HomePageViewModel : BaseViewModel
         try
         {
             var statuses = await _apis
-                .GetAsync<Dictionary<string, int>>("/api/mobile/getNombreCommandes")
+                .GetAsync<Dictionary<string, int>>("https://dantecmarket.com/api/mobile/getNombreCommandes")
                 .ConfigureAwait(false) ?? new Dictionary<string, int>();
 
             var deltas = OrderStatusDeltaTracker.GetDeltas();

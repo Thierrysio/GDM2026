@@ -150,7 +150,7 @@ public class MainPageViewModel : BaseViewModel
         try
         {
             return await _apis
-                .PostAsync<object, User>("/api/mobile/GetFindUser", loginData)
+                .PostAsync<object, User>("https://dantecmarket.com/api/mobile/GetFindUser", loginData)
                 .ConfigureAwait(false);
         }
         catch (HttpRequestException ex) when (ex.Message.StartsWith("API error", StringComparison.OrdinalIgnoreCase))
