@@ -1,3 +1,4 @@
+using Microsoft.Maui.ApplicationModel;
 using System;
 using System.ComponentModel;
 using System.Globalization;
@@ -9,6 +10,7 @@ public class OrderStatusEntry : INotifyPropertyChanged
 {
     private string _currentStatus = string.Empty;
     private string? _previousStatus;
+    private string? _selectedStatusOption;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -39,6 +41,34 @@ public class OrderStatusEntry : INotifyPropertyChanged
     }
 
     public bool CanRevert => !string.IsNullOrWhiteSpace(PreviousStatus);
+
+    public string? SelectedStatusOption
+    {
+        get => _selectedStatusOption;
+        set
+        {
+            if (SetProperty(ref _selectedStatusOption, value))
+            {
+                if (!string.IsNullOrWhiteSpace(value) &&
+                    !string.Equals(value, CurrentStatus, StringComparison.Ordinal))
+                {
+                    CurrentStatus = value;
+                }
+
+                if (value is not null)
+                {
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        if (_selectedStatusOption is not null)
+                        {
+                            _selectedStatusOption = null;
+                            OnPropertyChanged(nameof(SelectedStatusOption));
+                        }
+                    });
+                }
+            }
+        }
+    }
 
     public void PopulateFromOrder(OrderByStatus order, string? fallbackStatus = null)
     {
