@@ -5,24 +5,25 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:GDM2026"
     xmlns:views="clr-namespace:GDM2026.Views"
-    Title="GDM2026">
-
-    <FlyoutItem Title="Navigation principale">
-        <ShellContent
-            Title="Connexion"
-            ContentTemplate="{DataTemplate local:MainPage}"
-            Route="MainPage" />
-
-        <ShellContent
-            Title="Accueil"
-            ContentTemplate="{DataTemplate local:HomePage}"
-            Route="HomePage" />
-    </FlyoutItem>
+    Title="GDM2026"
+    Shell.FlyoutBehavior="Disabled">
 
     <ShellContent
         Title="Chargement"
         ContentTemplate="{DataTemplate views:SplashPage}"
         Route="SplashPage"
+        Shell.FlyoutItemIsVisible="False" />
+
+    <ShellContent
+        Title="Connexion"
+        ContentTemplate="{DataTemplate local:MainPage}"
+        Route="MainPage"
+        Shell.FlyoutItemIsVisible="False" />
+
+    <ShellContent
+        Title="Accueil"
+        ContentTemplate="{DataTemplate local:HomePage}"
+        Route="HomePage"
         Shell.FlyoutItemIsVisible="False" />
 
 </Shell>
