@@ -41,7 +41,7 @@ public partial class SplashPage : ContentPage
             {
                 if (Shell.Current != null)
                 {
-                    await Shell.Current.GoToAsync($"//{targetRoute}").ConfigureAwait(false);
+                    await Shell.Current.GoToAsync(targetRoute);
                 }
             });
         }
@@ -52,7 +52,7 @@ public partial class SplashPage : ContentPage
                 await DisplayAlert("Erreur", "Impossible de vérifier votre session. Merci de réessayer.", "OK");
                 if (Shell.Current != null)
                 {
-                    await Shell.Current.GoToAsync($"//{nameof(MainPage)}").ConfigureAwait(false);
+                    await Shell.Current.GoToAsync(nameof(MainPage));
                 }
             });
         }
