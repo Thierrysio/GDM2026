@@ -22,8 +22,8 @@ public class OrderStatusPageViewModel : BaseViewModel
         "Annulée"
     };
 
-    private readonly Dictionary<OrderStatusProduct, string> _lastKnownStatuses = new();
-    private readonly HashSet<OrderStatusProduct> _statusUpdatesInProgress = new();
+    private readonly Dictionary<OrderStatusEntry, string> _lastKnownStatuses = new();
+    private readonly HashSet<OrderStatusEntry> _statusUpdatesInProgress = new();
     private bool _hasLoaded;
     private string? _status;
     private string _pageTitle = string.Empty;
@@ -31,11 +31,11 @@ public class OrderStatusPageViewModel : BaseViewModel
 
     public OrderStatusPageViewModel()
     {
-        Products = new ObservableCollection<OrderStatusProduct>();
-        RevertStatusCommand = new Command<OrderStatusProduct>(async product => await RevertStatusAsync(product));
+        Orders = new ObservableCollection<OrderStatusEntry>();
+        RevertStatusCommand = new Command<OrderStatusEntry>(async order => await RevertStatusAsync(order));
     }
 
-    public ObservableCollection<OrderStatusProduct> Products { get; }
+    public ObservableCollection<OrderStatusEntry> Orders { get; }
 
     public IReadOnlyList<string> AvailableStatuses => _availableStatuses;
 
@@ -81,7 +81,7 @@ public class OrderStatusPageViewModel : BaseViewModel
         {
             IsBusy = true;
             PageTitle = $"Commandes : {Status}";
-            Subtitle = "Produits : en cours de chargement...";
+            Subtitle = "Commandes : en cours de chargement...";
         });
 
         try
@@ -93,32 +93,27 @@ public class OrderStatusPageViewModel : BaseViewModel
                 .ConfigureAwait(false);
 
             var items = (orders ?? new List<OrderByStatus>())
-                .SelectMany(order => (order.LesCommandes ?? new List<OrderLine>())
-                    .Select(line => new { order, line }))
-                .Select(x => new OrderStatusProduct
+                .Select(order =>
                 {
-                    OrderId = x.order.Id,
-                    OrderLineId = x.line.Id,
-                    CustomerName = BuildCustomerName(x.order),
-                    CurrentStatus = x.order.Etat ?? Status ?? "Inconnu",
-                    Name = x.line.LeProduit?.NomProduit ?? "Produit inconnu",
-                    ImageUrl = BuildImageUrl(x.line.LeProduit?.ImageUrl)
+                    var entry = new OrderStatusEntry();
+                    entry.PopulateFromOrder(order);
+                    return entry;
                 })
                 .ToList();
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                Products.Clear();
+                Orders.Clear();
                 _lastKnownStatuses.Clear();
 
                 foreach (var item in items)
                 {
-                    Products.Add(item);
+                    Orders.Add(item);
                     _lastKnownStatuses[item] = item.CurrentStatus;
                     AttachStatusHandler(item);
                 }
 
-                Subtitle = $"Produits : {Products.Count}";
+                Subtitle = $"Commandes : {Orders.Count}";
             });
         }
         catch (TaskCanceledException)
@@ -127,7 +122,7 @@ public class OrderStatusPageViewModel : BaseViewModel
         }
         catch (HttpRequestException)
         {
-            await ShowLoadErrorAsync("Impossible de récupérer les produits pour cet état.");
+            await ShowLoadErrorAsync("Impossible de récupérer les commandes pour cet état.");
         }
         finally
         {
@@ -135,59 +130,59 @@ public class OrderStatusPageViewModel : BaseViewModel
         }
     }
 
-    private void AttachStatusHandler(OrderStatusProduct product)
+    private void AttachStatusHandler(OrderStatusEntry order)
     {
-        product.PropertyChanged += (_, args) =>
+        order.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName == nameof(OrderStatusProduct.CurrentStatus))
+            if (args.PropertyName == nameof(OrderStatusEntry.CurrentStatus))
             {
-                _ = OnProductStatusChangedAsync(product);
+                _ = OnOrderStatusChangedAsync(order);
             }
         };
     }
 
-    private async Task OnProductStatusChangedAsync(OrderStatusProduct product)
+    private async Task OnOrderStatusChangedAsync(OrderStatusEntry order)
     {
-        if (_statusUpdatesInProgress.Contains(product))
+        if (_statusUpdatesInProgress.Contains(order))
         {
             return;
         }
 
-        var newStatus = product.CurrentStatus;
-        var previousStatus = _lastKnownStatuses.TryGetValue(product, out var last) ? last : string.Empty;
+        var newStatus = order.CurrentStatus;
+        var previousStatus = _lastKnownStatuses.TryGetValue(order, out var last) ? last : string.Empty;
 
         if (string.IsNullOrWhiteSpace(newStatus) || string.Equals(newStatus, previousStatus, StringComparison.Ordinal))
         {
             return;
         }
 
-        await UpdateOrderStatusAsync(product, newStatus, isReverting: false);
+        await UpdateOrderStatusAsync(order, newStatus, isReverting: false);
     }
 
-    private async Task RevertStatusAsync(OrderStatusProduct? product)
+    private async Task RevertStatusAsync(OrderStatusEntry? order)
     {
-        if (product?.PreviousStatus == null)
+        if (order?.PreviousStatus == null)
         {
             return;
         }
 
-        await UpdateOrderStatusAsync(product, product.PreviousStatus, isReverting: true);
+        await UpdateOrderStatusAsync(order, order.PreviousStatus, isReverting: true);
     }
 
-    private async Task<bool> UpdateOrderStatusAsync(OrderStatusProduct product, string newStatus, bool isReverting)
+    private async Task<bool> UpdateOrderStatusAsync(OrderStatusEntry order, string newStatus, bool isReverting)
     {
         if (string.IsNullOrWhiteSpace(newStatus))
         {
             return false;
         }
 
-        var previousStatus = _lastKnownStatuses.TryGetValue(product, out var last) ? last : product.CurrentStatus;
+        var previousStatus = _lastKnownStatuses.TryGetValue(order, out var last) ? last : order.CurrentStatus;
 
         if (string.Equals(previousStatus, newStatus, StringComparison.Ordinal))
         {
             if (isReverting)
             {
-                product.ClearPreviousStatus();
+                order.ClearPreviousStatus();
             }
 
             return false;
@@ -196,11 +191,11 @@ public class OrderStatusPageViewModel : BaseViewModel
         var endpoint = "https://dantecmarket.com/api/mobile/updateEtat";
         var request = new UpdateOrderStatusRequest
         {
-            Id = product.OrderId,
+            Id = order.OrderId,
             Etat = newStatus
         };
 
-        _statusUpdatesInProgress.Add(product);
+        _statusUpdatesInProgress.Add(order);
 
         try
         {
@@ -209,7 +204,7 @@ public class OrderStatusPageViewModel : BaseViewModel
             if (!success)
             {
                 await ShowLoadErrorAsync("Impossible de modifier l'état de cette commande.");
-                await ResetProductStatusAsync(product, previousStatus);
+                await ResetOrderStatusAsync(order, previousStatus);
                 return false;
             }
 
@@ -217,15 +212,15 @@ public class OrderStatusPageViewModel : BaseViewModel
             {
                 if (isReverting)
                 {
-                    product.ClearPreviousStatus();
+                    order.ClearPreviousStatus();
                 }
                 else
                 {
-                    product.RememberPreviousStatus(previousStatus);
+                    order.RememberPreviousStatus(previousStatus);
                 }
 
-                SetProductStatusSilently(product, newStatus);
-                _lastKnownStatuses[product] = newStatus;
+                SetOrderStatusSilently(order, newStatus);
+                _lastKnownStatuses[order] = newStatus;
             });
 
             OrderStatusDeltaTracker.RecordChange(previousStatus, newStatus);
@@ -245,43 +240,23 @@ public class OrderStatusPageViewModel : BaseViewModel
         }
         finally
         {
-            _statusUpdatesInProgress.Remove(product);
+            _statusUpdatesInProgress.Remove(order);
         }
 
-        await ResetProductStatusAsync(product, previousStatus);
+        await ResetOrderStatusAsync(order, previousStatus);
         return false;
     }
 
-    private async Task ResetProductStatusAsync(OrderStatusProduct product, string status)
+    private async Task ResetOrderStatusAsync(OrderStatusEntry order, string status)
     {
-        await MainThread.InvokeOnMainThreadAsync(() => SetProductStatusSilently(product, status));
+        await MainThread.InvokeOnMainThreadAsync(() => SetOrderStatusSilently(order, status));
     }
 
-    private void SetProductStatusSilently(OrderStatusProduct product, string status)
+    private void SetOrderStatusSilently(OrderStatusEntry order, string status)
     {
-        _statusUpdatesInProgress.Add(product);
-        product.CurrentStatus = status;
-        _statusUpdatesInProgress.Remove(product);
-    }
-
-    private static string BuildImageUrl(string? imagePath)
-    {
-        if (string.IsNullOrWhiteSpace(imagePath))
-        {
-            return "dotnet_bot.png";
-        }
-
-        if (Uri.TryCreate(imagePath, UriKind.Absolute, out var absolute))
-        {
-            return absolute.ToString();
-        }
-
-        if (Uri.TryCreate(Constantes.BaseImagesAddress, UriKind.Absolute, out var baseUri))
-        {
-            return new Uri(baseUri, imagePath.TrimStart('/')).ToString();
-        }
-
-        return imagePath;
+        _statusUpdatesInProgress.Add(order);
+        order.CurrentStatus = status;
+        _statusUpdatesInProgress.Remove(order);
     }
 
     private static async Task ShowLoadErrorAsync(string message)
@@ -292,25 +267,4 @@ public class OrderStatusPageViewModel : BaseViewModel
         });
     }
 
-    private static string BuildCustomerName(OrderByStatus order)
-    {
-        var parts = new List<string>();
-
-        if (!string.IsNullOrWhiteSpace(order.PrenomClient))
-        {
-            parts.Add(order.PrenomClient);
-        }
-
-        if (!string.IsNullOrWhiteSpace(order.NomClient))
-        {
-            parts.Add(order.NomClient);
-        }
-
-        if (parts.Count > 0)
-        {
-            return string.Join(" ", parts);
-        }
-
-        return "Client inconnu";
-    }
 }
