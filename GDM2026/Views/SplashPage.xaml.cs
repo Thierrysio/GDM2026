@@ -34,8 +34,8 @@ public partial class SplashPage : ContentPage
             var hasSession = await _sessionService.LoadAsync().ConfigureAwait(false);
 
             var targetRoute = hasSession && _sessionService.IsAuthenticated
-                ? nameof(HomePage)
-                : nameof(MainPage);
+                ? $"//{nameof(HomePage)}"
+                : $"//{nameof(MainPage)}";
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
@@ -52,7 +52,7 @@ public partial class SplashPage : ContentPage
                 await DisplayAlert("Erreur", "Impossible de vérifier votre session. Merci de réessayer.", "OK");
                 if (Shell.Current != null)
                 {
-                    await Shell.Current.GoToAsync(nameof(MainPage));
+                    await Shell.Current.GoToAsync($"//{nameof(MainPage)}");
                 }
             });
         }
