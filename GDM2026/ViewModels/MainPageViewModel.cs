@@ -131,8 +131,11 @@ public class MainPageViewModel : BaseViewModel
         }
         finally
         {
-            IsBusy = false;
-            ((Command)LoginCommand).ChangeCanExecute();
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                IsBusy = false;
+                ((Command)LoginCommand).ChangeCanExecute();
+            });
         }
     }
 

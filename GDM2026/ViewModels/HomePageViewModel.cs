@@ -1,5 +1,6 @@
 using GDM2026.Models;
 using GDM2026.Services;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -42,7 +43,7 @@ public class HomePageViewModel : BaseViewModel
 
     public async Task InitializeAsync()
     {
-        await Task.WhenAll(LoadSessionAsync(), LoadOrderStatusesAsync()).ConfigureAwait(false);
+        await Task.WhenAll(LoadSessionAsync(), LoadOrderStatusesAsync());
     }
 
     public void OnDisappearing()
@@ -53,9 +54,12 @@ public class HomePageViewModel : BaseViewModel
     private async Task LoadSessionAsync()
     {
         var hasSession = await _sessionService.LoadAsync().ConfigureAwait(false);
-        WelcomeText = hasSession && _sessionService.CurrentUser != null
-            ? $"Bonjour {_sessionService.CurrentUser.Prenom ?? _sessionService.CurrentUser.Nom ?? _sessionService.CurrentUser.UserIdentifier}!"
-            : "Bonjour!";
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            WelcomeText = hasSession && _sessionService.CurrentUser != null
+                ? $"Bonjour {_sessionService.CurrentUser.Prenom ?? _sessionService.CurrentUser.Nom ?? _sessionService.CurrentUser.UserIdentifier}!"
+                : "Bonjour!";
+        });
     }
 
     private void LoadCategories()
@@ -99,18 +103,21 @@ public class HomePageViewModel : BaseViewModel
 
             var deltas = OrderStatusDeltaTracker.GetDeltas();
 
-            OrderStatuses.Clear();
-
-            foreach (var status in statuses)
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                var delta = deltas.TryGetValue(status.Key, out var change) ? change : 0;
-                OrderStatuses.Add(new OrderStatusDisplay(status.Key, status.Value, delta));
-            }
+                OrderStatuses.Clear();
 
-            foreach (var delta in deltas.Where(d => !statuses.ContainsKey(d.Key)))
-            {
-                OrderStatuses.Add(new OrderStatusDisplay(delta.Key, 0, delta.Value));
-            }
+                foreach (var status in statuses)
+                {
+                    var delta = deltas.TryGetValue(status.Key, out var change) ? change : 0;
+                    OrderStatuses.Add(new OrderStatusDisplay(status.Key, status.Value, delta));
+                }
+
+                foreach (var delta in deltas.Where(d => !statuses.ContainsKey(d.Key)))
+                {
+                    OrderStatuses.Add(new OrderStatusDisplay(delta.Key, 0, delta.Value));
+                }
+            });
         }
         catch (TaskCanceledException)
         {
