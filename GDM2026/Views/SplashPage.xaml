@@ -9,18 +9,21 @@
             VerticalOptions="Center"
             HorizontalOptions="Center"
             Spacing="18">
-            <Frame
+            <Border
                 WidthRequest="180"
                 HeightRequest="180"
-                CornerRadius="90"
-                BackgroundColor="White"
-                HasShadow="True"
+                Background="White"
+                Stroke="#E0E0E0"
+                StrokeThickness="1"
                 Padding="24">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="90" />
+                </Border.StrokeShape>
                 <Image
                     Source="logo.jpg"
                     Aspect="AspectFit"
                     AutomationId="SplashLogo" />
-            </Frame>
+            </Border>
 
             <ActivityIndicator
                 Color="#D4AF37"

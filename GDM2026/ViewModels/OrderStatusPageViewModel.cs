@@ -269,7 +269,7 @@ public class OrderStatusPageViewModel : BaseViewModel
     {
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            await Application.Current?.MainPage?.DisplayAlert("Erreur", message, "OK")!;
+            await DialogService.DisplayAlertAsync("Erreur", message, "OK");
         });
     }
 

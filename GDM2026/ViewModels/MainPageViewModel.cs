@@ -111,7 +111,7 @@ public class MainPageViewModel : BaseViewModel
                 {
                     FeedbackColor = Colors.LimeGreen;
                     FeedbackMessage = greeting;
-                    await Application.Current?.MainPage?.DisplayAlert("Connexion réussie", "Authentification validée.", "Continuer")!;
+                    await DialogService.DisplayAlertAsync("Connexion réussie", "Authentification validée.", "Continuer");
                 });
 
                 await NavigateToHomeAsync().ConfigureAwait(false);
@@ -165,7 +165,7 @@ public class MainPageViewModel : BaseViewModel
         {
             FeedbackColor = Colors.OrangeRed;
             FeedbackMessage = message;
-            await Application.Current?.MainPage?.DisplayAlert("Erreur", "Impossible de vous connecter avec ces identifiants.", "Réessayer")!;
+            await DialogService.DisplayAlertAsync("Erreur", "Impossible de vous connecter avec ces identifiants.", "Réessayer");
         });
     }
 

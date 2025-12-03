@@ -49,7 +49,7 @@ public partial class SplashPage : ContentPage
         {
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await DisplayAlert("Erreur", "Impossible de vérifier votre session. Merci de réessayer.", "OK");
+                await DisplayAlertAsync("Erreur", "Impossible de vérifier votre session. Merci de réessayer.", "OK");
                 if (Shell.Current != null)
                 {
                     await Shell.Current.GoToAsync($"//{nameof(MainPage)}");
