@@ -21,7 +21,7 @@ namespace GDM2026
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            _viewModel.OnDisappearing();
+            HomePageViewModel.OnDisappearing();
         }
     }
 }
