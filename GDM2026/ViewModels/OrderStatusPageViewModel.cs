@@ -102,7 +102,7 @@ public class OrderStatusPageViewModel : BaseViewModel
                 .Select(order =>
                 {
                     var entry = new OrderStatusEntry();
-                    entry.PopulateFromOrder(order);
+                    entry.PopulateFromOrder(order, Status);
                     return entry;
                 })
                 .ToList();
