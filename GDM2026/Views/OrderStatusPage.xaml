@@ -100,26 +100,36 @@
                                         Grid.Column="1"
                                         Stroke="{StaticResource GoldText}"
                                         StrokeThickness="1"
-                                        Padding="6,2"
+                                        Padding="8,4"
                                         BackgroundColor="#1A1A1A"
                                         HorizontalOptions="End">
                                         <Border.StrokeShape>
                                             <RoundRectangle CornerRadius="12" />
                                         </Border.StrokeShape>
-                                        <Label Text="{Binding CurrentStatus}" FontSize="12" TextColor="{StaticResource GoldText}" />
+                                        <Label
+                                            Text="{Binding CurrentStatus}"
+                                            FontSize="12"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource GoldText}" />
                                     </Border>
                                 </Grid>
 
                                 <Grid ColumnDefinitions="*,auto" ColumnSpacing="12" RowDefinitions="auto">
+                                    <VerticalStackLayout Spacing="4" Grid.Column="0">
+                                        <Label
+                                            Text="Modifier l'état"
+                                            FontSize="13"
+                                            TextColor="{StaticResource GoldText}" />
                                     <Picker
-                                        Grid.Column="0"
+                                            Grid.Column="0"
                                         ItemsSource="{Binding BindingContext.AvailableStatuses, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
-                                        SelectedItem="{Binding CurrentStatus, Mode=TwoWay}"
+                                            SelectedItem="{Binding SelectedStatusOption, Mode=TwoWay}"
                                         BackgroundColor="#121212"
-                                        Title="Modifier l'état"
+                                            Title="Modifier l'état"
                                         FontSize="14"
                                         TextColor="{StaticResource GoldText}"
-                                        TitleColor="{StaticResource GoldText}" />
+                                            TitleColor="{StaticResource GoldText}" />
+                                    </VerticalStackLayout>
                                     <Button
                                         Grid.Column="1"
                                         Text="Annuler"
