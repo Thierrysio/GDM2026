@@ -8,7 +8,7 @@
         <Color x:Key="GoldText">#D4AF37</Color>
         <Color x:Key="CardBackground">#0B0B0B</Color>
         <Color x:Key="CardBorder">#000000</Color>
-        <Color x:Key="CardContentText">{StaticResource GoldText}</Color>
+        <Color x:Key="CardContentText">#D4AF37</Color>
         <Style TargetType="Label">
             <Setter Property="TextColor" Value="{StaticResource GoldText}" />
         </Style>
@@ -27,12 +27,14 @@
 
     <ScrollView>
         <VerticalStackLayout Padding="24" Spacing="16">
-            <Frame
-                BackgroundColor="{StaticResource CardBackground}"
-                CornerRadius="18"
-                Padding="24"
-                HasShadow="True"
-                BorderColor="{StaticResource CardBorder}">
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="{StaticResource CardBorder}"
+                StrokeThickness="1.5"
+                Padding="24">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
                 <VerticalStackLayout Spacing="8">
                     <Label
                         FontSize="22"
@@ -41,7 +43,7 @@
                         TextColor="{StaticResource GoldText}"
                         LineBreakMode="NoWrap"
                         MaxLines="1"
-                        HorizontalOptions="CenterAndExpand"
+                        HorizontalOptions="Center"
                         Text="{Binding PageTitle}" />
                     <Label
                         FontSize="14"
@@ -50,7 +52,7 @@
                         Opacity="0.85"
                         Text="{Binding Subtitle}" />
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
             <CollectionView ItemsSource="{Binding Orders}" SelectionMode="None">
                 <CollectionView.EmptyView>

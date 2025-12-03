@@ -17,19 +17,21 @@
                 HorizontalOptions="Center"
                 Spacing="8"
                 Margin="0,12,0,6">
-                <Frame
+                <Border
                     HeightRequest="160"
                     WidthRequest="160"
-                    CornerRadius="80"
                     Padding="12"
-                    BackgroundColor="White"
-                    HasShadow="True"
-                    BorderColor="#E0E0E0">
+                    Background="White"
+                    Stroke="#E0E0E0"
+                    StrokeThickness="1">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="80" />
+                    </Border.StrokeShape>
                     <Image
                         Source="logo.jpg"
                         Aspect="AspectFit"
                         AutomationId="HomeHeaderLogo" />
-                </Frame>
+                </Border>
 
                 <Label
                     Text="Dantec Market"
@@ -39,12 +41,14 @@
                     TextColor="{StaticResource GoldText}" />
             </VerticalStackLayout>
 
-            <Frame
-                BackgroundColor="{StaticResource CardBackground}"
-                CornerRadius="18"
-                Padding="24"
-                HasShadow="True"
-                BorderColor="#000000">
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="#000000"
+                StrokeThickness="1.5"
+                Padding="24">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
                 <VerticalStackLayout Spacing="12">
                     <Label
                         Text="Accueil"
@@ -65,14 +69,16 @@
                         HorizontalTextAlignment="Center"
                         TextColor="{StaticResource GoldText}" />
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
-            <Frame
-                BackgroundColor="{StaticResource CardBackground}"
-                CornerRadius="18"
-                Padding="24"
-                HasShadow="True"
-                BorderColor="#000000">
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="#000000"
+                StrokeThickness="1.5"
+                Padding="24">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
                 <VerticalStackLayout Spacing="12">
                     <Label
                         Text="Commandes par état"
@@ -89,29 +95,31 @@
                         </CollectionView.ItemsLayout>
                         <CollectionView.ItemTemplate>
                             <DataTemplate>
-                                <Frame
+                                <Border
                                     Margin="6"
                                     Padding="12"
-                                    BackgroundColor="#1F1F1F"
-                                    CornerRadius="14"
-                                    HasShadow="False"
-                                    BorderColor="#000000">
-                                    <Frame.GestureRecognizers>
+                                    Background="#1F1F1F"
+                                    Stroke="#000000"
+                                    StrokeThickness="1">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
                                         <TapGestureRecognizer
                                             Command="{Binding BindingContext.OrderStatusSelectedCommand, Source={x:Reference HomePageRoot}}"
                                             CommandParameter="{Binding .}" />
-                                    </Frame.GestureRecognizers>
+                                    </Border.GestureRecognizers>
                                     <VisualStateManager.VisualStateGroups>
                                         <VisualStateGroup x:Name="CommonStates">
                                             <VisualState x:Name="Normal">
                                                 <VisualState.Setters>
-                                                    <Setter Property="BackgroundColor" Value="#1F1F1F" />
+                                                    <Setter Property="Background" Value="#1F1F1F" />
                                                     <Setter Property="Scale" Value="1" />
                                                 </VisualState.Setters>
                                             </VisualState>
                                             <VisualState x:Name="Pressed">
                                                 <VisualState.Setters>
-                                                    <Setter Property="BackgroundColor" Value="#2A2A2A" />
+                                                    <Setter Property="Background" Value="#2A2A2A" />
                                                     <Setter Property="Scale" Value="0.98" />
                                                 </VisualState.Setters>
                                             </VisualState>
@@ -129,12 +137,12 @@
                                             TextColor="{StaticResource GoldText}"
                                             Opacity="0.85" />
                                     </VerticalStackLayout>
-                                </Frame>
+                                </Border>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
             <Label
                 Text="Catégories administrateur"
@@ -151,29 +159,31 @@
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Frame
+                        <Border
                             Margin="6"
                             Padding="16"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            CornerRadius="16"
-                            HasShadow="False"
-                            BorderColor="#000000">
-                            <Frame.GestureRecognizers>
+                            Background="{StaticResource CardBackground}"
+                            Stroke="#000000"
+                            StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
                                 <TapGestureRecognizer
                                     Command="{Binding BindingContext.CategorySelectedCommand, Source={x:Reference HomePageRoot}}"
                                     CommandParameter="{Binding .}" />
-                            </Frame.GestureRecognizers>
+                            </Border.GestureRecognizers>
                             <VisualStateManager.VisualStateGroups>
                                 <VisualStateGroup x:Name="CommonStates">
                                     <VisualState x:Name="Normal">
                                         <VisualState.Setters>
-                                            <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
+                                            <Setter Property="Background" Value="{StaticResource CardBackground}" />
                                             <Setter Property="Scale" Value="1" />
                                         </VisualState.Setters>
                                     </VisualState>
                                     <VisualState x:Name="Pressed">
                                         <VisualState.Setters>
-                                            <Setter Property="BackgroundColor" Value="#1E1E1E" />
+                                            <Setter Property="Background" Value="#1E1E1E" />
                                             <Setter Property="Scale" Value="0.98" />
                                         </VisualState.Setters>
                                     </VisualState>
@@ -191,7 +201,7 @@
                                     TextColor="{StaticResource GoldText}"
                                     Opacity="0.75" />
                             </VerticalStackLayout>
-                        </Frame>
+                        </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
