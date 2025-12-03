@@ -68,7 +68,7 @@ namespace GDM2026.Services
         public async Task<List<T>> GetListAsync<T>(string relativeUrl, CancellationToken ct = default)
         {
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
-            using var resp = await _http.GetAsync(relativeUrl, reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.GetAsync(BuildUri(relativeUrl), reqCts.Token).ConfigureAwait(false);
             await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -81,7 +81,7 @@ namespace GDM2026.Services
             try
             {
                 using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
-                using var resp = await _http.GetAsync(relativeUrl, reqCts.Token).ConfigureAwait(false);
+                using var resp = await _http.GetAsync(BuildUri(relativeUrl), reqCts.Token).ConfigureAwait(false);
                 await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
 
                 var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -104,7 +104,7 @@ namespace GDM2026.Services
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
-            using var resp = await _http.PostAsync("relativeUrl", content, reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.PostAsync(BuildUri(relativeUrl), content, reqCts.Token).ConfigureAwait(false);
             await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -118,7 +118,7 @@ namespace GDM2026.Services
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
-            using var resp = await _http.PostAsync(relativeUrl, content, reqCts.Token).ConfigureAwait(false);
+            using var resp = await _http.PostAsync(BuildUri(relativeUrl), content, reqCts.Token).ConfigureAwait(false);
             if (resp.IsSuccessStatusCode) return true;
 
             await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
