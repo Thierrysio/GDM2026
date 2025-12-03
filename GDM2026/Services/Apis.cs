@@ -78,12 +78,23 @@ namespace GDM2026.Services
         // ---------- GET : renvoie un TOut ----------
         public async Task<TOut> GetAsync<TOut>(string relativeUrl, CancellationToken ct = default)
         {
-            using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
-            using var resp = await _http.GetAsync(relativeUrl, reqCts.Token).ConfigureAwait(false);
-            await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
+            try
+            {
+                using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
+                using var resp = await _http.GetAsync(relativeUrl, reqCts.Token).ConfigureAwait(false);
+                await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
 
-            var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
-            return JsonConvert.DeserializeObject<TOut>(json, _json);
+                var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+                return JsonConvert.DeserializeObject<TOut>(json, _json);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new HttpRequestException($"Erreur lors de l'appel GET '{relativeUrl}'.", ex);
+            }
         }
 
         // ---------- POST : renvoie un type de réponse ----------
