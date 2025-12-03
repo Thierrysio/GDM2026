@@ -43,6 +43,9 @@ public class CategoryDetailViewModel : BaseViewModel
     {
         if (card == null)
         {
+            Title = "Catégorie introuvable";
+            Description = "Impossible de charger les détails de cette catégorie.";
+            Hint = "Retournez à l'accueil et sélectionnez une catégorie.";
             return;
         }
 
