@@ -169,11 +169,19 @@ public class MainPageViewModel : BaseViewModel
         });
     }
 
-    private static async Task NavigateToHomeAsync()
+    private static Task NavigateToHomeAsync()
     {
-        if (Shell.Current != null)
+        if (Shell.Current == null)
         {
-            await Shell.Current.GoToAsync(nameof(HomePage)).ConfigureAwait(false);
+            return Task.CompletedTask;
         }
+
+        return MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            if (Shell.Current != null)
+            {
+                await Shell.Current.GoToAsync(nameof(HomePage)).ConfigureAwait(false);
+            }
+        });
     }
 }
