@@ -29,3 +29,10 @@ public class ChangeOrderLineStateRequest
 {
     public int Id { get; set; }
 }
+
+public class ChangeOrderStateRequest
+{
+    public int Id { get; set; }
+
+    public string Etat { get; set; } = string.Empty;
+}

@@ -258,6 +258,10 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             Etat = newStatus
         };
 
+        var orderStateEndpoint = "https://dantecmarket.com/api/mobile/changerEtatCommander";
+        var normalizedState = NormalizeOrderStateForApi(newStatus);
+        OrderDetailsResponse? updatedOrder = null;
+
         _statusUpdatesInProgress.Add(order);
 
         try
@@ -269,6 +273,26 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                 await ShowLoadErrorAsync("Impossible de modifier l'état de cette commande.");
                 await ResetOrderStatusAsync(order, previousStatus);
                 return false;
+            }
+
+            if (!string.IsNullOrEmpty(normalizedState))
+            {
+                var orderStateRequest = new ChangeOrderStateRequest
+                {
+                    Id = order.OrderId,
+                    Etat = normalizedState
+                };
+
+                updatedOrder = await _apis
+                    .PostAsync<ChangeOrderStateRequest, OrderDetailsResponse>(orderStateEndpoint, orderStateRequest)
+                    .ConfigureAwait(false);
+
+                if (updatedOrder is null)
+                {
+                    await ShowLoadErrorAsync("Impossible de synchroniser l'état de la commande.");
+                    await ResetOrderStatusAsync(order, previousStatus);
+                    return false;
+                }
             }
 
             await MainThread.InvokeOnMainThreadAsync(() =>
@@ -284,6 +308,11 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
                 SetOrderStatusSilently(order, newStatus);
                 _lastKnownStatuses[order] = newStatus;
+
+                if (updatedOrder?.LesCommandes is { Count: > 0 })
+                {
+                    SyncOrderLines(order, updatedOrder.LesCommandes);
+                }
             });
 
             OrderStatusDeltaTracker.RecordChange(previousStatus, newStatus);
@@ -588,6 +617,46 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         _isShowingLimitedOrders = false;
         ApplyFilters();
+    }
+
+    private static string? NormalizeOrderStateForApi(string status)
+    {
+        if (string.Equals(status, "Traitée", StringComparison.OrdinalIgnoreCase))
+        {
+            return "traite";
+        }
+
+        if (string.Equals(status, "Livrée", StringComparison.OrdinalIgnoreCase))
+        {
+            return "livre";
+        }
+
+        return null;
+    }
+
+    private static void SyncOrderLines(OrderStatusEntry order, IEnumerable<OrderLine> updatedLines)
+    {
+        var existingLines = order.OrderLines.ToDictionary(line => line.Id);
+
+        foreach (var updatedLine in updatedLines)
+        {
+            updatedLine.OrderId = order.OrderId;
+
+            if (existingLines.TryGetValue(updatedLine.Id, out var line))
+            {
+                line.Traite = updatedLine.Traite;
+                line.Livree = updatedLine.Livree;
+                line.NomProduit = updatedLine.NomProduit;
+                line.Quantite = updatedLine.Quantite;
+                line.PrixRetenu = updatedLine.PrixRetenu;
+                line.ProduitId = updatedLine.ProduitId;
+                line.NoteDonnee = updatedLine.NoteDonnee;
+            }
+            else
+            {
+                order.OrderLines.Add(updatedLine);
+            }
+        }
     }
 
     private static async Task ShowLoadErrorAsync(string message)
