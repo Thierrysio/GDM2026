@@ -260,6 +260,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         var orderStateEndpoint = "https://dantecmarket.com/api/mobile/changerEtatCommander";
         var normalizedState = NormalizeOrderStateForApi(newStatus);
+        OrderDetailsResponse? updatedOrder = null;
 
         _statusUpdatesInProgress.Add(order);
 
@@ -282,11 +283,11 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                     Etat = normalizedState
                 };
 
-                var orderStateUpdated = await _apis
-                    .PostBoolAsync(orderStateEndpoint, orderStateRequest)
+                updatedOrder = await _apis
+                    .PostAsync<ChangeOrderStateRequest, OrderDetailsResponse>(orderStateEndpoint, orderStateRequest)
                     .ConfigureAwait(false);
 
-                if (!orderStateUpdated)
+                if (updatedOrder is null)
                 {
                     await ShowLoadErrorAsync("Impossible de synchroniser l'état de la commande.");
                     await ResetOrderStatusAsync(order, previousStatus);
@@ -307,6 +308,11 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
                 SetOrderStatusSilently(order, newStatus);
                 _lastKnownStatuses[order] = newStatus;
+
+                if (updatedOrder?.LesCommandes is { Count: > 0 })
+                {
+                    SyncOrderLines(order, updatedOrder.LesCommandes);
+                }
             });
 
             OrderStatusDeltaTracker.RecordChange(previousStatus, newStatus);
@@ -626,6 +632,31 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         }
 
         return null;
+    }
+
+    private static void SyncOrderLines(OrderStatusEntry order, IEnumerable<OrderLine> updatedLines)
+    {
+        var existingLines = order.OrderLines.ToDictionary(line => line.Id);
+
+        foreach (var updatedLine in updatedLines)
+        {
+            updatedLine.OrderId = order.OrderId;
+
+            if (existingLines.TryGetValue(updatedLine.Id, out var line))
+            {
+                line.Traite = updatedLine.Traite;
+                line.Livree = updatedLine.Livree;
+                line.NomProduit = updatedLine.NomProduit;
+                line.Quantite = updatedLine.Quantite;
+                line.PrixRetenu = updatedLine.PrixRetenu;
+                line.ProduitId = updatedLine.ProduitId;
+                line.NoteDonnee = updatedLine.NoteDonnee;
+            }
+            else
+            {
+                order.OrderLines.Add(updatedLine);
+            }
+        }
     }
 
     private static async Task ShowLoadErrorAsync(string message)
