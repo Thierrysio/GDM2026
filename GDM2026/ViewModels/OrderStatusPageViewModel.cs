@@ -24,10 +24,14 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private readonly Dictionary<OrderStatusEntry, string> _lastKnownStatuses = [];
     private readonly HashSet<OrderStatusEntry> _statusUpdatesInProgress = [];
+    private readonly List<OrderStatusEntry> _allOrders = [];
     private bool _hasLoaded;
     private string? _status;
     private string _pageTitle = string.Empty;
     private string _subtitle = string.Empty;
+    private string _searchQuery = string.Empty;
+    private bool _isShowingLimitedOrders = true;
+    private bool _canShowMore;
     private ObservableCollection<OrderStatusEntry> _orders = [];
 
     public OrderStatusPageViewModel()
@@ -36,6 +40,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         RevertStatusCommand = new Command<OrderStatusEntry>(async order => await RevertStatusAsync(order));
         ToggleOrderDetailsCommand = new Command<OrderStatusEntry>(async order => await ToggleOrderDetailsAsync(order));
         MarkLineTreatedCommand = new Command<OrderLine>(async line => await MarkLineTreatedAsync(line));
+        ShowMoreCommand = new Command(ShowMoreOrders);
     }
 
     public ObservableCollection<OrderStatusEntry> Orders
@@ -51,6 +56,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     public ICommand ToggleOrderDetailsCommand { get; }
 
     public ICommand MarkLineTreatedCommand { get; }
+
+    public ICommand ShowMoreCommand { get; }
 
     public string? Status
     {
@@ -74,6 +81,29 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     {
         get => _subtitle;
         set => SetProperty(ref _subtitle, value);
+    }
+
+    public string SearchQuery
+    {
+        get => _searchQuery;
+        set
+        {
+            if (SetProperty(ref _searchQuery, value))
+            {
+                if (string.IsNullOrWhiteSpace(_searchQuery))
+                {
+                    _isShowingLimitedOrders = true;
+                }
+
+                ApplyFilters();
+            }
+        }
+    }
+
+    public bool CanShowMore
+    {
+        get => _canShowMore;
+        private set => SetProperty(ref _canShowMore, value);
     }
 
     public async Task InitializeAsync()
@@ -109,6 +139,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                 .PostAsync<OrderStatusRequest, List<OrderByStatus>>(endpoint, request)
                 .ConfigureAwait(false);
 
+            _allOrders.Clear();
+
             var items = (orders ?? new List<OrderByStatus>())
                 .Select(order =>
                 {
@@ -124,23 +156,21 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             {
                 statusMap[item] = item.CurrentStatus;
                 AttachStatusHandler(item);
+                _allOrders.Add(item);
             }
-
-            var updatedOrders = new ObservableCollection<OrderStatusEntry>(items);
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                Orders = updatedOrders;
-
                 _lastKnownStatuses.Clear();
 
                 foreach (var (order, status) in statusMap)
                 {
                     _lastKnownStatuses[order] = status;
                 }
-
-                Subtitle = $"Commandes : {Orders.Count}";
+                _isShowingLimitedOrders = true;
             });
+
+            ApplyFilters();
         }
         catch (TaskCanceledException)
         {
@@ -450,6 +480,52 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         }
 
         await UpdateOrderStatusAsync(order, "Traitée", isReverting: false);
+    }
+
+    private void ApplyFilters()
+    {
+        IEnumerable<OrderStatusEntry> filteredOrders = _allOrders;
+
+        var query = SearchQuery?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            filteredOrders = filteredOrders.Where(order => order.MatchesQuery(query));
+            CanShowMore = false;
+        }
+        else
+        {
+            var today = DateTime.Today;
+            var todaysOrders = filteredOrders
+                .Where(order => order.PickupDate?.Date == today)
+                .OrderByDescending(order => order.OrderDate)
+                .ToList();
+
+            CanShowMore = _isShowingLimitedOrders && todaysOrders.Count > 3;
+
+            filteredOrders = _isShowingLimitedOrders
+                ? todaysOrders.Take(3)
+                : todaysOrders;
+        }
+
+        var finalOrders = filteredOrders.ToList();
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            Orders = new ObservableCollection<OrderStatusEntry>(finalOrders);
+            Subtitle = $"Commandes : {finalOrders.Count}";
+        });
+    }
+
+    private void ShowMoreOrders()
+    {
+        if (!CanShowMore)
+        {
+            return;
+        }
+
+        _isShowingLimitedOrders = false;
+        ApplyFilters();
     }
 
     private static async Task ShowLoadErrorAsync(string message)
