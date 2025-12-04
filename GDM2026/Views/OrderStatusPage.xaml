@@ -196,7 +196,7 @@
                                                             <VerticalStackLayout Grid.Column="0" Spacing="4">
                                                                 <Label Text="{Binding LeProduit.NomProduit}" FontAttributes="Bold" />
                                                                 <Label Text="{Binding Quantite, StringFormat='Quantité : {0}'}" Opacity="0.8" />
-                                                                <Label Text="{Binding Prixretenu, StringFormat='Prix : {0:C}'}" Opacity="0.8" />
+                                                                <Label Text="{Binding PrixRetenu, StringFormat='Prix : {0:C}'}" Opacity="0.8" />
                                                                 <Label Text="À traiter" Opacity="0.8">
                                                                     <Label.Triggers>
                                                                         <DataTrigger TargetType="Label" Binding="{Binding Livree}" Value="True">
