@@ -80,7 +80,7 @@ public class OrderLine : INotifyPropertyChanged
     public ProductSummary? LeProduit { get; set; }
 
     [JsonProperty("prixRetenu")]
-    public double Prixretenu { get; set; }
+    public double PrixRetenu { get; set; }
 
     [JsonProperty("noteDonnee")]
     public bool NoteDonnee { get; set; }
