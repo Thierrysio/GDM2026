@@ -91,6 +91,7 @@ public class OrderLine : INotifyPropertyChanged
         set => SetProperty(ref _traite, value);
     }
 
+    [JsonProperty("livre")]
     public bool Livree
     {
         get => _livree;
