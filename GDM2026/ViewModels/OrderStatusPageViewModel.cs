@@ -475,7 +475,11 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         }
 
         var endpoint = "https://dantecmarket.com/api/mobile/changerEtatCommander";
-        var request = new ChangeOrderLineStateRequest { Id = line.Id };
+        var request = new ChangeOrderLineStateRequest
+        {
+            Id = line.Id,
+            Etat = "traite"
+        };
 
         try
         {
@@ -518,14 +522,44 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             return;
         }
 
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        var endpoint = "https://dantecmarket.com/api/mobile/changerEtatCommander";
+        var request = new ChangeOrderLineStateRequest
         {
-            line.Traite = true;
-            line.Livree = true;
-        });
+            Id = line.Id,
+            Etat = "livre"
+        };
 
-        await CheckAndUpdateOrderCompletionAsync(order).ConfigureAwait(false);
-        await CheckAndUpdateOrderDeliveryAsync(order).ConfigureAwait(false);
+        try
+        {
+            var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
+
+            if (!success)
+            {
+                await ShowLoadErrorAsync("Impossible de marquer ce produit comme livré.");
+                return;
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                line.Traite = true;
+                line.Livree = true;
+            });
+
+            await CheckAndUpdateOrderCompletionAsync(order).ConfigureAwait(false);
+            await CheckAndUpdateOrderDeliveryAsync(order).ConfigureAwait(false);
+        }
+        catch (TaskCanceledException)
+        {
+            await ShowLoadErrorAsync("La mise à jour du produit a expiré. Veuillez réessayer.");
+        }
+        catch (HttpRequestException)
+        {
+            await ShowLoadErrorAsync("Impossible de mettre à jour ce produit.");
+        }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue empêche la mise à jour de ce produit.");
+        }
     }
 
     private async Task CheckAndUpdateOrderCompletionAsync(OrderStatusEntry order)
