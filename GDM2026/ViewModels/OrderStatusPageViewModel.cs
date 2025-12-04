@@ -678,8 +678,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
             if (existingLines.TryGetValue(updatedLine.Id, out var line))
             {
-                line.Traite = updatedLine.Traite;
-                line.Livree = updatedLine.Livree;
+                line.Traite = line.Traite || updatedLine.Traite;
+                line.Livree = line.Livree || updatedLine.Livree;
                 line.NomProduit = updatedLine.NomProduit;
                 line.Quantite = updatedLine.Quantite;
                 line.PrixRetenu = updatedLine.PrixRetenu;
