@@ -478,7 +478,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         var request = new ChangeOrderLineStateRequest
         {
             Id = line.Id,
-            Etat = "Traitée"
+            Etat = NormalizeOrderStateForApi("Traitée") ?? "Traitée"
         };
 
         try
@@ -526,7 +526,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         var request = new ChangeOrderLineStateRequest
         {
             Id = line.Id,
-            Etat = "Livrée"
+            Etat = NormalizeOrderStateForApi("Livrée") ?? "Livrée"
         };
 
         try
@@ -657,12 +657,12 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     {
         if (string.Equals(status, "Traitée", StringComparison.OrdinalIgnoreCase))
         {
-            return "Traitée";
+            return "traite";
         }
 
         if (string.Equals(status, "Livrée", StringComparison.OrdinalIgnoreCase))
         {
-            return "Livrée";
+            return "livre";
         }
 
         return null;
