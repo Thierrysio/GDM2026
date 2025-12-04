@@ -211,6 +211,17 @@
                                                                         </DataTrigger>
                                                                     </Label.Triggers>
                                                                 </Label>
+                                                                <Label
+                                                                    Text="Livré"
+                                                                    TextColor="#5BE35B"
+                                                                    Opacity="1"
+                                                                    IsVisible="False">
+                                                                    <Label.Triggers>
+                                                                        <DataTrigger TargetType="Label" Binding="{Binding Livree}" Value="True">
+                                                                            <Setter Property="IsVisible" Value="True" />
+                                                                        </DataTrigger>
+                                                                    </Label.Triggers>
+                                                                </Label>
                                                             </VerticalStackLayout>
 
                                                             <Grid Grid.Column="1" ColumnDefinitions="auto" RowDefinitions="auto,auto" RowSpacing="6">
