@@ -14,6 +14,8 @@ public class OrderStatusEntry : INotifyPropertyChanged
     private bool _hasLoadedDetails;
     private bool _isExpanded;
     private bool _isLoadingDetails;
+    private DateTime _orderDate;
+    private DateTime? _pickupDate;
     private string? _previousStatus;
     private string? _selectedStatusOption;
 
@@ -28,6 +30,12 @@ public class OrderStatusEntry : INotifyPropertyChanged
     public string DisplayAmount { get; set; } = string.Empty;
 
     public ObservableCollection<OrderLine> OrderLines { get; } = [];
+
+    public DateTime OrderDate
+    {
+        get => _orderDate;
+        private set => SetProperty(ref _orderDate, value);
+    }
 
     public string CurrentStatus
     {
@@ -48,6 +56,24 @@ public class OrderStatusEntry : INotifyPropertyChanged
     }
 
     public bool CanRevert => !string.IsNullOrWhiteSpace(PreviousStatus);
+
+    public DateTime? PickupDate
+    {
+        get => _pickupDate;
+        private set
+        {
+            if (SetProperty(ref _pickupDate, value))
+            {
+                OnPropertyChanged(nameof(HasPickupDate));
+                OnPropertyChanged(nameof(PickupDateDisplay));
+            }
+        }
+    }
+
+    public bool HasPickupDate => PickupDate.HasValue;
+
+    public string PickupDateDisplay => PickupDate?.ToString("dddd dd MMMM", CultureInfo.GetCultureInfo("fr-FR"))
+        ?? "Jour de retrait non défini";
 
     public bool IsExpanded
     {
@@ -112,6 +138,7 @@ public class OrderStatusEntry : INotifyPropertyChanged
     public void PopulateFromOrder(OrderByStatus order, string? fallbackStatus = null)
     {
         OrderId = order.Id;
+        OrderDate = order.DateCommande;
         var status = order.Etat;
 
         if (string.IsNullOrWhiteSpace(status))
@@ -124,16 +151,34 @@ public class OrderStatusEntry : INotifyPropertyChanged
             : status;
         DisplayDate = order.DateCommande.ToString("dd MMM yyyy - HH:mm", CultureInfo.GetCultureInfo("fr-FR"));
         DisplayAmount = order.MontantTotal.ToString("C", CultureInfo.GetCultureInfo("fr-FR"));
+        PickupDate = TryParsePickupDate(order.Jour);
     }
 
     public void RememberPreviousStatus(string status) => PreviousStatus = status;
 
     public void ClearPreviousStatus() => PreviousStatus = null;
 
+    public bool MatchesQuery(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return true;
+        }
+
+        var comparison = StringComparison.OrdinalIgnoreCase;
+
+        return OrderId.ToString().Contains(query, comparison)
+            || OrderLabel.Contains(query, comparison)
+            || DisplayDate.Contains(query, comparison)
+            || DisplayAmount.Contains(query, comparison)
+            || (CurrentStatus?.Contains(query, comparison) ?? false)
+            || (HasPickupDate && PickupDateDisplay.Contains(query, comparison));
+    }
+
     protected bool SetProperty<T>(ref T backingStore, T value, [CallerMemberName] string propertyName = "")
     {
         if (Equals(backingStore, value))
-        { 
+        {
             return false;
         }
 
@@ -144,4 +189,16 @@ public class OrderStatusEntry : INotifyPropertyChanged
 
     protected void OnPropertyChanged([CallerMemberName] string propertyName = "") =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private static DateTime? TryParsePickupDate(string? dateText)
+    {
+        if (string.IsNullOrWhiteSpace(dateText))
+        {
+            return null;
+        }
+
+        return DateTime.TryParse(dateText, out var pickupDate)
+            ? pickupDate.Date
+            : null;
+    }
 }

@@ -28,6 +28,8 @@ public class OrderByStatus
 
     public string? PlanningDetails { get; set; }
 
+    public string? Jour { get; set; }
+
     public string DisplayTitle => $"Commande #{Id}";
 
     public string DisplayDate => DateCommande.ToString("dd/MM/yyyy HH:mm");

@@ -54,6 +54,15 @@
                 </VerticalStackLayout>
             </Border>
 
+            <SearchBar
+                Placeholder="Rechercher une commande"
+                Text="{Binding SearchQuery}"
+                PlaceholderColor="{StaticResource GoldText}"
+                TextColor="{StaticResource GoldText}"
+                BackgroundColor="#121212"
+                CancelButtonColor="{StaticResource GoldText}"
+                SearchCommand="{x:Null}" />
+
             <CollectionView ItemsSource="{Binding Orders}" SelectionMode="None">
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Padding="12" Spacing="6" HorizontalOptions="Center">
@@ -85,7 +94,7 @@
                                 </DataTrigger>
                             </Border.Triggers>
                             <VerticalStackLayout Spacing="10">
-                                <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto" ColumnSpacing="8">
+                                <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto,auto" ColumnSpacing="8">
                                     <Label
                                         Grid.Row="0"
                                         Grid.Column="0"
@@ -107,6 +116,16 @@
                                         FontSize="13"
                                         Opacity="0.7"
                                         TextColor="{StaticResource GoldText}" />
+                                    <Label
+                                        Grid.Row="2"
+                                        Grid.Column="0"
+                                        Grid.ColumnSpan="2"
+                                        Text="{Binding PickupDateDisplay}"
+                                        FontSize="13"
+                                        Opacity="0.7"
+                                        TextColor="{StaticResource GoldText}"
+                                        HorizontalOptions="Start"
+                                        IsVisible="{Binding HasPickupDate}" />
                                     <Border
                                         Grid.Row="1"
                                         Grid.Column="1"
@@ -220,6 +239,18 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
+
+            <Button
+                Text="Voir plus"
+                Command="{Binding ShowMoreCommand}"
+                IsVisible="{Binding CanShowMore}"
+                BackgroundColor="Transparent"
+                BorderColor="{StaticResource GoldText}"
+                BorderWidth="1.5"
+                CornerRadius="10"
+                TextColor="{StaticResource GoldText}"
+                Padding="14,10"
+                HorizontalOptions="Center" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
