@@ -28,6 +28,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     private string? _status;
     private string _pageTitle = string.Empty;
     private string _subtitle = string.Empty;
+    private ObservableCollection<OrderStatusEntry> _orders = [];
 
     public OrderStatusPageViewModel()
     {
@@ -37,7 +38,11 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         MarkLineTreatedCommand = new Command<OrderLine>(async line => await MarkLineTreatedAsync(line));
     }
 
-    public ObservableCollection<OrderStatusEntry> Orders { get; }
+    public ObservableCollection<OrderStatusEntry> Orders
+    {
+        get => _orders;
+        private set => SetProperty(ref _orders, value);
+    }
 
     public IReadOnlyList<string> AvailableStatuses => _availableStatuses;
 
@@ -113,16 +118,25 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                 })
                 .ToList();
 
+            var statusMap = new Dictionary<OrderStatusEntry, string>();
+
+            foreach (var item in items)
+            {
+                statusMap[item] = item.CurrentStatus;
+                AttachStatusHandler(item);
+            }
+
+            var updatedOrders = new ObservableCollection<OrderStatusEntry>(items);
+
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                Orders.Clear();
+                Orders = updatedOrders;
+
                 _lastKnownStatuses.Clear();
 
-                foreach (var item in items)
+                foreach (var (order, status) in statusMap)
                 {
-                    Orders.Add(item);
-                    _lastKnownStatuses[item] = item.CurrentStatus;
-                    AttachStatusHandler(item);
+                    _lastKnownStatuses[order] = status;
                 }
 
                 Subtitle = $"Commandes : {Orders.Count}";
