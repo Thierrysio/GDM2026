@@ -130,12 +130,12 @@
                                     <VerticalStackLayout Spacing="4" Grid.Column="0">
                                         <Picker
                                             Grid.Column="0"
-                                        ItemsSource="{Binding BindingContext.AvailableStatuses, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                            ItemsSource="{Binding BindingContext.AvailableStatuses, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
                                             SelectedItem="{Binding SelectedStatusOption, Mode=TwoWay}"
-                                        BackgroundColor="#121212"
+                                            BackgroundColor="#121212"
                                             Title="Modifier l'état"
-                                        FontSize="14"
-                                        TextColor="{StaticResource GoldText}"
+                                            FontSize="14"
+                                            TextColor="{StaticResource GoldText}"
                                             TitleColor="{StaticResource GoldText}" />
                                     </VerticalStackLayout>
                                     <Button
