@@ -38,3 +38,10 @@ public class ChangeOrderStateRequest
 
     public string Etat { get; set; } = string.Empty;
 }
+
+public class ChangeOrderStateRequest
+{
+    public int Id { get; set; }
+
+    public string Etat { get; set; } = string.Empty;
+}
