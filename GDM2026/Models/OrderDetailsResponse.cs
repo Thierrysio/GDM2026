@@ -27,14 +27,18 @@ public class OrderDetailsRequest
 
 public class ChangeOrderLineStateRequest
 {
+    [JsonProperty("Id")]
     public int Id { get; set; }
 
+    [JsonProperty("Etat")]
     public string Etat { get; set; } = string.Empty;
 }
 
 public class ChangeOrderStateRequest
 {
+    [JsonProperty("Id")]
     public int Id { get; set; }
 
+    [JsonProperty("Etat")]
     public string Etat { get; set; } = string.Empty;
 }

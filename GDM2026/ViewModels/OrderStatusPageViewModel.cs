@@ -657,12 +657,12 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     {
         if (string.Equals(status, "Traitée", StringComparison.OrdinalIgnoreCase))
         {
-            return "traite";
+            return "Traitée";
         }
 
         if (string.Equals(status, "Livrée", StringComparison.OrdinalIgnoreCase))
         {
-            return "livre";
+            return "Livrée";
         }
 
         return null;
