@@ -258,6 +258,9 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             Etat = newStatus
         };
 
+        var orderStateEndpoint = "https://dantecmarket.com/api/mobile/changerEtatCommander";
+        var normalizedState = NormalizeOrderStateForApi(newStatus);
+
         _statusUpdatesInProgress.Add(order);
 
         try
@@ -269,6 +272,26 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                 await ShowLoadErrorAsync("Impossible de modifier l'état de cette commande.");
                 await ResetOrderStatusAsync(order, previousStatus);
                 return false;
+            }
+
+            if (!string.IsNullOrEmpty(normalizedState))
+            {
+                var orderStateRequest = new ChangeOrderStateRequest
+                {
+                    Id = order.OrderId,
+                    Etat = normalizedState
+                };
+
+                var orderStateUpdated = await _apis
+                    .PostBoolAsync(orderStateEndpoint, orderStateRequest)
+                    .ConfigureAwait(false);
+
+                if (!orderStateUpdated)
+                {
+                    await ShowLoadErrorAsync("Impossible de synchroniser l'état de la commande.");
+                    await ResetOrderStatusAsync(order, previousStatus);
+                    return false;
+                }
             }
 
             await MainThread.InvokeOnMainThreadAsync(() =>
@@ -588,6 +611,21 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         _isShowingLimitedOrders = false;
         ApplyFilters();
+    }
+
+    private static string? NormalizeOrderStateForApi(string status)
+    {
+        if (string.Equals(status, "Traitée", StringComparison.OrdinalIgnoreCase))
+        {
+            return "traite";
+        }
+
+        if (string.Equals(status, "Livrée", StringComparison.OrdinalIgnoreCase))
+        {
+            return "livre";
+        }
+
+        return null;
     }
 
     private static async Task ShowLoadErrorAsync(string message)
