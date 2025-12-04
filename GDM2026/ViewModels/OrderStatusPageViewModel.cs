@@ -478,7 +478,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         var request = new ChangeOrderLineStateRequest
         {
             Id = line.Id,
-            Etat = "traite"
+            Etat = "Traitée"
         };
 
         try
@@ -526,7 +526,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         var request = new ChangeOrderLineStateRequest
         {
             Id = line.Id,
-            Etat = "livre"
+            Etat = "Livrée"
         };
 
         try
