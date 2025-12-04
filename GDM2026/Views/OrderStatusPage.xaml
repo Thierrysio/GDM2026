@@ -199,6 +199,11 @@
                                                                 <Label Text="{Binding Prixretenu, StringFormat='Prix : {0:C}'}" Opacity="0.8" />
                                                                 <Label Text="À traiter" Opacity="0.8">
                                                                     <Label.Triggers>
+                                                                        <DataTrigger TargetType="Label" Binding="{Binding Livree}" Value="True">
+                                                                            <Setter Property="Text" Value="Livré" />
+                                                                            <Setter Property="TextColor" Value="#5BE35B" />
+                                                                            <Setter Property="Opacity" Value="1" />
+                                                                        </DataTrigger>
                                                                         <DataTrigger TargetType="Label" Binding="{Binding Traite}" Value="True">
                                                                             <Setter Property="Text" Value="Traité" />
                                                                             <Setter Property="TextColor" Value="#5BE35B" />
@@ -208,25 +213,68 @@
                                                                 </Label>
                                                             </VerticalStackLayout>
 
-                                                            <ImageButton
-                                                                Grid.Column="1"
-                                                                Command="{Binding BindingContext.MarkLineTreatedCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
-                                                                CommandParameter="{Binding .}"
-                                                                BackgroundColor="#1A1A1A"
-                                                                CornerRadius="12"
-                                                                Padding="10"
-                                                                HorizontalOptions="End"
-                                                                VerticalOptions="Center">
-                                                                <ImageButton.Source>
-                                                                    <FontImageSource Glyph="&#x2713;" Color="{StaticResource GoldText}" Size="22" />
-                                                                </ImageButton.Source>
-                                                                <ImageButton.Triggers>
-                                                                    <DataTrigger TargetType="ImageButton" Binding="{Binding Traite}" Value="True">
-                                                                        <Setter Property="Opacity" Value="0.4" />
-                                                                        <Setter Property="IsEnabled" Value="False" />
-                                                                    </DataTrigger>
-                                                                </ImageButton.Triggers>
-                                                            </ImageButton>
+                                                            <Grid Grid.Column="1" ColumnDefinitions="auto" RowDefinitions="auto,auto" RowSpacing="6">
+                                                                <ImageButton
+                                                                    Grid.Row="0"
+                                                                    Command="{Binding BindingContext.MarkLineTreatedCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                                                    CommandParameter="{Binding .}"
+                                                                    BackgroundColor="#1A1A1A"
+                                                                    CornerRadius="12"
+                                                                    Padding="10"
+                                                                    HorizontalOptions="End"
+                                                                    VerticalOptions="Center">
+                                                                    <ImageButton.Source>
+                                                                        <FontImageSource Glyph="&#x2713;" Color="{StaticResource GoldText}" Size="22" />
+                                                                    </ImageButton.Source>
+                                                                    <ImageButton.Triggers>
+                                                                        <DataTrigger TargetType="ImageButton" Binding="{Binding Traite}" Value="True">
+                                                                            <Setter Property="Opacity" Value="0.4" />
+                                                                            <Setter Property="IsEnabled" Value="False" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger TargetType="ImageButton"
+                                                                                     Binding="{Binding BindingContext.CurrentStatus, Source={RelativeSource AncestorType={x:Type CollectionView}}}"
+                                                                                     Value="Traitée">
+                                                                            <Setter Property="IsVisible" Value="False" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger TargetType="ImageButton"
+                                                                                     Binding="{Binding BindingContext.CurrentStatus, Source={RelativeSource AncestorType={x:Type CollectionView}}}"
+                                                                                     Value="Livrée">
+                                                                            <Setter Property="IsVisible" Value="False" />
+                                                                        </DataTrigger>
+                                                                    </ImageButton.Triggers>
+                                                                </ImageButton>
+
+                                                                <ImageButton
+                                                                    Grid.Row="1"
+                                                                    Command="{Binding BindingContext.MarkLineDeliveredCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                                                    CommandParameter="{Binding .}"
+                                                                    BackgroundColor="#1A1A1A"
+                                                                    CornerRadius="12"
+                                                                    Padding="10"
+                                                                    HorizontalOptions="End"
+                                                                    VerticalOptions="Center"
+                                                                    IsVisible="False">
+                                                                    <ImageButton.Source>
+                                                                        <FontImageSource Glyph="&#x1F464;" Color="{StaticResource GoldText}" Size="22" />
+                                                                    </ImageButton.Source>
+                                                                    <ImageButton.Triggers>
+                                                                        <DataTrigger TargetType="ImageButton"
+                                                                                     Binding="{Binding BindingContext.CurrentStatus, Source={RelativeSource AncestorType={x:Type CollectionView}}}"
+                                                                                     Value="Traitée">
+                                                                            <Setter Property="IsVisible" Value="True" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger TargetType="ImageButton"
+                                                                                     Binding="{Binding BindingContext.CurrentStatus, Source={RelativeSource AncestorType={x:Type CollectionView}}}"
+                                                                                     Value="Livrée">
+                                                                            <Setter Property="IsVisible" Value="True" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger TargetType="ImageButton" Binding="{Binding Livree}" Value="True">
+                                                                            <Setter Property="Opacity" Value="0.4" />
+                                                                            <Setter Property="IsEnabled" Value="False" />
+                                                                        </DataTrigger>
+                                                                    </ImageButton.Triggers>
+                                                                </ImageButton>
+                                                            </Grid>
                                                         </Grid>
                                                     </DataTemplate>
                                                 </CollectionView.ItemTemplate>

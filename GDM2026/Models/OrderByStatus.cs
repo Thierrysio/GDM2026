@@ -67,6 +67,7 @@ public class OrderByStatus
 public class OrderLine : INotifyPropertyChanged
 {
     private bool _traite;
+    private bool _livree;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -88,6 +89,12 @@ public class OrderLine : INotifyPropertyChanged
     {
         get => _traite;
         set => SetProperty(ref _traite, value);
+    }
+
+    public bool Livree
+    {
+        get => _livree;
+        set => SetProperty(ref _livree, value);
     }
 
     [JsonProperty("nomProduit")]

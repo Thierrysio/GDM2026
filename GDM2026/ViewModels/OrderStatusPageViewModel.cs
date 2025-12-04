@@ -40,6 +40,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         RevertStatusCommand = new Command<OrderStatusEntry>(async order => await RevertStatusAsync(order));
         ToggleOrderDetailsCommand = new Command<OrderStatusEntry>(async order => await ToggleOrderDetailsAsync(order));
         MarkLineTreatedCommand = new Command<OrderLine>(async line => await MarkLineTreatedAsync(line));
+        MarkLineDeliveredCommand = new Command<OrderLine>(async line => await MarkLineDeliveredAsync(line));
         ShowMoreCommand = new Command(ShowMoreOrders);
     }
 
@@ -56,6 +57,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     public ICommand ToggleOrderDetailsCommand { get; }
 
     public ICommand MarkLineTreatedCommand { get; }
+
+    public ICommand MarkLineDeliveredCommand { get; }
 
     public ICommand ShowMoreCommand { get; }
 
@@ -376,6 +379,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
             var lines = details?.LesCommandes ?? new List<OrderLine>();
 
+            var isDeliveredOrder = string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase);
+
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 order.OrderLines.Clear();
@@ -383,6 +388,13 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                 foreach (var line in lines)
                 {
                     line.OrderId = order.OrderId;
+
+                    if (isDeliveredOrder)
+                    {
+                        line.Traite = true;
+                        line.Livree = true;
+                    }
+
                     order.OrderLines.Add(line);
                 }
 
@@ -390,6 +402,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             });
 
             await CheckAndUpdateOrderCompletionAsync(order).ConfigureAwait(false);
+            await CheckAndUpdateOrderDeliveryAsync(order).ConfigureAwait(false);
         }
         catch (TaskCanceledException)
         {
@@ -462,6 +475,30 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         }
     }
 
+    private async Task MarkLineDeliveredAsync(OrderLine? line)
+    {
+        if (line is null || line.Livree)
+        {
+            return;
+        }
+
+        var order = Orders.FirstOrDefault(o => o.OrderId == line.OrderId);
+
+        if (order is null)
+        {
+            return;
+        }
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            line.Traite = true;
+            line.Livree = true;
+        });
+
+        await CheckAndUpdateOrderCompletionAsync(order).ConfigureAwait(false);
+        await CheckAndUpdateOrderDeliveryAsync(order).ConfigureAwait(false);
+    }
+
     private async Task CheckAndUpdateOrderCompletionAsync(OrderStatusEntry order)
     {
         if (order.OrderLines.Count == 0)
@@ -474,12 +511,37 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             return;
         }
 
+        if (string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         if (string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
 
         await UpdateOrderStatusAsync(order, "Traitée", isReverting: false);
+    }
+
+    private async Task CheckAndUpdateOrderDeliveryAsync(OrderStatusEntry order)
+    {
+        if (order.OrderLines.Count == 0)
+        {
+            return;
+        }
+
+        if (!order.OrderLines.All(line => line.Livree))
+        {
+            return;
+        }
+
+        if (string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        await UpdateOrderStatusAsync(order, "Livrée", isReverting: false);
     }
 
     private void ApplyFilters()
