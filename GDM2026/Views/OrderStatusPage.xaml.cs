@@ -19,10 +19,10 @@ public partial class OrderStatusPage : ContentPage
         BindingContext = _viewModel;
     }
 
-    protected override async void OnAppearing()
+    protected override void OnAppearing()
     {
         base.OnAppearing();
 
-        await _viewModel.InitializeAsync();
+        _ = _viewModel.InitializeAsync();
     }
 }
