@@ -258,7 +258,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             Etat = newStatus
         };
 
-        var orderStateEndpoint = "https://dantecmarket.com/api/mobile/changerEtatCommander";
+        var orderStateEndpoint = "https://dantecmarket.com/api/mobile/updateEtat";
         var normalizedState = NormalizeOrderStateForApi(newStatus);
         OrderDetailsResponse? updatedOrder = null;
 
