@@ -19,8 +19,6 @@
             <Setter Property="BackgroundColor" Value="{StaticResource ControlBackground}" />
             <Setter Property="HeightRequest" Value="48" />
             <Setter Property="Margin" Value="0,8,0,0" />
-            <Setter Property="Padding" Value="12,6" />
-            <Setter Property="CursorColor" Value="{StaticResource GoldText}" />
         </Style>
         <Style TargetType="CheckBox">
             <Setter Property="Color" Value="{StaticResource GoldText}" />

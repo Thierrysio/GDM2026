@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Microsoft.Maui.Controls;
-using Microsoft.Maui.Dispatching;
 using Microsoft.Maui.Storage;
 
 namespace GDM2026.Services;
@@ -32,7 +31,9 @@ public static class GlobalErrorHandler
         }
     }
 
-    private static void OnDispatcherUnhandledException(object? sender, DispatcherUnhandledExceptionEventArgs e)
+    private static void OnDispatcherUnhandledException(
+        object? sender,
+        Microsoft.Maui.Dispatching.DispatcherUnhandledExceptionEventArgs e)
     {
         HandleException(e.Exception, "Dispatcher");
         e.Handled = true;
