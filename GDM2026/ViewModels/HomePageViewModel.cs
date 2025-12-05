@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
 using System.Windows.Input;
+using GDM2026;
 
 namespace GDM2026.ViewModels;
 
@@ -138,6 +139,11 @@ public partial class HomePageViewModel : BaseViewModel
         if (card == null || Shell.Current == null)
         {
             return Task.CompletedTask;
+        }
+
+        if (string.Equals(card.Title, "Images", StringComparison.OrdinalIgnoreCase))
+        {
+            return Shell.Current.GoToAsync(nameof(ImageUploadPage), animate: false);
         }
 
         return Shell.Current.GoToAsync(nameof(CategoryDetailPage), new Dictionary<string, object>

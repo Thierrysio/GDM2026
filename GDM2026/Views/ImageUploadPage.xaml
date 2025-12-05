@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.ImageUploadPage"
+             BackgroundColor="#0B0B0B">
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+        <Color x:Key="CardBackground">#151515</Color>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="18">
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="#000000"
+                StrokeThickness="1.5"
+                Padding="24">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="16">
+                    <Label
+                        Text="Images"
+                        FontSize="28"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
+                    <Label
+                        Text="Prenez une photo ou choisissez-en une depuis votre bibliothèque, puis envoyez-la vers dantecmarket.com."
+                        FontSize="16"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Button
+                            Text="Prendre une photo"
+                            Command="{Binding CapturePhotoCommand}"
+                            BackgroundColor="#C18F1A"
+                            TextColor="{StaticResource GoldText}" />
+                        <Button
+                            Grid.Column="1"
+                            Text="Bibliothèque"
+                            Command="{Binding PickFromGalleryCommand}"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}" />
+                    </Grid>
+
+                    <Frame
+                        BackgroundColor="#1E1E1E"
+                        Padding="12"
+                        HasShadow="False"
+                        CornerRadius="14"
+                        BorderColor="#2D2D2D">
+                        <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
+                            <Label
+                                Text="Aperçu"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}" />
+                            <Border Grid.Row="1" Background="#111" Padding="8" Stroke="#2D2D2D" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Image
+                                    Source="{Binding SelectedImage}"
+                                    Aspect="AspectFit"
+                                    HeightRequest="220"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    BackgroundColor="#0B0B0B" />
+                            </Border>
+                        </Grid>
+                    </Frame>
+
+                    <Label
+                        Text="{Binding FileName}"
+                        TextColor="{StaticResource GoldText}"
+                        FontSize="14"
+                        HorizontalTextAlignment="Center"
+                        Opacity="0.85" />
+
+                    <Button
+                        Text="Uploader l'image"
+                        Command="{Binding UploadCommand}"
+                        BackgroundColor="#C18F1A"
+                        TextColor="{StaticResource GoldText}" />
+
+                    <Label
+                        Text="{Binding StatusMessage}"
+                        TextColor="{Binding StatusColor}"
+                        FontSize="14"
+                        HorizontalTextAlignment="Center"
+                        LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
