@@ -1,7 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:supportsRtl="true"></application>
-	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-	<uses-permission android:name="android.permission.INTERNET" />
-	<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+        <application android:allowBackup="true" android:icon="@mipmap/appicon" android:supportsRtl="true"></application>
+        <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+        <uses-permission android:name="android.permission.INTERNET" />
+        <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+        <!-- Required for selecting images from the media library on Android 13+ -->
+        <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+        <!-- Backward compatibility for selecting images on Android 12 and below -->
+        <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+        <!-- Needed when capturing photos directly from the camera -->
+        <uses-permission android:name="android.permission.CAMERA" />
 </manifest>

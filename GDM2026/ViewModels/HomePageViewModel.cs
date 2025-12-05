@@ -146,10 +146,10 @@ public partial class HomePageViewModel : BaseViewModel
             return Shell.Current.GoToAsync(nameof(ImageUploadPage), animate: false);
         }
 
-        return Shell.Current.GoToAsync(nameof(CategoryDetailPage), new Dictionary<string, object>
+        return Shell.Current.GoToAsync(nameof(CategoryDetailPage), animate: false, new Dictionary<string, object>
         {
             { "card", card }
-        }, animate: false);
+        });
     }
 
     private Task NavigateToOrderStatusAsync(OrderStatusDisplay? status)
@@ -159,9 +159,9 @@ public partial class HomePageViewModel : BaseViewModel
             return Task.CompletedTask;
         }
 
-        return Shell.Current.GoToAsync(nameof(OrderStatusPage), new Dictionary<string, object>
+        return Shell.Current.GoToAsync(nameof(OrderStatusPage), animate: false, new Dictionary<string, object>
         {
             { "status", status.Status }
-        }, animate: false);
+        });
     }
 }
