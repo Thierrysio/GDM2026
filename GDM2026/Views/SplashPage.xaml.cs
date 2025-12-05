@@ -3,6 +3,7 @@ using GDM2026;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
+using System;
 
 namespace GDM2026.Views;
 
@@ -11,6 +12,7 @@ public partial class SplashPage : ContentPage
     private readonly SessionService _sessionService = new();
     private readonly string _loginRoute = $"//{nameof(MainPage)}";
     private readonly string _homeRoute = $"//{nameof(HomePage)}";
+    private readonly TimeSpan _sessionCheckTimeout = TimeSpan.FromSeconds(3);
     private bool _navigated;
 
     public SplashPage()
@@ -37,7 +39,16 @@ public partial class SplashPage : ContentPage
 
         try
         {
-            var hasSession = await _sessionService.LoadAsync().ConfigureAwait(false);
+            var loadSessionTask = _sessionService.LoadAsync();
+            var completedTask = await Task.WhenAny(loadSessionTask, Task.Delay(_sessionCheckTimeout)).ConfigureAwait(false);
+
+            if (completedTask != loadSessionTask)
+            {
+                await NavigateSafelyAsync(targetRoute).ConfigureAwait(false);
+                return;
+            }
+
+            var hasSession = await loadSessionTask.ConfigureAwait(false);
             if (hasSession && _sessionService.IsAuthenticated)
             {
                 targetRoute = _homeRoute;
