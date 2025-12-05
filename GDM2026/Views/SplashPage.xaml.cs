@@ -106,7 +106,7 @@ public partial class SplashPage : ContentPage
                 return;
             }
 
-            await DisplayAlert("Erreur", "Impossible de vérifier votre session. Merci de réessayer.", "OK");
+            await DisplayAlertAsync("Erreur", "Impossible de vérifier votre session. Merci de réessayer.", "OK");
             await Shell.Current.GoToAsync(_loginRoute, animate: false);
         });
     }

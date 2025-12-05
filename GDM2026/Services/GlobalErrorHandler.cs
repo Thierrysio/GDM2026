@@ -61,7 +61,7 @@ public static class GlobalErrorHandler
                     var page = Application.Current.Windows.FirstOrDefault()?.Page;
                     if (page != null)
                     {
-                        await page.DisplayAlert("Erreur inattendue", "Une erreur est survenue. L'application continue à fonctionner.", "OK");
+                        await page.DisplayAlertAsync("Erreur inattendue", "Une erreur est survenue. L'application continue à fonctionner.", "OK");
                     }
                 });
             }
