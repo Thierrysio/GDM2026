@@ -93,15 +93,8 @@ public class ImageUploadViewModel : BaseViewModel
             }
             else
             {
-                try
-                {
-                    var selectedPhotos = await MediaPicker.Default.PickPhotosAsync();
-                    fileResult = selectedPhotos?.FirstOrDefault();
-                }
-                catch (NotSupportedException)
-                {
-                    fileResult = await MediaPicker.Default.PickPhotoAsync();
-                }
+                var selectedPhotos = await MediaPicker.Default.PickPhotosAsync();
+                fileResult = selectedPhotos?.FirstOrDefault();
             }
 
             if (fileResult == null)
@@ -165,10 +158,10 @@ public class ImageUploadViewModel : BaseViewModel
                     cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
                 }
 
-                var storageStatus = await Permissions.CheckStatusAsync<Permissions.StorageWrite>();
-                if (storageStatus != PermissionStatus.Granted)
+                var storageWriteStatus = await Permissions.CheckStatusAsync<Permissions.StorageWrite>();
+                if (storageWriteStatus != PermissionStatus.Granted)
                 {
-                    storageStatus = await Permissions.RequestAsync<Permissions.StorageWrite>();
+                    storageWriteStatus = await Permissions.RequestAsync<Permissions.StorageWrite>();
                 }
 
                 var readStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
@@ -178,7 +171,7 @@ public class ImageUploadViewModel : BaseViewModel
                 }
 
                 return cameraStatus == PermissionStatus.Granted
-                    && storageStatus == PermissionStatus.Granted
+                    && storageWriteStatus == PermissionStatus.Granted
                     && readStatus == PermissionStatus.Granted;
             }
 
@@ -193,13 +186,13 @@ public class ImageUploadViewModel : BaseViewModel
                 return true;
             }
 
-            var storageStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
-            if (storageStatus != PermissionStatus.Granted)
+            var storageReadStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
+            if (storageReadStatus != PermissionStatus.Granted)
             {
-                storageStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
+                storageReadStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
             }
 
-            return storageStatus == PermissionStatus.Granted;
+            return storageReadStatus == PermissionStatus.Granted;
         }
         catch (Exception)
         {

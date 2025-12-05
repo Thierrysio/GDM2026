@@ -14,6 +14,6 @@ public static class DialogService
             return;
         }
 
-        await page.DisplayAlert(title, message, cancel);
+        await page.DisplayAlertAsync(title, message, cancel);
     }
 }
