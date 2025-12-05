@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using GDM2026.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GDM2026
 {
@@ -7,6 +8,8 @@ namespace GDM2026
         public App()
         {
             InitializeComponent();
+
+            GlobalErrorHandler.Register(this);
         }
 
         protected override Window CreateWindow(IActivationState? activationState)
