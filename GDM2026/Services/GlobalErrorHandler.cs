@@ -17,15 +17,8 @@ public static class GlobalErrorHandler
     {
         try
         {
-            if (app?.Dispatcher != null)
-            {
-                app.Dispatcher.UnhandledException += (_, e) =>
-                {
-                    HandleException(e.Exception, "Dispatcher");
-                    e.Handled = true;
-                };
-            }
-
+            // Suppression de l'abonnement à app.Dispatcher.UnhandledException car IDispatcher ne possède pas cet événement.
+            // La gestion des exceptions globales se fait via AppDomain et TaskScheduler.
             AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
             TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
         }
