@@ -7,13 +7,13 @@ namespace GDM2026.Services;
 
 public interface INavigationService
 {
-    Task GoToAsync(string route, IDictionary<string, object>? parameters = null, bool absolute = false, bool animate = true);
+    Task GoToAsync(string route, IDictionary<string, object>? parameters = null, bool absolute = false, bool animate = false);
     bool IsShellRoute(string route);
 }
 
 public class NavigationService : INavigationService
 {
-    public Task GoToAsync(string route, IDictionary<string, object>? parameters = null, bool absolute = false, bool animate = true)
+    public Task GoToAsync(string route, IDictionary<string, object>? parameters = null, bool absolute = false, bool animate = false)
     {
         if (string.IsNullOrWhiteSpace(route) || Shell.Current is null)
         {
@@ -23,7 +23,7 @@ public class NavigationService : INavigationService
         var finalRoute = absolute ? $"//{route}" : route;
         return parameters is null
             ? Shell.Current.GoToAsync(finalRoute, animate)
-            : Shell.Current.GoToAsync(finalRoute, parameters);
+            : Shell.Current.GoToAsync(finalRoute, parameters, animate);
     }
 
     public bool IsShellRoute(string route)
