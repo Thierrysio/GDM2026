@@ -3,6 +3,7 @@ using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Storage;
+using System.Linq;
 using System.Windows.Input;
 
 namespace GDM2026.ViewModels;
@@ -85,7 +86,8 @@ public class ImageUploadViewModel : BaseViewModel
             }
             else
             {
-                fileResult = await MediaPicker.Default.PickPhotoAsync();
+                var selectedPhotos = await MediaPicker.Default.PickPhotosAsync();
+                fileResult = selectedPhotos?.FirstOrDefault();
             }
 
             if (fileResult == null)
