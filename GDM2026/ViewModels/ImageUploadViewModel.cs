@@ -136,9 +136,14 @@ public class ImageUploadViewModel : BaseViewModel
             StatusMessage = "Autorisez l'accès à l'appareil photo ou à la galerie pour continuer.";
             StatusColor = Colors.OrangeRed;
         }
+        catch (TaskCanceledException)
+        {
+            StatusMessage = "Sélection annulée.";
+            StatusColor = Colors.Gold;
+        }
         catch (Exception)
         {
-            StatusMessage = "Impossible de sélectionner la photo. Réessayez.";
+            StatusMessage = "Impossible de sélectionner la photo. Vérifiez les autorisations de stockage et réessayez.";
             StatusColor = Colors.OrangeRed;
         }
         finally
@@ -160,7 +165,21 @@ public class ImageUploadViewModel : BaseViewModel
                     cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
                 }
 
-                return cameraStatus == PermissionStatus.Granted;
+                var storageStatus = await Permissions.CheckStatusAsync<Permissions.StorageWrite>();
+                if (storageStatus != PermissionStatus.Granted)
+                {
+                    storageStatus = await Permissions.RequestAsync<Permissions.StorageWrite>();
+                }
+
+                var readStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
+                if (readStatus != PermissionStatus.Granted)
+                {
+                    readStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
+                }
+
+                return cameraStatus == PermissionStatus.Granted
+                    && storageStatus == PermissionStatus.Granted
+                    && readStatus == PermissionStatus.Granted;
             }
 
             var photosStatus = await Permissions.CheckStatusAsync<Permissions.Photos>();
