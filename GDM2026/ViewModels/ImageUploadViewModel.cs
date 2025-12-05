@@ -12,6 +12,9 @@ public class ImageUploadViewModel : BaseViewModel
 {
     private readonly ImageUploadService _uploadService = new();
     private readonly Apis _apis = new();
+    private readonly SessionService _sessionService = new();
+
+    private bool _sessionLoaded;
 
     private string _statusMessage = "Choisissez une image à envoyer.";
     private Color _statusColor = Colors.Gold;
@@ -214,6 +217,18 @@ public class ImageUploadViewModel : BaseViewModel
             StatusColor = Colors.Gold;
             (UploadCommand as Command)?.ChangeCanExecute();
 
+            if (!await EnsureAuthenticationAsync().ConfigureAwait(false))
+            {
+                return;
+            }
+
+            if (!await _uploadService.TestConnectivityAsync().ConfigureAwait(false))
+            {
+                StatusMessage = "Impossible de contacter le serveur dantecmarket.com.";
+                StatusColor = Colors.OrangeRed;
+                return;
+            }
+
             var uploadResult = await _uploadService.UploadAsync(_selectedFilePath, "images");
 
             var payload = new
@@ -249,5 +264,25 @@ public class ImageUploadViewModel : BaseViewModel
             IsBusy = false;
             (UploadCommand as Command)?.ChangeCanExecute();
         }
+    }
+
+    private async Task<bool> EnsureAuthenticationAsync()
+    {
+        if (!_sessionLoaded)
+        {
+            _sessionLoaded = true;
+            await _sessionService.LoadAsync().ConfigureAwait(false);
+        }
+
+        if (string.IsNullOrWhiteSpace(_sessionService.AuthToken))
+        {
+            StatusMessage = "Vous devez vous reconnecter pour envoyer des images.";
+            StatusColor = Colors.OrangeRed;
+            return false;
+        }
+
+        _apis.SetBearerToken(_sessionService.AuthToken);
+        _uploadService.SetBearerToken(_sessionService.AuthToken);
+        return true;
     }
 }
