@@ -1,5 +1,7 @@
+using System;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text;
 
 namespace GDM2026.Services;
 
@@ -15,6 +17,46 @@ public class ImageUploadService
         if (_httpClient.BaseAddress == null && Uri.TryCreate(Constantes.BaseApiAddress, UriKind.Absolute, out var baseUri))
         {
             _httpClient.BaseAddress = baseUri;
+        }
+    }
+
+    public void SetBearerToken(string token)
+    {
+        SetAuthorization(string.IsNullOrWhiteSpace(token)
+            ? null
+            : new AuthenticationHeaderValue("Bearer", token));
+    }
+
+    public void SetBasicAuthentication(string username, string password)
+    {
+        if (string.IsNullOrWhiteSpace(username) || password is null)
+        {
+            SetAuthorization(null);
+            return;
+        }
+
+        var rawCredentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
+        SetAuthorization(new AuthenticationHeaderValue("Basic", rawCredentials));
+    }
+
+    public async Task<bool> TestConnectivityAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/");
+            using var response = await _httpClient
+                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
+                .ConfigureAwait(false);
+
+            return response.IsSuccessStatusCode;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -71,5 +113,10 @@ public class ImageUploadService
         }
 
         return null;
+    }
+
+    private void SetAuthorization(AuthenticationHeaderValue? header)
+    {
+        _httpClient.DefaultRequestHeaders.Authorization = header;
     }
 }
