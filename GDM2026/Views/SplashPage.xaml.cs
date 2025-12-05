@@ -1,6 +1,7 @@
 using GDM2026.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
+using GDM2026;
 
 namespace GDM2026.Views;
 
@@ -49,7 +50,7 @@ public partial class SplashPage : ContentPage
         {
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await DisplayAlertAsync("Erreur", "Impossible de vérifier votre session. Merci de réessayer.", "OK");
+                await DisplayAlert("Erreur", "Impossible de vérifier votre session. Merci de réessayer.", "OK");
                 if (Shell.Current != null)
                 {
                     await Shell.Current.GoToAsync($"//{nameof(MainPage)}", animate: false);
