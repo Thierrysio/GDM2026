@@ -9,9 +9,11 @@ public static class DialogService
     public static async Task DisplayAlertAsync(string title, string message, string cancel)
     {
         var page = Application.Current?.Windows.FirstOrDefault()?.Page;
-        if (page is not null)
+        if (page is null)
         {
-            await page.DisplayAlertAsync(title, message, cancel);
+            return;
         }
+
+        await page.DisplayAlert(title, message, cancel);
     }
 }
