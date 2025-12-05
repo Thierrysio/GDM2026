@@ -8,6 +8,8 @@
         <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
         <!-- Backward compatibility for selecting images on Android 12 and below -->
         <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+        <!-- Needed on older devices when the camera writes to shared storage -->
+        <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
         <!-- Needed when capturing photos directly from the camera -->
         <uses-permission android:name="android.permission.CAMERA" />
 </manifest>
