@@ -19,7 +19,11 @@ public static class GlobalErrorHandler
         {
             if (app?.Dispatcher != null)
             {
-                app.Dispatcher.UnhandledException += OnDispatcherUnhandledException;
+                app.Dispatcher.UnhandledException += (_, e) =>
+                {
+                    HandleException(e.Exception, "Dispatcher");
+                    e.Handled = true;
+                };
             }
 
             AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
@@ -29,14 +33,6 @@ public static class GlobalErrorHandler
         {
             // L'initialisation du handler ne doit jamais interrompre le démarrage de l'app.
         }
-    }
-
-    private static void OnDispatcherUnhandledException(
-        object? sender,
-        Microsoft.Maui.Dispatching.DispatcherUnhandledExceptionEventArgs e)
-    {
-        HandleException(e.Exception, "Dispatcher");
-        e.Handled = true;
     }
 
     private static void OnUnhandledException(object? sender, UnhandledExceptionEventArgs e)
