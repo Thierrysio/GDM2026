@@ -69,6 +69,13 @@ public class ImageUploadViewModel : BaseViewModel
             StatusMessage = fromCamera ? "Ouverture de l'appareil photo…" : "Ouverture de la bibliothèque…";
             StatusColor = Colors.Gold;
 
+            if (!await EnsurePermissionsAsync(fromCamera))
+            {
+                StatusMessage = "Autorisez l'accès à l'appareil photo ou à la galerie pour continuer.";
+                StatusColor = Colors.OrangeRed;
+                return;
+            }
+
             FileResult fileResult;
             if (fromCamera)
             {
@@ -86,8 +93,15 @@ public class ImageUploadViewModel : BaseViewModel
             }
             else
             {
-                var selectedPhotos = await MediaPicker.Default.PickPhotosAsync();
-                fileResult = selectedPhotos?.FirstOrDefault();
+                try
+                {
+                    var selectedPhotos = await MediaPicker.Default.PickPhotosAsync();
+                    fileResult = selectedPhotos?.FirstOrDefault();
+                }
+                catch (NotSupportedException)
+                {
+                    fileResult = await MediaPicker.Default.PickPhotoAsync();
+                }
             }
 
             if (fileResult == null)
@@ -131,6 +145,46 @@ public class ImageUploadViewModel : BaseViewModel
         {
             IsBusy = false;
             (UploadCommand as Command)?.ChangeCanExecute();
+        }
+    }
+
+    private static async Task<bool> EnsurePermissionsAsync(bool fromCamera)
+    {
+        try
+        {
+            if (fromCamera)
+            {
+                var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
+                if (cameraStatus != PermissionStatus.Granted)
+                {
+                    cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+                }
+
+                return cameraStatus == PermissionStatus.Granted;
+            }
+
+            var photosStatus = await Permissions.CheckStatusAsync<Permissions.Photos>();
+            if (photosStatus != PermissionStatus.Granted)
+            {
+                photosStatus = await Permissions.RequestAsync<Permissions.Photos>();
+            }
+
+            if (photosStatus == PermissionStatus.Granted)
+            {
+                return true;
+            }
+
+            var storageStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
+            if (storageStatus != PermissionStatus.Granted)
+            {
+                storageStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
+            }
+
+            return storageStatus == PermissionStatus.Granted;
+        }
+        catch (Exception)
+        {
+            return false;
         }
     }
 
