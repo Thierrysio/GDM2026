@@ -20,21 +20,7 @@ namespace GDM2026
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
 
-            builder.Services.AddSingleton(sp =>
-            {
-                var handler = new SocketsHttpHandler
-                {
-                    AutomaticDecompression = DecompressionMethods.All
-                };
-
-                var client = new HttpClient(handler);
-                if (Uri.TryCreate(Constantes.BaseApiAddress, UriKind.Absolute, out var baseUri))
-                {
-                    client.BaseAddress = baseUri;
-                }
-
-                return client;
-            });
+            builder.Services.AddSingleton(sp => AppHttpClientFactory.Create());
 
             builder.Services.AddSingleton<IApis, Apis>();
             builder.Services.AddSingleton<ImageUploadService>();
