@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 
@@ -41,7 +42,11 @@ public static class AppHttpClientFactory
         };
 
         var client = new HttpClient(handler);
-        client.BaseAddress = GetValidatedBaseAddress();
+        if (Uri.TryCreate(Constantes.BaseApiAddress, UriKind.Absolute, out var baseUri))
+        {
+            System.Diagnostics.Debug.WriteLine($"[HTTP] BaseApiAddress = {baseUri}");
+            client.BaseAddress = baseUri;
+        }
 
         return client;
     }
