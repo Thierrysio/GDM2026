@@ -217,12 +217,12 @@ public class ImageUploadViewModel : BaseViewModel
             StatusColor = Colors.Gold;
             (UploadCommand as Command)?.ChangeCanExecute();
 
-            if (!await EnsureAuthenticationAsync().ConfigureAwait(false))
+            if (!await EnsureAuthenticationAsync())
             {
                 return;
             }
 
-            if (!await _uploadService.TestConnectivityAsync().ConfigureAwait(false))
+            if (!await _uploadService.TestConnectivityAsync())
             {
                 StatusMessage = "Impossible de contacter le serveur dantecmarket.com.";
                 StatusColor = Colors.OrangeRed;
@@ -272,7 +272,7 @@ public class ImageUploadViewModel : BaseViewModel
         if (!_sessionLoaded)
         {
             _sessionLoaded = true;
-            await _sessionService.LoadAsync().ConfigureAwait(false);
+            await _sessionService.LoadAsync();
         }
 
         if (string.IsNullOrWhiteSpace(_sessionService.AuthToken))
