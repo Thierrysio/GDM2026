@@ -14,6 +14,11 @@ namespace GDM2026.Services;
 /// </summary>
 public static class AppHttpClientFactory
 {
+    // Partage un même conteneur de cookies entre toutes les instances HttpClient
+    // afin de conserver la session (PHPSESSID/REMEMBERME) entre l'authentification
+    // et les appels protégés comme /api/mobile/upload.
+    private static readonly CookieContainer SharedCookies = new();
+
     public static Uri? GetValidatedBaseAddress()
     {
         if (string.IsNullOrWhiteSpace(Constantes.BaseApiAddress))
@@ -38,7 +43,9 @@ public static class AppHttpClientFactory
     {
         var handler = new SocketsHttpHandler
         {
-            AutomaticDecompression = DecompressionMethods.All
+            AutomaticDecompression = DecompressionMethods.All,
+            CookieContainer = SharedCookies,
+            UseCookies = true
         };
 
         var client = new HttpClient(handler);
