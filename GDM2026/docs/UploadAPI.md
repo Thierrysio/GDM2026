@@ -22,3 +22,4 @@ Si un `401` survient malgré tout :
 - vérifiez dans les préférences que le token d'authentification n'est pas vide (l'appli l'ajoute automatiquement à l'en-tête `Authorization` si présent) ;
 - assurez-vous que la session backend est encore valide (le conteneur de cookies commun peut avoir expiré après une longue inactivité) ;
 - en mode debug, le message d'erreur inclura désormais si un en-tête `Authorization` a bien été envoyé et quelle BaseAddress a été utilisée, ce qui aide à cibler les problèmes d'identifiants manquants ou d'URL mal configurée.
+- l'application nettoie automatiquement la session locale si le serveur renvoie un `401` pendant l'envoi ; reconnectez-vous depuis l'écran d'upload pour rafraîchir le jeton et les cookies avant de réessayer.

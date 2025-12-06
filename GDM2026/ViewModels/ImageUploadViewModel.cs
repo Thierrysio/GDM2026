@@ -6,6 +6,7 @@ using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Storage;
 using SkiaSharp;
 using System.Diagnostics;
+using System.Net;
 using System.IO;
 using System.Linq;
 using System.Windows.Input;
@@ -248,6 +249,14 @@ public class ImageUploadViewModel : BaseViewModel
         catch (OperationCanceledException)
         {
             StatusMessage = "Envoi annulé.";
+            StatusColor = Colors.OrangeRed;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            Debug.WriteLine($"[UPLOAD] Jeton refusé : {ex}");
+            await _sessionService.ClearAsync();
+
+            StatusMessage = "Votre session a expiré : le serveur a refusé le jeton (401). Reconnectez-vous depuis cette page puis relancez l'envoi.";
             StatusColor = Colors.OrangeRed;
         }
         catch (HttpRequestException ex)
