@@ -10,15 +10,24 @@ public record ImageUploadResult(string FileName, string RelativeUrl);
 public class ImageUploadService
 {
     private readonly HttpClient _httpClient;
+    private readonly Uri _uploadUri;
 
     public ImageUploadService(HttpClient httpClient = null)
     {
         _httpClient = httpClient ?? AppHttpClientFactory.Create();
 
+        var baseUri = _httpClient.BaseAddress ?? AppHttpClientFactory.GetValidatedBaseAddress();
+        if (baseUri == null)
+        {
+            throw new InvalidOperationException("Aucune BaseAddress n'est configurée pour l'API.");
+        }
+
         if (_httpClient.BaseAddress == null)
         {
-            _httpClient.BaseAddress = AppHttpClientFactory.GetValidatedBaseAddress();
+            _httpClient.BaseAddress = baseUri;
         }
+
+        _uploadUri = new Uri(baseUri, "/api/mobile/upload");
     }
 
     public void SetBearerToken(string token)
@@ -87,7 +96,7 @@ public class ImageUploadService
         formData.Add(streamContent, "file", fileName);
         formData.Add(new StringContent(relativeFolder), "folder");
 
-        using var response = await _httpClient.PostAsync("https://dantecmarket.com/api/mobile/upload", formData, ct).ConfigureAwait(false);
+        using var response = await _httpClient.PostAsync(_uploadUri, formData, ct).ConfigureAwait(false);
         var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
