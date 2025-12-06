@@ -44,13 +44,13 @@ namespace GDM2026.Services
         public async Task SaveAsync(User user, string token)
         {
             _currentUser = SanitizeUser(user);
-            _authToken = token ?? string.Empty;
+            _authToken = string.IsNullOrWhiteSpace(token) ? null : token;
 
             var userJson = JsonConvert.SerializeObject(_currentUser);
 
             Preferences.Set(KeyUser, userJson);
 
-            await StoreTokenAsync(token);
+            await StoreTokenAsync(_authToken);
         }
 
         public async Task ClearAsync()
