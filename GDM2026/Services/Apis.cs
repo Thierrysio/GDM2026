@@ -27,6 +27,8 @@ namespace GDM2026.Services
         private readonly JsonSerializerSettings _json;
         private readonly Uri? _configuredBaseUri;
 
+        public HttpClient HttpClient => _http;
+
         public Apis(HttpClient httpClient = null)
         {
             _http = httpClient ?? AppHttpClientFactory.Create();
