@@ -4,6 +4,7 @@ using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Storage;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows.Input;
 
@@ -256,9 +257,10 @@ public class ImageUploadViewModel : BaseViewModel
             StatusMessage = "Impossible de contacter le serveur dantecmarket.com.";
             StatusColor = Colors.OrangeRed;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            StatusMessage = "Une erreur est survenue lors de l'envoi.";
+            Debug.WriteLine($"Upload failed: {ex}");
+            StatusMessage = $"Une erreur est survenue lors de l'envoi : {ex.Message}";
             StatusColor = Colors.OrangeRed;
         }
         finally
