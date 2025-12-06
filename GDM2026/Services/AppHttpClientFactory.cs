@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Net.Http;
 
@@ -12,6 +13,26 @@ namespace GDM2026.Services;
 /// </summary>
 public static class AppHttpClientFactory
 {
+    public static Uri? GetValidatedBaseAddress()
+    {
+        if (string.IsNullOrWhiteSpace(Constantes.BaseApiAddress))
+        {
+            return null;
+        }
+
+        if (!Uri.TryCreate(Constantes.BaseApiAddress, UriKind.Absolute, out var baseUri))
+        {
+            throw new InvalidOperationException($"BaseApiAddress doit être une URL absolue : '{Constantes.BaseApiAddress}'.");
+        }
+
+        if (baseUri.Scheme != Uri.UriSchemeHttp && baseUri.Scheme != Uri.UriSchemeHttps)
+        {
+            throw new InvalidOperationException($"BaseApiAddress doit être en http(s), pas en '{baseUri.Scheme}'.");
+        }
+
+        return baseUri;
+    }
+
     public static HttpClient Create()
     {
         var handler = new SocketsHttpHandler
@@ -20,10 +41,7 @@ public static class AppHttpClientFactory
         };
 
         var client = new HttpClient(handler);
-        if (Uri.TryCreate(Constantes.BaseApiAddress, UriKind.Absolute, out var baseUri))
-        {
-            client.BaseAddress = baseUri;
-        }
+        client.BaseAddress = GetValidatedBaseAddress();
 
         return client;
     }
