@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -128,51 +127,33 @@ namespace GDM2026.Services
         private Uri BuildUri(string path)
         {
             if (string.IsNullOrWhiteSpace(path))
-                throw new ArgumentException("relativeUrl cannot be null or empty", nameof(path));
+                throw new ArgumentException("relativeUrl ne peut pas être vide", nameof(path));
 
             path = path.Trim();
-            var parts = path.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-            // Cas "https://dantecmarket.com /api/mobile/GetFindUser"
-            if (parts.Length >= 2 && Uri.TryCreate(parts[0], UriKind.Absolute, out var suppliedBase))
-            {
-                if (suppliedBase.Scheme == Uri.UriSchemeHttp || suppliedBase.Scheme == Uri.UriSchemeHttps)
-                {
-                    var relativePath = string.Join("/", parts.Skip(1).Select(p => p.Trim('/')));
-                    return new Uri(EnsureTrailingSlash(suppliedBase), relativePath);
-                }
-
-                // Un schéma non HTTP (ex. file://) ne doit pas empêcher l'appel d'API :
-                // on ignore cette base fournie et on continue en utilisant la BaseAddress configurée.
-                path = string.Join("/", parts.Skip(1).Select(p => p.Trim('/')));
-            }
-
-            // Cas : on t’a donné directement une URL absolue
+            // 1) Si on te donne déjà une URL absolue → on accepte uniquement http(s)
             if (Uri.TryCreate(path, UriKind.Absolute, out var absolute))
             {
                 if (absolute.Scheme != Uri.UriSchemeHttp && absolute.Scheme != Uri.UriSchemeHttps)
-                    throw new InvalidOperationException($"URL d'API invalide (schéma {absolute.Scheme}) pour '{path}'.");
+                    throw new InvalidOperationException(
+                        $"URL d'API invalide (schéma {absolute.Scheme}) pour '{path}'.");
 
                 return absolute;
             }
 
-            // Sinon : on combine avec BaseAddress
-            if (_http.BaseAddress != null)
-            {
-                return new Uri(_http.BaseAddress, path);
-            }
+            // 2) Sinon on considère que c'est une route relative
+            if (_http.BaseAddress == null && _configuredBaseUri == null)
+                throw new InvalidOperationException(
+                    "Aucune BaseAddress n'est configurée pour l'API.");
 
-            if (_configuredBaseUri != null)
-            {
-                return new Uri(_configuredBaseUri, path);
-            }
+            var baseUri = _http.BaseAddress ?? _configuredBaseUri!;
 
-            throw new InvalidOperationException(
-                $"Impossible de construire une URL à partir de '{path}': aucune BaseAddress configurée.");
+            // On s'assure qu'il y a bien un / devant la route
+            if (!path.StartsWith("/"))
+                path = "/" + path;
+
+            return new Uri(baseUri, path);
         }
-
-        private static Uri EnsureTrailingSlash(Uri uri)
-            => uri?.ToString().EndsWith("/") == true ? uri : new Uri(uri + "/");
 
         private static async Task EnsureSuccess(HttpResponseMessage response, string path, string payload = null)
         {
