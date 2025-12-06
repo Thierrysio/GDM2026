@@ -279,6 +279,13 @@ public class ImageUploadViewModel : BaseViewModel
         {
             StatusMessage = "Vous devez vous reconnecter pour envoyer des images.";
             StatusColor = Colors.OrangeRed;
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                if (Shell.Current != null)
+                {
+                    await Shell.Current.GoToAsync($"//{nameof(MainPage)}", animate: false);
+                }
+            });
             return false;
         }
 
