@@ -132,7 +132,9 @@ namespace GDM2026.Services
             path = path.Trim();
 
             // 1) Si on te donne déjà une URL absolue → on accepte uniquement http(s)
-            if (Uri.TryCreate(path, UriKind.Absolute, out var absolute))
+            //    (sinon on considère qu'on a simplement une route absolue "/..." à
+            //    concaténer avec la BaseAddress).
+            if (path.Contains("://") && Uri.TryCreate(path, UriKind.Absolute, out var absolute))
             {
                 if (absolute.Scheme != Uri.UriSchemeHttp && absolute.Scheme != Uri.UriSchemeHttps)
                     throw new InvalidOperationException(
