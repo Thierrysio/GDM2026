@@ -385,7 +385,9 @@ public class ImageUploadViewModel : BaseViewModel
 
         try
         {
-            return await _apis.PostAsync<object, User>("https://dantecmarket.com/api/mobile//GetFindUser", loginData);
+            // Utilisation d'un chemin relatif pour éviter les doubles slash et
+            // profiter de la BaseAddress configurée dans Apis.
+            return await _apis.PostAsync<object, User>("/api/mobile/GetFindUser", loginData);
         }
         catch (HttpRequestException ex) when (ex.Message.StartsWith("API error", StringComparison.OrdinalIgnoreCase))
         {
