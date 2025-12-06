@@ -88,9 +88,19 @@ public class ImageUploadService
         formData.Add(new StringContent(relativeFolder), "folder");
 
         using var response = await _httpClient.PostAsync("https://dantecmarket.com/api/mobile/upload", formData, ct).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
-
         var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var reason = string.IsNullOrWhiteSpace(body)
+                ? response.ReasonPhrase
+                : $"{response.ReasonPhrase}: {body}";
+
+            throw new HttpRequestException(
+                $"Le serveur a répondu {(int)response.StatusCode} {reason}",
+                null,
+                response.StatusCode);
+        }
 
         var uploadedFileName = TryExtractField(body, "fileName") ?? TryExtractField(body, "filename") ?? fileName;
         var relativeUrl = TryExtractField(body, "path")
