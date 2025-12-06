@@ -2,6 +2,7 @@
 using GDM2026.Models;
 using Microsoft.Maui.Storage; // Preferences, SecureStorage
 using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -44,7 +45,7 @@ namespace GDM2026.Services
         public async Task SaveAsync(User user, string token)
         {
             _currentUser = SanitizeUser(user);
-            _authToken = string.IsNullOrWhiteSpace(token) ? null : token;
+            _authToken = NormalizeToken(token);
 
             var userJson = JsonConvert.SerializeObject(_currentUser);
 
@@ -87,7 +88,7 @@ namespace GDM2026.Services
                 var secureToken = await SecureStorage.GetAsync(KeyToken);
                 if (!string.IsNullOrWhiteSpace(secureToken))
                 {
-                    return secureToken;
+                    return NormalizeToken(secureToken);
                 }
             }
             catch
@@ -95,7 +96,7 @@ namespace GDM2026.Services
                 // Fallback vers Preferences si SecureStorage indisponible
             }
 
-            return Preferences.Get(KeyToken, null);
+            return NormalizeToken(Preferences.Get(KeyToken, null));
         }
 
         private static async Task StoreTokenAsync(string token)
@@ -124,6 +125,24 @@ namespace GDM2026.Services
                     Preferences.Remove(KeyToken);
                 }
             }
+        }
+
+        private static string NormalizeToken(string token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return null;
+            }
+
+            token = token.Trim();
+            const string bearerPrefix = "Bearer ";
+
+            if (token.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                token = token.Substring(bearerPrefix.Length).Trim();
+            }
+
+            return string.IsNullOrWhiteSpace(token) ? null : token;
         }
     }
 }
