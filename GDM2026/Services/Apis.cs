@@ -136,11 +136,15 @@ namespace GDM2026.Services
             // Cas "https://dantecmarket.com /api/mobile/GetFindUser"
             if (parts.Length >= 2 && Uri.TryCreate(parts[0], UriKind.Absolute, out var suppliedBase))
             {
-                if (suppliedBase.Scheme != Uri.UriSchemeHttp && suppliedBase.Scheme != Uri.UriSchemeHttps)
-                    throw new InvalidOperationException($"URL d'API invalide (schéma {suppliedBase.Scheme}) pour '{path}'.");
+                if (suppliedBase.Scheme == Uri.UriSchemeHttp || suppliedBase.Scheme == Uri.UriSchemeHttps)
+                {
+                    var relativePath = string.Join("/", parts.Skip(1).Select(p => p.Trim('/')));
+                    return new Uri(EnsureTrailingSlash(suppliedBase), relativePath);
+                }
 
-                var relativePath = string.Join("/", parts.Skip(1).Select(p => p.Trim('/')));
-                return new Uri(EnsureTrailingSlash(suppliedBase), relativePath);
+                // Un schéma non HTTP (ex. file://) ne doit pas empêcher l'appel d'API :
+                // on ignore cette base fournie et on continue en utilisant la BaseAddress configurée.
+                path = string.Join("/", parts.Skip(1).Select(p => p.Trim('/')));
             }
 
             // Cas : on t’a donné directement une URL absolue
