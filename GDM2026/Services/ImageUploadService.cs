@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text;
@@ -104,6 +105,18 @@ public class ImageUploadService
             var reason = string.IsNullOrWhiteSpace(body)
                 ? response.ReasonPhrase
                 : $"{response.ReasonPhrase}: {body}";
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                var authHeader = _httpClient.DefaultRequestHeaders.Authorization;
+                var authInfo = authHeader is null
+                    ? "aucun en-tête Authorization"
+                    : $"Authorization {authHeader.Scheme} présent";
+
+                reason = string.IsNullOrWhiteSpace(reason)
+                    ? authInfo
+                    : $"{reason} ({authInfo}; base={_httpClient.BaseAddress})";
+            }
 
             throw new HttpRequestException(
                 $"Le serveur a répondu {(int)response.StatusCode} {reason}",
