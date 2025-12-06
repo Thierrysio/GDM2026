@@ -250,9 +250,10 @@ public class ImageUploadViewModel : BaseViewModel
             StatusMessage = "Envoi annulé.";
             StatusColor = Colors.OrangeRed;
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
-            StatusMessage = "Impossible de contacter le serveur dantecmarket.com.";
+            Debug.WriteLine($"[UPLOAD] HTTP error: {ex}");
+            StatusMessage = $"Impossible de contacter le serveur dantecmarket.com. ({ex.Message})";
             StatusColor = Colors.OrangeRed;
         }
         catch (Exception ex)
@@ -316,6 +317,7 @@ public class ImageUploadViewModel : BaseViewModel
         try
         {
             var user = await AuthenticateAsync(credentials.Value.username, credentials.Value.password);
+            Debug.WriteLine($"[LOGIN] user.Token = '{user?.Token}'");
             if (user is null)
             {
                 StatusMessage = "Identifiants invalides. Merci de réessayer depuis cette page.";
@@ -324,6 +326,14 @@ public class ImageUploadViewModel : BaseViewModel
             }
 
             await _sessionService.SaveAsync(user, user.Token);
+
+            if (string.IsNullOrWhiteSpace(_sessionService.AuthToken))
+            {
+                StatusMessage = "Connexion effectuée, mais aucun jeton d'authentification n'a été reçu du serveur. Impossible d'envoyer l'image.";
+                StatusColor = Colors.OrangeRed;
+                return false;
+            }
+
             StatusMessage = "Connexion réussie. Reprise de l'envoi.";
             StatusColor = Colors.LightGreen;
             return true;
