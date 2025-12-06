@@ -14,8 +14,8 @@ namespace GDM2026.ViewModels;
 
 public class ImageUploadViewModel : BaseViewModel
 {
-    private readonly ImageUploadService _uploadService = new();
-    private readonly Apis _apis = new();
+    private readonly ImageUploadService _uploadService;
+    private readonly Apis _apis;
     private readonly SessionService _sessionService = new();
 
     private bool _sessionLoaded;
@@ -28,6 +28,9 @@ public class ImageUploadViewModel : BaseViewModel
 
     public ImageUploadViewModel()
     {
+        _apis = new();
+        _uploadService = new ImageUploadService(_apis.HttpClient);
+
         CapturePhotoCommand = new Command(async () => await PickPhotoAsync(fromCamera: true));
         PickFromGalleryCommand = new Command(async () => await PickPhotoAsync(fromCamera: false));
         UploadCommand = new Command(async () => await UploadAsync(), () => !IsBusy && !string.IsNullOrWhiteSpace(_selectedFilePath));
