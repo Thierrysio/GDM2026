@@ -229,7 +229,8 @@ public class ImageUploadViewModel : BaseViewModel
                 return;
             }
 
-            var uploadResult = await _uploadService.UploadAsync(_selectedFilePath, "images");
+            await using var uploadStream = File.OpenRead(_selectedFilePath);
+            var uploadResult = await _uploadService.UploadAsync(uploadStream, FileName, "images");
 
             var payload = new
             {
