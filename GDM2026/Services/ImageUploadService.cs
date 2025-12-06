@@ -69,12 +69,20 @@ public class ImageUploadService
         }
 
         var fileName = Path.GetFileName(filePath);
+        await using var fileStream = File.OpenRead(filePath);
+        return await UploadAsync(fileStream, fileName, folder, ct).ConfigureAwait(false);
+    }
+
+    public async Task<ImageUploadResult> UploadAsync(Stream fileStream, string fileName, string folder = "images", CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(fileStream);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+
         var relativeFolder = string.IsNullOrWhiteSpace(folder) ? "images" : folder.Trim('/');
 
         using var formData = new MultipartFormDataContent();
-        await using var fileStream = File.OpenRead(filePath);
         var streamContent = new StreamContent(fileStream);
-        streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+        streamContent.Headers.ContentType = new MediaTypeHeaderValue(GetContentType(fileName));
         formData.Add(streamContent, "file", fileName);
         formData.Add(new StringContent(relativeFolder), "folder");
 
@@ -118,5 +126,18 @@ public class ImageUploadService
     private void SetAuthorization(AuthenticationHeaderValue? header)
     {
         _httpClient.DefaultRequestHeaders.Authorization = header;
+    }
+
+    private static string GetContentType(string fileName)
+    {
+        return Path.GetExtension(fileName).ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".bmp" => "image/bmp",
+            ".webp" => "image/webp",
+            _ => "application/octet-stream"
+        };
     }
 }
