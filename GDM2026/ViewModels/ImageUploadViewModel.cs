@@ -1,3 +1,4 @@
+using GDM2026.Models;
 using GDM2026.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
@@ -275,22 +276,123 @@ public class ImageUploadViewModel : BaseViewModel
             await _sessionService.LoadAsync();
         }
 
-        if (string.IsNullOrWhiteSpace(_sessionService.AuthToken))
+        if (!string.IsNullOrWhiteSpace(_sessionService.AuthToken))
         {
-            StatusMessage = "Vous devez vous reconnecter pour envoyer des images.";
+            ApplyAuthToken();
+            return true;
+        }
+
+        StatusMessage = "Vous devez vous reconnecter pour envoyer des images.";
+        StatusColor = Colors.OrangeRed;
+
+        if (!await PromptInlineLoginAsync())
+        {
+            StatusMessage = "Connexion requise pour envoyer des images.";
             StatusColor = Colors.OrangeRed;
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                if (Shell.Current != null)
-                {
-                    await Shell.Current.GoToAsync($"//{nameof(MainPage)}", animate: false);
-                }
-            });
             return false;
         }
 
+        ApplyAuthToken();
+        return true;
+    }
+
+    private void ApplyAuthToken()
+    {
         _apis.SetBearerToken(_sessionService.AuthToken);
         _uploadService.SetBearerToken(_sessionService.AuthToken);
-        return true;
+    }
+
+    private async Task<bool> PromptInlineLoginAsync()
+    {
+        var credentials = await RequestCredentialsAsync();
+        if (credentials is null)
+        {
+            return false;
+        }
+
+        StatusMessage = "Connexion en cours…";
+        StatusColor = Colors.Gold;
+
+        try
+        {
+            var user = await AuthenticateAsync(credentials.Value.username, credentials.Value.password);
+            if (user is null)
+            {
+                StatusMessage = "Identifiants invalides. Merci de réessayer depuis cette page.";
+                StatusColor = Colors.OrangeRed;
+                return false;
+            }
+
+            await _sessionService.SaveAsync(user, user.Token);
+            StatusMessage = "Connexion réussie. Reprise de l'envoi.";
+            StatusColor = Colors.LightGreen;
+            return true;
+        }
+        catch (TaskCanceledException)
+        {
+            StatusMessage = "Délai d'authentification dépassé. Vérifiez votre connexion.";
+            StatusColor = Colors.OrangeRed;
+            return false;
+        }
+        catch (HttpRequestException)
+        {
+            StatusMessage = "Impossible de joindre le serveur pour l'authentification.";
+            StatusColor = Colors.OrangeRed;
+            return false;
+        }
+    }
+
+    private static async Task<(string username, string password)?> RequestCredentialsAsync()
+    {
+        var shell = Shell.Current;
+        if (shell is null)
+        {
+            return null;
+        }
+
+        var username = await shell.DisplayPromptAsync(
+            "Connexion requise",
+            "Identifiez-vous pour envoyer des images.",
+            accept: "Continuer",
+            cancel: "Annuler",
+            placeholder: "Email ou identifiant");
+
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            return null;
+        }
+
+        var password = await shell.DisplayPromptAsync(
+            "Mot de passe",
+            "Saisissez votre mot de passe pour continuer.",
+            accept: "Valider",
+            cancel: "Annuler",
+            placeholder: "Mot de passe",
+            keyboard: Keyboard.Text);
+
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            return null;
+        }
+
+        return (username.Trim(), password);
+    }
+
+    private async Task<User?> AuthenticateAsync(string username, string password)
+    {
+        var loginData = new
+        {
+            Email = username,
+            Password = password
+        };
+
+        try
+        {
+            return await _apis.PostAsync<object, User>("/api/mobile/GetFindUser", loginData);
+        }
+        catch (HttpRequestException ex) when (ex.Message.StartsWith("API error", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
     }
 }
