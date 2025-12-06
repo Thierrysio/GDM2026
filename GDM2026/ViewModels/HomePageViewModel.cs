@@ -44,7 +44,10 @@ public partial class HomePageViewModel : BaseViewModel
 
     public async Task InitializeAsync()
     {
-        await Task.WhenAll(LoadSessionAsync(), LoadOrderStatusesAsync());
+        await LoadSessionAsync();
+        _apis.SetBearerToken(_sessionService.AuthToken);
+
+        await LoadOrderStatusesAsync();
     }
 
     public static void OnDisappearing()

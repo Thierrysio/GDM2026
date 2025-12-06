@@ -13,6 +13,7 @@ namespace GDM2026.ViewModels;
 public partial class OrderStatusPageViewModel : BaseViewModel
 {
     private readonly Apis _apis = new();
+    private readonly SessionService _sessionService = new();
     private readonly IReadOnlyList<string> _availableStatuses =
     [
         "Confirmée",
@@ -122,7 +123,14 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         }
 
         _hasLoaded = true;
+        await EnsureSessionAsync().ConfigureAwait(false);
         await LoadStatusAsync().ConfigureAwait(false);
+    }
+
+    private async Task EnsureSessionAsync()
+    {
+        var hasSession = await _sessionService.LoadAsync().ConfigureAwait(false);
+        _apis.SetBearerToken(hasSession ? _sessionService.AuthToken : string.Empty);
     }
 
     private async Task LoadStatusAsync()
