@@ -13,11 +13,7 @@ public class ImageUploadService
 
     public ImageUploadService(HttpClient httpClient = null)
     {
-        _httpClient = httpClient ?? new HttpClient();
-        if (_httpClient.BaseAddress == null && Uri.TryCreate(Constantes.BaseApiAddress, UriKind.Absolute, out var baseUri))
-        {
-            _httpClient.BaseAddress = baseUri;
-        }
+        _httpClient = httpClient ?? AppHttpClientFactory.Create();
     }
 
     public void SetBearerToken(string token)

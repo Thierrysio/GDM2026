@@ -30,7 +30,7 @@ namespace GDM2026.Services
 
         public Apis(HttpClient httpClient = null)
         {
-            _http = httpClient ?? new HttpClient();
+            _http = httpClient ?? AppHttpClientFactory.Create();
 
             if (_http.BaseAddress == null && !string.IsNullOrWhiteSpace(Constantes.BaseApiAddress))
                 _http.BaseAddress = new Uri(Constantes.BaseApiAddress, UriKind.Absolute);
