@@ -32,11 +32,10 @@ namespace GDM2026.Services
         {
             _http = httpClient ?? AppHttpClientFactory.Create();
 
-            if (_http.BaseAddress == null && !string.IsNullOrWhiteSpace(Constantes.BaseApiAddress))
-                _http.BaseAddress = new Uri(Constantes.BaseApiAddress, UriKind.Absolute);
+            if (_http.BaseAddress == null)
+                _http.BaseAddress = AppHttpClientFactory.GetValidatedBaseAddress();
 
-            _configuredBaseUri = _http.BaseAddress ??
-                (Uri.TryCreate(Constantes.BaseApiAddress, UriKind.Absolute, out var baseUri) ? baseUri : null);
+            _configuredBaseUri = _http.BaseAddress ?? AppHttpClientFactory.GetValidatedBaseAddress();
 
             if (_http.Timeout == Timeout.InfiniteTimeSpan)
                 _http.Timeout = TimeSpan.FromSeconds(30);
