@@ -4,7 +4,9 @@ using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Storage;
+using SkiaSharp;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Windows.Input;
 
@@ -109,19 +111,12 @@ public class ImageUploadViewModel : BaseViewModel
                 return;
             }
 
-            var newFileName = $"{Path.GetFileNameWithoutExtension(fileResult.FileName)}-{Guid.NewGuid():N}{Path.GetExtension(fileResult.FileName)}";
-            var newFilePath = Path.Combine(FileSystem.CacheDirectory, newFileName);
+            var optimizedFilePath = await OptimizeAndSaveAsync(fileResult);
 
-            await using (var sourceStream = await fileResult.OpenReadAsync())
-            await using (var destStream = File.OpenWrite(newFilePath))
-            {
-                await sourceStream.CopyToAsync(destStream);
-            }
-
-            _selectedFilePath = newFilePath;
-            SelectedImage = ImageSource.FromFile(newFilePath);
-            FileName = newFileName;
-            StatusMessage = "Image prête à être envoyée.";
+            _selectedFilePath = optimizedFilePath;
+            SelectedImage = ImageSource.FromFile(optimizedFilePath);
+            FileName = Path.GetFileName(optimizedFilePath);
+            StatusMessage = "Image compressée et prête à être envoyée.";
             StatusColor = Colors.Gold;
         }
         catch (FeatureNotSupportedException)
@@ -396,5 +391,46 @@ public class ImageUploadViewModel : BaseViewModel
         {
             return null;
         }
+    }
+
+    private static async Task<string> OptimizeAndSaveAsync(FileResult fileResult)
+    {
+        await using var sourceStream = await fileResult.OpenReadAsync();
+        using var managedStream = new SKManagedStream(sourceStream);
+        using var originalBitmap = SKBitmap.Decode(managedStream) ?? throw new InvalidOperationException("Impossible de lire l'image sélectionnée.");
+
+        var resizedBitmap = ResizeBitmap(originalBitmap, 1280);
+
+        var newFileName = $"{Path.GetFileNameWithoutExtension(fileResult.FileName)}-{Guid.NewGuid():N}.jpg";
+        var newFilePath = Path.Combine(FileSystem.CacheDirectory, newFileName);
+
+        using var image = SKImage.FromBitmap(resizedBitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 80);
+        await using (var destStream = File.Open(newFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            data.SaveTo(destStream);
+        }
+
+        if (!ReferenceEquals(resizedBitmap, originalBitmap))
+        {
+            resizedBitmap.Dispose();
+        }
+
+        return newFilePath;
+    }
+
+    private static SKBitmap ResizeBitmap(SKBitmap originalBitmap, int maxSize)
+    {
+        if (originalBitmap.Width <= maxSize && originalBitmap.Height <= maxSize)
+        {
+            return originalBitmap;
+        }
+
+        var scale = Math.Min(maxSize / (float)originalBitmap.Width, maxSize / (float)originalBitmap.Height);
+        var newWidth = Math.Max(1, (int)Math.Round(originalBitmap.Width * scale));
+        var newHeight = Math.Max(1, (int)Math.Round(originalBitmap.Height * scale));
+
+        var resized = originalBitmap.Resize(new SKImageInfo(newWidth, newHeight, originalBitmap.ColorType, originalBitmap.AlphaType), SKFilterQuality.High);
+        return resized ?? originalBitmap;
     }
 }
