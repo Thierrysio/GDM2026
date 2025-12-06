@@ -133,19 +133,26 @@ namespace GDM2026.Services
             path = path.Trim();
             var parts = path.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-            // Allow callers to supply a base URL and relative path in a single argument, e.g.
-            // "https://dantecmarket.com" and "/api/mobile/GetFindUser" => "https://dantecmarket.com/api/mobile/GetFindUser".
+            // Cas "https://dantecmarket.com /api/mobile/GetFindUser"
             if (parts.Length >= 2 && Uri.TryCreate(parts[0], UriKind.Absolute, out var suppliedBase))
             {
+                if (suppliedBase.Scheme != Uri.UriSchemeHttp && suppliedBase.Scheme != Uri.UriSchemeHttps)
+                    throw new InvalidOperationException($"URL d'API invalide (schéma {suppliedBase.Scheme}) pour '{path}'.");
+
                 var relativePath = string.Join("/", parts.Skip(1).Select(p => p.Trim('/')));
                 return new Uri(EnsureTrailingSlash(suppliedBase), relativePath);
             }
 
+            // Cas : on t’a donné directement une URL absolue
             if (Uri.TryCreate(path, UriKind.Absolute, out var absolute))
             {
+                if (absolute.Scheme != Uri.UriSchemeHttp && absolute.Scheme != Uri.UriSchemeHttps)
+                    throw new InvalidOperationException($"URL d'API invalide (schéma {absolute.Scheme}) pour '{path}'.");
+
                 return absolute;
             }
 
+            // Sinon : on combine avec BaseAddress
             if (_http.BaseAddress != null)
             {
                 return new Uri(_http.BaseAddress, path);
@@ -156,7 +163,8 @@ namespace GDM2026.Services
                 return new Uri(_configuredBaseUri, path);
             }
 
-            throw new InvalidOperationException("BaseAddress must be configured to call relative URLs.");
+            throw new InvalidOperationException(
+                $"Impossible de construire une URL à partir de '{path}': aucune BaseAddress configurée.");
         }
 
         private static Uri EnsureTrailingSlash(Uri uri)
