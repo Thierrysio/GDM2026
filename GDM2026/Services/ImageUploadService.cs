@@ -87,7 +87,7 @@ public class ImageUploadService
         formData.Add(streamContent, "file", fileName);
         formData.Add(new StringContent(relativeFolder), "folder");
 
-        using var response = await _httpClient.PostAsync("/api/mobile/upload", formData, ct).ConfigureAwait(false);
+        using var response = await _httpClient.PostAsync("https://dantecmarket.com/api/mobile/upload", formData, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
