@@ -254,10 +254,15 @@ public class ImageUploadViewModel : BaseViewModel
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
         {
             Debug.WriteLine($"[UPLOAD] Jeton refusé : {ex}");
-            await _sessionService.ClearAsync();
-
-            StatusMessage = "Votre session a expiré : le serveur a refusé le jeton (401). Reconnectez-vous depuis cette page puis relancez l'envoi.";
+            StatusMessage = "Authentification refusée (401). Le jeton enregistré est conservé. Reconnectez-vous depuis cette page puis relancez l'envoi.";
             StatusColor = Colors.OrangeRed;
+
+            if (await PromptInlineLoginAsync())
+            {
+                ApplyAuthToken();
+                StatusMessage = "Connexion rétablie. Relancez l'envoi de l'image.";
+                StatusColor = Colors.LightGreen;
+            }
         }
         catch (HttpRequestException ex)
         {
