@@ -164,6 +164,82 @@
                         LineBreakMode="WordWrap" />
                 </VerticalStackLayout>
             </Border>
+
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="#000000"
+                StrokeThickness="1.5"
+                Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="14">
+                    <Label
+                        Text="Actualités publiées"
+                        FontSize="22"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
+
+                    <Label
+                        Text="{Binding ActualitesStatusMessage}"
+                        FontSize="14"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85" />
+
+                    <ActivityIndicator
+                        IsRunning="{Binding IsLoadingActualites}"
+                        IsVisible="{Binding IsLoadingActualites}"
+                        Color="{StaticResource GoldText}" />
+
+                    <CollectionView
+                        ItemsSource="{Binding Actualites}"
+                        SelectionMode="None">
+                        <CollectionView.ItemsLayout>
+                            <VerticalLinearItemsLayout ItemSpacing="12" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.EmptyView>
+                            <Label
+                                Text="Aucune actualité à afficher."
+                                TextColor="{StaticResource GoldText}"
+                                HorizontalTextAlignment="Center"
+                                Opacity="0.6" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="12" Margin="0,4">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="10">
+                                        <Image
+                                            Source="{Binding FullImageUrl}"
+                                            HeightRequest="160"
+                                            Aspect="AspectFill"
+                                            SemanticProperties.Description="Image de l'actualité"
+                                            HorizontalOptions="Fill"
+                                            VerticalOptions="Center" />
+                                        <Label
+                                            Text="{Binding Titre}"
+                                            TextColor="{StaticResource GoldText}"
+                                            FontSize="18"
+                                            FontAttributes="Bold"
+                                            LineBreakMode="WordWrap" />
+                                        <Label
+                                            Text="{Binding Description}"
+                                            TextColor="{StaticResource GoldText}"
+                                            FontSize="14"
+                                            Opacity="0.9"
+                                            LineBreakMode="WordWrap" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
