@@ -28,7 +28,7 @@
                         TextColor="{StaticResource GoldText}" />
 
                     <Label
-                        Text="Publiez rapidement une actualité avec une image pour l'afficher sur Dantec Market."
+                        Text="Publiez rapidement une actualité. L'image reste facultative mais vous pouvez piocher dans la bibliothèque admin."
                         FontSize="16"
                         HorizontalTextAlignment="Center"
                         TextColor="{StaticResource GoldText}"
@@ -71,19 +71,37 @@
                                 PlaceholderColor="#777"
                                 BackgroundColor="#121212" />
 
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                                <Button
-                                    Text="Prendre une photo"
-                                    Command="{Binding CapturePhotoCommand}"
-                                    BackgroundColor="#C18F1A"
-                                    TextColor="{StaticResource GoldText}" />
-                                <Button
-                                    Grid.Column="1"
-                                    Text="Bibliothèque"
-                                    Command="{Binding PickFromGalleryCommand}"
-                                    BackgroundColor="#303030"
-                                    TextColor="{StaticResource GoldText}" />
-                            </Grid>
+                            <Label
+                                Text="Bibliothèque d'images (catégorie \"image\" du site admin)"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}" />
+
+                            <ActivityIndicator IsRunning="{Binding IsImageLibraryLoading}" IsVisible="{Binding IsImageLibraryLoading}" Color="{StaticResource GoldText}" />
+
+                            <CollectionView
+                                ItemsSource="{Binding AvailableImages}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedAdminImage}"
+                                ItemsLayout="VerticalGrid,2"
+                                HeightRequest="320">
+                                <CollectionView.EmptyView>
+                                    <Label
+                                        Text="Aucune image disponible ou chargement échoué."
+                                        TextColor="{StaticResource GoldText}"
+                                        HorizontalTextAlignment="Center" />
+                                </CollectionView.EmptyView>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Frame Padding="6" BorderColor="#2D2D2D" BackgroundColor="#121212" CornerRadius="12">
+                                            <VerticalStackLayout Spacing="6">
+                                                <Image Source="{Binding Thumbnail}" Aspect="AspectFill" HeightRequest="110" />
+                                                <Label Text="{Binding DisplayName}" TextColor="{StaticResource GoldText}" FontSize="12" LineBreakMode="TailTruncation" />
+                                                <Label Text="{Binding ContentType}" TextColor="{StaticResource GoldText}" FontSize="11" Opacity="0.7" />
+                                            </VerticalStackLayout>
+                                        </Frame>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
 
                             <Label
                                 Text="{Binding SelectedImageName}"
