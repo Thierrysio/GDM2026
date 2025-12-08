@@ -115,6 +115,7 @@ public class ImageUploadViewModel : BaseViewModel
                 return;
             }
 
+            // Exécuter l'optimisation lourde hors du thread UI
             var optimizedFilePath = await OptimizeAndSaveAsync(fileResult);
 
             _selectedFilePath = optimizedFilePath;
@@ -425,27 +426,34 @@ public class ImageUploadViewModel : BaseViewModel
     private static async Task<string> OptimizeAndSaveAsync(FileResult fileResult)
     {
         await using var sourceStream = await fileResult.OpenReadAsync();
-        using var managedStream = new SKManagedStream(sourceStream);
-        using var originalBitmap = SKBitmap.Decode(managedStream) ?? throw new InvalidOperationException("Impossible de lire l'image sélectionnée.");
 
-        var resizedBitmap = ResizeBitmap(originalBitmap, 1280);
-
-        var newFileName = $"{Path.GetFileNameWithoutExtension(fileResult.FileName)}-{Guid.NewGuid():N}.jpg";
-        var newFilePath = Path.Combine(FileSystem.CacheDirectory, newFileName);
-
-        using var image = SKImage.FromBitmap(resizedBitmap);
-        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 80);
-        await using (var destStream = File.Open(newFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+        // Déplacer le décodage/compression SkiaSharp hors du thread UI pour éviter les blocages
+        var resultPath = await Task.Run(() =>
         {
-            data.SaveTo(destStream);
-        }
+            using var managedStream = new SKManagedStream(sourceStream);
+            using var originalBitmap = SKBitmap.Decode(managedStream) ?? throw new InvalidOperationException("Impossible de lire l'image sélectionnée.");
 
-        if (!ReferenceEquals(resizedBitmap, originalBitmap))
-        {
-            resizedBitmap.Dispose();
-        }
+            var resizedBitmap = ResizeBitmap(originalBitmap, 1280);
 
-        return newFilePath;
+            var newFileName = $"{Path.GetFileNameWithoutExtension(fileResult.FileName)}-{Guid.NewGuid():N}.jpg";
+            var newFilePath = Path.Combine(FileSystem.CacheDirectory, newFileName);
+
+            using var image = SKImage.FromBitmap(resizedBitmap);
+            using var data = image.Encode(SKEncodedImageFormat.Jpeg, 80);
+            using (var destStream = File.Open(newFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                data.SaveTo(destStream);
+            }
+
+            if (!ReferenceEquals(resizedBitmap, originalBitmap))
+            {
+                resizedBitmap.Dispose();
+            }
+
+            return newFilePath;
+        }).ConfigureAwait(false);
+
+        return resultPath;
     }
 
     private static SKBitmap ResizeBitmap(SKBitmap originalBitmap, int maxSize)
