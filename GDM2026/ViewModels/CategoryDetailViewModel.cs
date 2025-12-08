@@ -25,20 +25,27 @@ public class CategoryDetailViewModel : BaseViewModel
     private bool _isSuperCategoryPage;
     private bool _hasLoadedSuperCategories;
     private bool _hasLoadedSubCategories;
+    private bool _hasLoadedCategories;
     private bool _sessionLoaded;
     private string _superCategoryStatus = "Chargement des super catégories…";
     private string _subCategoryStatus = "Chargement des sous-catégories…";
+    private string _categoryStatus = "Chargement des catégories…";
     private string _newSuperCategoryName = string.Empty;
     private string _newSuperCategoryDescription = string.Empty;
     private string _newSuperCategoryProducts = string.Empty;
+    private string _newCategoryName = string.Empty;
+    private string _newCategoryDescription = string.Empty;
     private bool _isSubCategoryMenuOpen;
     private int _selectedSubCategoryCount;
+    private bool _isCategoryPage;
 
     public CategoryDetailViewModel()
     {
         SuperCategories = new ObservableCollection<SuperCategory>();
         AvailableSubCategories = new ObservableCollection<SelectableSubCategory>();
+        Categories = new ObservableCollection<SubCategory>();
         CreateSuperCategoryCommand = new Command(async () => await CreateSuperCategoryAsync(), CanCreateSuperCategory);
+        CreateCategoryCommand = new Command(async () => await CreateCategoryAsync(), CanCreateCategory);
         ToggleSubCategoryMenuCommand = new Command(() =>
         {
             IsSubCategoryMenuOpen = !IsSubCategoryMenuOpen;
@@ -49,7 +56,11 @@ public class CategoryDetailViewModel : BaseViewModel
 
     public ObservableCollection<SelectableSubCategory> AvailableSubCategories { get; }
 
+    public ObservableCollection<SubCategory> Categories { get; }
+
     public ICommand CreateSuperCategoryCommand { get; }
+
+    public ICommand CreateCategoryCommand { get; }
 
     public ICommand ToggleSubCategoryMenuCommand { get; }
 
@@ -89,6 +100,12 @@ public class CategoryDetailViewModel : BaseViewModel
         set => SetProperty(ref _isSuperCategoryPage, value);
     }
 
+    public bool IsCategoryPage
+    {
+        get => _isCategoryPage;
+        set => SetProperty(ref _isCategoryPage, value);
+    }
+
     public string SuperCategoryStatus
     {
         get => _superCategoryStatus;
@@ -116,6 +133,20 @@ public class CategoryDetailViewModel : BaseViewModel
     }
 
     public bool HasSubCategoryStatus => !string.IsNullOrWhiteSpace(SubCategoryStatus);
+
+    public string CategoryStatus
+    {
+        get => _categoryStatus;
+        set
+        {
+            if (SetProperty(ref _categoryStatus, value))
+            {
+                OnPropertyChanged(nameof(HasCategoryStatus));
+            }
+        }
+    }
+
+    public bool HasCategoryStatus => !string.IsNullOrWhiteSpace(CategoryStatus);
 
     public bool IsSubCategoryMenuOpen
     {
@@ -177,13 +208,32 @@ public class CategoryDetailViewModel : BaseViewModel
         set => SetProperty(ref _newSuperCategoryProducts, value);
     }
 
+    public string NewCategoryName
+    {
+        get => _newCategoryName;
+        set
+        {
+            if (SetProperty(ref _newCategoryName, value))
+            {
+                RefreshCreateAvailability();
+            }
+        }
+    }
+
+    public string NewCategoryDescription
+    {
+        get => _newCategoryDescription;
+        set
+        {
+            if (SetProperty(ref _newCategoryDescription, value))
+            {
+                RefreshCreateAvailability();
+            }
+        }
+    }
+
     public async Task EnsureInitializedAsync(CancellationToken ct = default)
     {
-        if (!IsSuperCategoryPage)
-        {
-            return;
-        }
-
         if (!_sessionLoaded)
         {
             await _sessionService.LoadAsync().ConfigureAwait(false);
@@ -191,19 +241,22 @@ public class CategoryDetailViewModel : BaseViewModel
             _sessionLoaded = true;
         }
 
-        if (_hasLoadedSuperCategories && _hasLoadedSubCategories)
+        if (IsSuperCategoryPage)
         {
-            return;
+            if (!_hasLoadedSuperCategories)
+            {
+                await LoadSuperCategoriesAsync(ct).ConfigureAwait(false);
+            }
+
+            if (!_hasLoadedSubCategories)
+            {
+                await LoadAvailableSubCategoriesAsync(ct).ConfigureAwait(false);
+            }
         }
 
-        if (!_hasLoadedSuperCategories)
+        if (IsCategoryPage && !_hasLoadedCategories)
         {
-            await LoadSuperCategoriesAsync(ct).ConfigureAwait(false);
-        }
-
-        if (!_hasLoadedSubCategories)
-        {
-            await LoadAvailableSubCategoriesAsync(ct).ConfigureAwait(false);
+            await LoadCategoriesAsync(ct).ConfigureAwait(false);
         }
     }
 
@@ -215,6 +268,8 @@ public class CategoryDetailViewModel : BaseViewModel
             Description = "Impossible de charger les détails de cette catégorie.";
             Hint = "Retournez à l'accueil et sélectionnez une catégorie.";
             IsSuperCategoryPage = false;
+            IsCategoryPage = false;
+            _hasLoadedCategories = false;
             return;
         }
 
@@ -222,9 +277,26 @@ public class CategoryDetailViewModel : BaseViewModel
         Description = card.Description;
         IsSuperCategoryPage = string.Equals(card.Title, "Super categories", StringComparison.OrdinalIgnoreCase)
             || string.Equals(card.Title, "Super catégories", StringComparison.OrdinalIgnoreCase);
-        Hint = IsSuperCategoryPage
-            ? "Ajoutez des super catégories parentes pour organiser vos sous-catégories (ex. Épicerie sucrée > Chocolat)."
-            : $"Vous êtes sur la page {card.Title}. Ajoutez ici les fonctionnalités spécifiques à cette catégorie.";
+        IsCategoryPage = string.Equals(card.Title, "Categories", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(card.Title, "Catégories", StringComparison.OrdinalIgnoreCase);
+
+        if (IsSuperCategoryPage)
+        {
+            CategoryStatus = string.Empty;
+            _hasLoadedCategories = false;
+            Hint = "Ajoutez des super catégories parentes pour organiser vos sous-catégories (ex. Épicerie sucrée > Chocolat).";
+            return;
+        }
+
+        if (IsCategoryPage)
+        {
+            _hasLoadedCategories = false;
+            CategoryStatus = "Chargement des catégories…";
+            Hint = "Créez et organisez les catégories principales utilisées dans votre boutique.";
+            return;
+        }
+
+        Hint = $"Vous êtes sur la page {card.Title}. Ajoutez ici les fonctionnalités spécifiques à cette catégorie.";
     }
 
     private bool CanCreateSuperCategory()
@@ -235,9 +307,18 @@ public class CategoryDetailViewModel : BaseViewModel
             && !string.IsNullOrWhiteSpace(NewSuperCategoryDescription);
     }
 
+    private bool CanCreateCategory()
+    {
+        return !IsBusy
+            && IsCategoryPage
+            && !string.IsNullOrWhiteSpace(NewCategoryName)
+            && !string.IsNullOrWhiteSpace(NewCategoryDescription);
+    }
+
     private void RefreshCreateAvailability()
     {
         (CreateSuperCategoryCommand as Command)?.ChangeCanExecute();
+        (CreateCategoryCommand as Command)?.ChangeCanExecute();
     }
 
     private async Task LoadSuperCategoriesAsync(CancellationToken ct = default)
@@ -287,6 +368,62 @@ public class CategoryDetailViewModel : BaseViewModel
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 SuperCategoryStatus = "Une erreur est survenue pendant le chargement.";
+            });
+        }
+        finally
+        {
+            IsBusy = false;
+            RefreshCreateAvailability();
+        }
+    }
+
+    private async Task LoadCategoriesAsync(CancellationToken ct = default)
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            CategoryStatus = "Chargement des catégories…";
+
+            var result = await _apis.GetListAsync<SubCategory>("/api/crud/categorie/list", ct).ConfigureAwait(false);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                Categories.Clear();
+                foreach (var item in result)
+                {
+                    Categories.Add(item);
+                }
+
+                _hasLoadedCategories = true;
+                CategoryStatus = Categories.Any()
+                    ? string.Empty
+                    : "Aucune catégorie n'est encore configurée.";
+            });
+        }
+        catch (TaskCanceledException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                CategoryStatus = "Le chargement des catégories a expiré.";
+            });
+        }
+        catch (HttpRequestException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                CategoryStatus = "Impossible de récupérer les catégories.";
+            });
+        }
+        catch
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                CategoryStatus = "Une erreur est survenue pendant le chargement.";
             });
         }
         finally
@@ -347,6 +484,74 @@ public class CategoryDetailViewModel : BaseViewModel
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 SubCategoryStatus = "Une erreur est survenue pendant le chargement.";
+            });
+        }
+        finally
+        {
+            IsBusy = false;
+            RefreshCreateAvailability();
+        }
+    }
+
+    private async Task CreateCategoryAsync()
+    {
+        if (IsBusy || !IsCategoryPage)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            RefreshCreateAvailability();
+            CategoryStatus = "Création de la catégorie en cours…";
+
+            var payload = new
+            {
+                nom = NewCategoryName,
+                description = NewCategoryDescription
+            };
+
+            var created = await _apis
+                .PostAsync<object, SubCategory>("/api/crud/categorie/create", payload)
+                .ConfigureAwait(false);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (created != null)
+                {
+                    Categories.Insert(0, created);
+                }
+
+                NewCategoryName = string.Empty;
+                NewCategoryDescription = string.Empty;
+                CategoryStatus = "Catégorie créée avec succès.";
+            });
+
+            if (created == null)
+            {
+                await LoadCategoriesAsync().ConfigureAwait(false);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                CategoryStatus = "La création a expiré. Veuillez réessayer.";
+            });
+        }
+        catch (HttpRequestException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                CategoryStatus = "Impossible de créer la catégorie.";
+            });
+        }
+        catch
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                CategoryStatus = "Une erreur est survenue lors de la création.";
             });
         }
         finally

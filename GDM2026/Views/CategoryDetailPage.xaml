@@ -42,6 +42,95 @@
                 </VerticalStackLayout>
             </Border>
 
+            <VerticalStackLayout Spacing="12" IsVisible="{Binding IsCategoryPage}">
+                <Border
+                    Background="{StaticResource CardBackground}"
+                    Stroke="#000000"
+                    StrokeThickness="1.5"
+                    Padding="18">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="10">
+                        <Label
+                            Text="Créer une nouvelle catégorie"
+                            FontSize="20"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource GoldText}" />
+
+                        <Entry
+                            Placeholder="Nom de la catégorie"
+                            Text="{Binding NewCategoryName}"
+                            TextColor="White" />
+
+                        <Editor
+                            Placeholder="Description"
+                            AutoSize="TextChanges"
+                            Text="{Binding NewCategoryDescription}"
+                            TextColor="White"
+                            BackgroundColor="#101010"
+                            HeightRequest="80" />
+
+                        <Button
+                            Text="Créer"
+                            Command="{Binding CreateCategoryCommand}"
+                            BackgroundColor="#D4AF37"
+                            TextColor="#0B0B0B"
+                            CornerRadius="12"
+                            Padding="14,10"
+                            FontAttributes="Bold" />
+
+                        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label
+                    Text="Catégories existantes"
+                    FontSize="22"
+                    FontAttributes="Bold"
+                    TextColor="{StaticResource GoldText}" />
+
+                <Label
+                    Text="{Binding CategoryStatus}"
+                    FontSize="14"
+                    TextColor="{StaticResource GoldText}"
+                    Opacity="0.85"
+                    IsVisible="{Binding HasCategoryStatus}" />
+
+                <CollectionView ItemsSource="{Binding Categories}" SelectionMode="None">
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout Orientation="Vertical" Span="1" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border
+                                Margin="0,6"
+                                Padding="16"
+                                Background="{StaticResource CardBackground}"
+                                Stroke="#000000"
+                                StrokeThickness="1.5">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="6">
+                                    <Label
+                                        Text="{Binding DisplayName}"
+                                        FontSize="18"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource GoldText}" />
+                                    <Label
+                                        Text="{Binding Description}"
+                                        FontSize="14"
+                                        TextColor="{StaticResource GoldText}"
+                                        Opacity="0.8"
+                                        LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
             <VerticalStackLayout Spacing="12" IsVisible="{Binding IsSuperCategoryPage}">
                 <Border
                     Background="{StaticResource CardBackground}"
