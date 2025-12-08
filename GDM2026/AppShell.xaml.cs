@@ -16,6 +16,7 @@ namespace GDM2026
             Routing.RegisterRoute(nameof(ImageUploadPage), typeof(ImageUploadPage));
             Routing.RegisterRoute(nameof(ActualitePage), typeof(ActualitePage));
             Routing.RegisterRoute(nameof(MessagesPage), typeof(MessagesPage));
+            Routing.RegisterRoute(nameof(PartnersPage), typeof(PartnersPage));
         }
     }
 }
