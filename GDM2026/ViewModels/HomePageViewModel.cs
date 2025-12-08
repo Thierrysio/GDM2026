@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Windows.Input;
 using GDM2026;
+using GDM2026.Views;
 
 namespace GDM2026.ViewModels;
 
@@ -152,6 +153,11 @@ public partial class HomePageViewModel : BaseViewModel
         if (string.Equals(card.Title, "Actualite", StringComparison.OrdinalIgnoreCase))
         {
             return Shell.Current.GoToAsync(nameof(ActualitePage), animate: false);
+        }
+
+        if (string.Equals(card.Title, "Messages", StringComparison.OrdinalIgnoreCase))
+        {
+            return Shell.Current.GoToAsync(nameof(MessagesPage), animate: false);
         }
 
         return Shell.Current.GoToAsync(nameof(CategoryDetailPage), animate: false, new Dictionary<string, object>
