@@ -23,22 +23,24 @@ public class Actualite
     [JsonProperty("updated_at")]
     public DateTime? UpdatedAt { get; set; }
 
-    public string FullImageUrl
+    public string FullImageUrl => BuildFullUrl(Image);
+
+    private static string BuildFullUrl(string? path)
     {
-        get
+        if (string.IsNullOrWhiteSpace(path))
         {
-            if (string.IsNullOrWhiteSpace(Image))
-            {
-                return string.Empty;
-            }
-
-            if (Uri.TryCreate(Image, UriKind.Absolute, out var absolute))
-            {
-                return absolute.ToString();
-            }
-
-            var relativePath = Image.StartsWith("/") ? Image : $"/{Image}";
-            return $"{Constantes.BaseImagesAddress}{relativePath}";
+            return string.Empty;
         }
+
+        var sanitized = path.Replace("\\", "/").Trim();
+
+        if (Uri.TryCreate(sanitized, UriKind.Absolute, out var absolute))
+        {
+            return absolute.ToString();
+        }
+
+        var trimmedPath = sanitized.TrimStart('/');
+        var baseAddress = Constantes.BaseImagesAddress.TrimEnd('/');
+        return $"{baseAddress}/{trimmedPath}";
     }
 }

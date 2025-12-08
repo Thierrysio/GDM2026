@@ -71,27 +71,35 @@
                                 PlaceholderColor="#777"
                                 BackgroundColor="#121212" />
 
-                            <Label
-                                Text="Bibliothèque d'images (admin)"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource GoldText}" />
+                    <Label
+                        Text="Bibliothèque d'images (admin)"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource GoldText}" />
 
-                            <Label
-                                Text="{Binding ImageLibraryMessage}"
-                                TextColor="{StaticResource GoldText}"
-                                FontSize="13"
-                                Opacity="0.85" />
+                    <SearchBar
+                        Placeholder="Rechercher une image"
+                        Text="{Binding ImageSearchTerm}"
+                        BackgroundColor="#121212"
+                        TextColor="{StaticResource GoldText}"
+                        PlaceholderColor="#777"
+                        CancelButtonColor="{StaticResource GoldText}" />
 
-                            <ActivityIndicator
-                                IsRunning="{Binding IsImageLibraryLoading}"
-                                IsVisible="{Binding IsImageLibraryLoading}"
-                                Color="{StaticResource GoldText}" />
+                    <Label
+                        Text="{Binding ImageLibraryMessage}"
+                        TextColor="{StaticResource GoldText}"
+                        FontSize="13"
+                        Opacity="0.85" />
 
-                            <CollectionView
-                                ItemsSource="{Binding ImageLibrary}"
-                                SelectionMode="Single"
-                                SelectedItem="{Binding SelectedLibraryImage}"
-                                HeightRequest="260">
+                    <ActivityIndicator
+                        IsRunning="{Binding IsImageLibraryLoading}"
+                        IsVisible="{Binding IsImageLibraryLoading}"
+                        Color="{StaticResource GoldText}" />
+
+                    <CollectionView
+                        ItemsSource="{Binding FilteredImageLibrary}"
+                        SelectionMode="Single"
+                        SelectedItem="{Binding SelectedLibraryImage}"
+                        HeightRequest="260">
                                 <CollectionView.ItemsLayout>
                                     <GridItemsLayout Orientation="Vertical" Span="3" />
                                 </CollectionView.ItemsLayout>
