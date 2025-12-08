@@ -26,25 +26,31 @@ public class CategoryDetailViewModel : BaseViewModel
     private bool _hasLoadedSuperCategories;
     private bool _hasLoadedSubCategories;
     private bool _hasLoadedCategories;
+    private bool _hasLoadedPromoCategories;
     private bool _sessionLoaded;
     private string _superCategoryStatus = "Chargement des super catégories…";
     private string _subCategoryStatus = "Chargement des sous-catégories…";
     private string _categoryStatus = "Chargement des catégories…";
+    private string _promoCategoryStatus = "Chargement des catégories promo…";
     private string _newSuperCategoryName = string.Empty;
     private string _newSuperCategoryDescription = string.Empty;
     private string _newSuperCategoryProducts = string.Empty;
     private string _newCategoryName = string.Empty;
+    private string _newPromoCategoryName = string.Empty;
     private bool _isSubCategoryMenuOpen;
     private int _selectedSubCategoryCount;
     private bool _isCategoryPage;
+    private bool _isPromoCategoryPage;
 
     public CategoryDetailViewModel()
     {
         SuperCategories = new ObservableCollection<SuperCategory>();
         AvailableSubCategories = new ObservableCollection<SelectableSubCategory>();
         Categories = new ObservableCollection<SubCategory>();
+        PromoCategories = new ObservableCollection<PromoCategory>();
         CreateSuperCategoryCommand = new Command(async () => await CreateSuperCategoryAsync(), CanCreateSuperCategory);
         CreateCategoryCommand = new Command(async () => await CreateCategoryAsync(), CanCreateCategory);
+        CreatePromoCategoryCommand = new Command(async () => await CreatePromoCategoryAsync(), CanCreatePromoCategory);
         ToggleSubCategoryMenuCommand = new Command(() =>
         {
             IsSubCategoryMenuOpen = !IsSubCategoryMenuOpen;
@@ -57,9 +63,13 @@ public class CategoryDetailViewModel : BaseViewModel
 
     public ObservableCollection<SubCategory> Categories { get; }
 
+    public ObservableCollection<PromoCategory> PromoCategories { get; }
+
     public ICommand CreateSuperCategoryCommand { get; }
 
     public ICommand CreateCategoryCommand { get; }
+
+    public ICommand CreatePromoCategoryCommand { get; }
 
     public ICommand ToggleSubCategoryMenuCommand { get; }
 
@@ -105,6 +115,12 @@ public class CategoryDetailViewModel : BaseViewModel
         set => SetProperty(ref _isCategoryPage, value);
     }
 
+    public bool IsPromoCategoryPage
+    {
+        get => _isPromoCategoryPage;
+        set => SetProperty(ref _isPromoCategoryPage, value);
+    }
+
     public string SuperCategoryStatus
     {
         get => _superCategoryStatus;
@@ -146,6 +162,20 @@ public class CategoryDetailViewModel : BaseViewModel
     }
 
     public bool HasCategoryStatus => !string.IsNullOrWhiteSpace(CategoryStatus);
+
+    public string PromoCategoryStatus
+    {
+        get => _promoCategoryStatus;
+        set
+        {
+            if (SetProperty(ref _promoCategoryStatus, value))
+            {
+                OnPropertyChanged(nameof(HasPromoCategoryStatus));
+            }
+        }
+    }
+
+    public bool HasPromoCategoryStatus => !string.IsNullOrWhiteSpace(PromoCategoryStatus);
 
     public bool IsSubCategoryMenuOpen
     {
@@ -219,6 +249,18 @@ public class CategoryDetailViewModel : BaseViewModel
         }
     }
 
+    public string NewPromoCategoryName
+    {
+        get => _newPromoCategoryName;
+        set
+        {
+            if (SetProperty(ref _newPromoCategoryName, value))
+            {
+                RefreshCreateAvailability();
+            }
+        }
+    }
+
     public async Task EnsureInitializedAsync(CancellationToken ct = default)
     {
         if (!_sessionLoaded)
@@ -245,6 +287,11 @@ public class CategoryDetailViewModel : BaseViewModel
         {
             await LoadCategoriesAsync(ct).ConfigureAwait(false);
         }
+
+        if (IsPromoCategoryPage && !_hasLoadedPromoCategories)
+        {
+            await LoadPromoCategoriesAsync(ct).ConfigureAwait(false);
+        }
     }
 
     public void ApplyCard(CategoryCard? card)
@@ -256,7 +303,9 @@ public class CategoryDetailViewModel : BaseViewModel
             Hint = "Retournez à l'accueil et sélectionnez une catégorie.";
             IsSuperCategoryPage = false;
             IsCategoryPage = false;
+            IsPromoCategoryPage = false;
             _hasLoadedCategories = false;
+            _hasLoadedPromoCategories = false;
             return;
         }
 
@@ -266,11 +315,15 @@ public class CategoryDetailViewModel : BaseViewModel
             || string.Equals(card.Title, "Super catégories", StringComparison.OrdinalIgnoreCase);
         IsCategoryPage = string.Equals(card.Title, "Categories", StringComparison.OrdinalIgnoreCase)
             || string.Equals(card.Title, "Catégories", StringComparison.OrdinalIgnoreCase);
+        IsPromoCategoryPage = string.Equals(card.Title, "Promo", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(card.Title, "Catégories Evenements", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(card.Title, "Catégories événements", StringComparison.OrdinalIgnoreCase);
 
         if (IsSuperCategoryPage)
         {
             CategoryStatus = string.Empty;
             _hasLoadedCategories = false;
+            _hasLoadedPromoCategories = false;
             Hint = "Ajoutez des super catégories parentes pour organiser vos sous-catégories (ex. Épicerie sucrée > Chocolat).";
             return;
         }
@@ -279,7 +332,17 @@ public class CategoryDetailViewModel : BaseViewModel
         {
             _hasLoadedCategories = false;
             CategoryStatus = "Chargement des catégories…";
+            _hasLoadedPromoCategories = false;
             Hint = "Créez et organisez les catégories principales utilisées dans votre boutique.";
+            return;
+        }
+
+        if (IsPromoCategoryPage)
+        {
+            _hasLoadedCategories = false;
+            _hasLoadedPromoCategories = false;
+            PromoCategoryStatus = "Chargement des catégories promo…";
+            Hint = "Gérez les catégories promo et ajoutez-en de nouvelles pour organiser vos offres.";
             return;
         }
 
@@ -301,10 +364,18 @@ public class CategoryDetailViewModel : BaseViewModel
             && !string.IsNullOrWhiteSpace(NewCategoryName);
     }
 
+    private bool CanCreatePromoCategory()
+    {
+        return !IsBusy
+            && IsPromoCategoryPage
+            && !string.IsNullOrWhiteSpace(NewPromoCategoryName);
+    }
+
     private void RefreshCreateAvailability()
     {
         (CreateSuperCategoryCommand as Command)?.ChangeCanExecute();
         (CreateCategoryCommand as Command)?.ChangeCanExecute();
+        (CreatePromoCategoryCommand as Command)?.ChangeCanExecute();
     }
 
     private async Task LoadSuperCategoriesAsync(CancellationToken ct = default)
@@ -410,6 +481,62 @@ public class CategoryDetailViewModel : BaseViewModel
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 CategoryStatus = "Une erreur est survenue pendant le chargement.";
+            });
+        }
+        finally
+        {
+            IsBusy = false;
+            RefreshCreateAvailability();
+        }
+    }
+
+    private async Task LoadPromoCategoriesAsync(CancellationToken ct = default)
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            PromoCategoryStatus = "Chargement des catégories promo…";
+
+            var result = await _apis.GetListAsync<PromoCategory>("/api/crud/categoriepromo/list", ct).ConfigureAwait(false);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                PromoCategories.Clear();
+                foreach (var item in result)
+                {
+                    PromoCategories.Add(item);
+                }
+
+                _hasLoadedPromoCategories = true;
+                PromoCategoryStatus = PromoCategories.Any()
+                    ? string.Empty
+                    : "Aucune catégorie promo n'est encore configurée.";
+            });
+        }
+        catch (TaskCanceledException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                PromoCategoryStatus = "Le chargement des catégories promo a expiré.";
+            });
+        }
+        catch (HttpRequestException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                PromoCategoryStatus = "Impossible de récupérer les catégories promo.";
+            });
+        }
+        catch
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                PromoCategoryStatus = "Une erreur est survenue pendant le chargement.";
             });
         }
         finally
@@ -536,6 +663,72 @@ public class CategoryDetailViewModel : BaseViewModel
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 CategoryStatus = "Une erreur est survenue lors de la création.";
+            });
+        }
+        finally
+        {
+            IsBusy = false;
+            RefreshCreateAvailability();
+        }
+    }
+
+    private async Task CreatePromoCategoryAsync()
+    {
+        if (IsBusy || !IsPromoCategoryPage)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            RefreshCreateAvailability();
+            PromoCategoryStatus = "Création de la catégorie promo en cours…";
+
+            var payload = new
+            {
+                nom = NewPromoCategoryName
+            };
+
+            var created = await _apis
+                .PostAsync<object, PromoCategory>("/api/crud/categoriepromo/create", payload)
+                .ConfigureAwait(false);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (created != null)
+                {
+                    PromoCategories.Insert(0, created);
+                }
+
+                NewPromoCategoryName = string.Empty;
+                PromoCategoryStatus = "Catégorie promo créée avec succès.";
+            });
+
+            if (created == null)
+            {
+                await LoadPromoCategoriesAsync().ConfigureAwait(false);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                PromoCategoryStatus = "La création a expiré. Veuillez réessayer.";
+            });
+        }
+        catch (HttpRequestException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                PromoCategoryStatus = "Impossible de créer la catégorie promo.";
+            });
+        }
+        catch
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                PromoCategoryStatus = "Une erreur est survenue lors de la création.";
             });
         }
         finally
