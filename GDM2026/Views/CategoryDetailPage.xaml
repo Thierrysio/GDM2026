@@ -41,6 +41,107 @@
                         Text="{Binding Hint}" />
                 </VerticalStackLayout>
             </Border>
+
+            <VerticalStackLayout Spacing="12" IsVisible="{Binding IsSuperCategoryPage}">
+                <Label
+                    Text="Super catégories existantes"
+                    FontSize="22"
+                    FontAttributes="Bold"
+                    TextColor="{StaticResource GoldText}" />
+
+                <Label
+                    Text="{Binding SuperCategoryStatus}"
+                    FontSize="14"
+                    TextColor="{StaticResource GoldText}"
+                    Opacity="0.85"
+                    IsVisible="{Binding HasSuperCategoryStatus}" />
+
+                <CollectionView ItemsSource="{Binding SuperCategories}" SelectionMode="None">
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout Orientation="Vertical" Span="1" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border
+                                Margin="0,6"
+                                Padding="16"
+                                Background="{StaticResource CardBackground}"
+                                Stroke="#000000"
+                                StrokeThickness="1.5">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="6">
+                                    <Label
+                                        Text="{Binding DisplayName}"
+                                        FontSize="18"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource GoldText}" />
+                                    <Label
+                                        Text="{Binding Description}"
+                                        FontSize="14"
+                                        TextColor="{StaticResource GoldText}"
+                                        Opacity="0.8"
+                                        LineBreakMode="WordWrap" />
+                                    <Label
+                                        Text="{Binding ProductCount, StringFormat='Produits associés : {0}'}"
+                                        FontSize="13"
+                                        TextColor="{StaticResource GoldText}"
+                                        Opacity="0.75" />
+                                    <Label
+                                        Text="{Binding ImageUrl, StringFormat='Image : {0}'}"
+                                        FontSize="12"
+                                        TextColor="{StaticResource GoldText}"
+                                        Opacity="0.65"
+                                        LineBreakMode="TailTruncation" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Border
+                    Background="{StaticResource CardBackground}"
+                    Stroke="#000000"
+                    StrokeThickness="1.5"
+                    Padding="18">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="10">
+                        <Label
+                            Text="Créer une nouvelle super catégorie"
+                            FontSize="20"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource GoldText}" />
+
+                        <Entry
+                            Placeholder="Nom de la super catégorie"
+                            Text="{Binding NewSuperCategoryName}" />
+                        <Editor
+                            Placeholder="Description"
+                            AutoSize="TextChanges"
+                            Text="{Binding NewSuperCategoryDescription}" />
+                        <Entry
+                            Placeholder="URL de l'image"
+                            Text="{Binding NewSuperCategoryImage}" />
+                        <Entry
+                            Placeholder="Identifiants produits (séparés par des virgules)"
+                            Text="{Binding NewSuperCategoryProducts}" />
+
+                        <Button
+                            Text="Créer"
+                            Command="{Binding CreateSuperCategoryCommand}"
+                            BackgroundColor="#D4AF37"
+                            TextColor="#0B0B0B"
+                            CornerRadius="12"
+                            Padding="14,10"
+                            FontAttributes="Bold" />
+
+                        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
