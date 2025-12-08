@@ -5,6 +5,7 @@ using Microsoft.Maui.Graphics;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Windows.Input;
 
@@ -29,8 +30,12 @@ public class ActualiteViewModel : BaseViewModel
     private bool _isImageLibraryLoading;
     private AdminImage? _selectedLibraryImage;
     private bool _hasSelectedImage;
+    private bool _hasLoadedActualites;
+    private bool _isLoadingActualites;
+    private string _actualitesStatusMessage = "Chargement des actualités…";
 
     public ObservableCollection<AdminImage> ImageLibrary { get; } = new();
+    public ObservableCollection<Actualite> Actualites { get; } = new();
 
     public ActualiteViewModel()
     {
@@ -50,10 +55,22 @@ public class ActualiteViewModel : BaseViewModel
         set => SetProperty(ref _isFormVisible, value);
     }
 
+    public bool IsLoadingActualites
+    {
+        get => _isLoadingActualites;
+        set => SetProperty(ref _isLoadingActualites, value);
+    }
+
     public bool IsImageLibraryLoading
     {
         get => _isImageLibraryLoading;
         set => SetProperty(ref _isImageLibraryLoading, value);
+    }
+
+    public string ActualitesStatusMessage
+    {
+        get => _actualitesStatusMessage;
+        set => SetProperty(ref _actualitesStatusMessage, value);
     }
 
     public string ActualiteTitle
@@ -138,6 +155,16 @@ public class ActualiteViewModel : BaseViewModel
     {
         get => _statusColor;
         set => SetProperty(ref _statusColor, value);
+    }
+
+    public async Task EnsureActualitesLoadedAsync()
+    {
+        if (_hasLoadedActualites || IsLoadingActualites)
+        {
+            return;
+        }
+
+        await LoadActualitesAsync();
     }
 
     private bool CanSubmit()
@@ -239,6 +266,42 @@ public class ActualiteViewModel : BaseViewModel
         }
     }
 
+    private async Task LoadActualitesAsync()
+    {
+        try
+        {
+            IsLoadingActualites = true;
+            ActualitesStatusMessage = "Chargement des actualités…";
+
+            var actualites = await _apis.GetListAsync<Actualite>("/api/crud/actualite/list");
+
+            Actualites.Clear();
+            foreach (var actualite in actualites.OrderByDescending(a => a.CreatedAt ?? DateTime.MinValue))
+            {
+                Actualites.Add(actualite);
+            }
+
+            ActualitesStatusMessage = Actualites.Count == 0
+                ? "Aucune actualité publiée pour le moment."
+                : "Actualités publiées depuis l'admin.";
+        }
+        catch (HttpRequestException ex)
+        {
+            Debug.WriteLine($"[ACTUALITES] HTTP error: {ex}");
+            ActualitesStatusMessage = "Impossible de récupérer les actualités depuis l'admin.";
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ACTUALITES] Error: {ex}");
+            ActualitesStatusMessage = "Erreur lors du chargement des actualités.";
+        }
+        finally
+        {
+            _hasLoadedActualites = true;
+            IsLoadingActualites = false;
+        }
+    }
+
     private async Task SubmitAsync()
     {
         if (IsBusy)
@@ -296,6 +359,9 @@ public class ActualiteViewModel : BaseViewModel
                 _selectedImageUrl = null;
                 HasSelectedImage = false;
                 IsFormVisible = false;
+
+                _hasLoadedActualites = false;
+                await LoadActualitesAsync();
             }
         }
         catch (OperationCanceledException)
