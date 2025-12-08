@@ -27,7 +27,6 @@ public class CategoryDetailViewModel : BaseViewModel
     private string _superCategoryStatus = "Chargement des super catégories…";
     private string _newSuperCategoryName = string.Empty;
     private string _newSuperCategoryDescription = string.Empty;
-    private string _newSuperCategoryImage = string.Empty;
     private string _newSuperCategoryProducts = string.Empty;
 
     public CategoryDetailViewModel()
@@ -114,18 +113,6 @@ public class CategoryDetailViewModel : BaseViewModel
         }
     }
 
-    public string NewSuperCategoryImage
-    {
-        get => _newSuperCategoryImage;
-        set
-        {
-            if (SetProperty(ref _newSuperCategoryImage, value))
-            {
-                RefreshCreateAvailability();
-            }
-        }
-    }
-
     public string NewSuperCategoryProducts
     {
         get => _newSuperCategoryProducts;
@@ -167,9 +154,11 @@ public class CategoryDetailViewModel : BaseViewModel
 
         Title = card.Title;
         Description = card.Description;
-        Hint = $"Vous êtes sur la page {card.Title}. Ajoutez ici les fonctionnalités spécifiques à cette catégorie.";
         IsSuperCategoryPage = string.Equals(card.Title, "Super categories", StringComparison.OrdinalIgnoreCase)
             || string.Equals(card.Title, "Super catégories", StringComparison.OrdinalIgnoreCase);
+        Hint = IsSuperCategoryPage
+            ? "Ajoutez des super catégories parentes pour organiser vos sous-catégories (ex. Épicerie sucrée > Chocolat)."
+            : $"Vous êtes sur la page {card.Title}. Ajoutez ici les fonctionnalités spécifiques à cette catégorie.";
     }
 
     private bool CanCreateSuperCategory()
@@ -177,8 +166,7 @@ public class CategoryDetailViewModel : BaseViewModel
         return !IsBusy
             && IsSuperCategoryPage
             && !string.IsNullOrWhiteSpace(NewSuperCategoryName)
-            && !string.IsNullOrWhiteSpace(NewSuperCategoryDescription)
-            && !string.IsNullOrWhiteSpace(NewSuperCategoryImage);
+            && !string.IsNullOrWhiteSpace(NewSuperCategoryDescription);
     }
 
     private void RefreshCreateAvailability()
@@ -274,7 +262,6 @@ public class CategoryDetailViewModel : BaseViewModel
             {
                 nom = NewSuperCategoryName,
                 description = NewSuperCategoryDescription,
-                image = NewSuperCategoryImage,
                 produits = productIds
             };
 
@@ -291,7 +278,6 @@ public class CategoryDetailViewModel : BaseViewModel
 
                 NewSuperCategoryName = string.Empty;
                 NewSuperCategoryDescription = string.Empty;
-                NewSuperCategoryImage = string.Empty;
                 NewSuperCategoryProducts = string.Empty;
                 SuperCategoryStatus = "Super catégorie créée avec succès.";
             });
