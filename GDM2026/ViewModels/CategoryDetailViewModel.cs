@@ -34,7 +34,6 @@ public class CategoryDetailViewModel : BaseViewModel
     private string _newSuperCategoryDescription = string.Empty;
     private string _newSuperCategoryProducts = string.Empty;
     private string _newCategoryName = string.Empty;
-    private string _newCategoryDescription = string.Empty;
     private bool _isSubCategoryMenuOpen;
     private int _selectedSubCategoryCount;
     private bool _isCategoryPage;
@@ -220,18 +219,6 @@ public class CategoryDetailViewModel : BaseViewModel
         }
     }
 
-    public string NewCategoryDescription
-    {
-        get => _newCategoryDescription;
-        set
-        {
-            if (SetProperty(ref _newCategoryDescription, value))
-            {
-                RefreshCreateAvailability();
-            }
-        }
-    }
-
     public async Task EnsureInitializedAsync(CancellationToken ct = default)
     {
         if (!_sessionLoaded)
@@ -311,8 +298,7 @@ public class CategoryDetailViewModel : BaseViewModel
     {
         return !IsBusy
             && IsCategoryPage
-            && !string.IsNullOrWhiteSpace(NewCategoryName)
-            && !string.IsNullOrWhiteSpace(NewCategoryDescription);
+            && !string.IsNullOrWhiteSpace(NewCategoryName);
     }
 
     private void RefreshCreateAvailability()
@@ -508,8 +494,7 @@ public class CategoryDetailViewModel : BaseViewModel
 
             var payload = new
             {
-                nom = NewCategoryName,
-                description = NewCategoryDescription
+                nom = NewCategoryName
             };
 
             var created = await _apis
@@ -524,7 +509,6 @@ public class CategoryDetailViewModel : BaseViewModel
                 }
 
                 NewCategoryName = string.Empty;
-                NewCategoryDescription = string.Empty;
                 CategoryStatus = "Catégorie créée avec succès.";
             });
 

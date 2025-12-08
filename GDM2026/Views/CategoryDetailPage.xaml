@@ -63,14 +63,6 @@
                             Text="{Binding NewCategoryName}"
                             TextColor="White" />
 
-                        <Editor
-                            Placeholder="Description"
-                            AutoSize="TextChanges"
-                            Text="{Binding NewCategoryDescription}"
-                            TextColor="White"
-                            BackgroundColor="#101010"
-                            HeightRequest="80" />
-
                         <Button
                             Text="Créer"
                             Command="{Binding CreateCategoryCommand}"
