@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.ActualitePage"
+             BackgroundColor="#0B0B0B">
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+        <Color x:Key="CardBackground">#151515</Color>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="18">
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="#000000"
+                StrokeThickness="1.5"
+                Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="14">
+                    <Label
+                        Text="Actualités"
+                        FontSize="28"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
+
+                    <Label
+                        Text="Publiez rapidement une actualité avec une image pour l'afficher sur Dantec Market."
+                        FontSize="16"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85" />
+
+                    <Button
+                        Text="+ Nouvelle actualité"
+                        BackgroundColor="#303030"
+                        TextColor="{StaticResource GoldText}"
+                        Command="{Binding ToggleFormCommand}" />
+
+                    <Frame
+                        IsVisible="{Binding IsFormVisible}"
+                        BackgroundColor="#1E1E1E"
+                        Padding="14"
+                        HasShadow="False"
+                        CornerRadius="14"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="Titre"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}" />
+                            <Entry
+                                Placeholder="Titre de l'actualité"
+                                Text="{Binding ActualiteTitle}"
+                                TextColor="{StaticResource GoldText}"
+                                PlaceholderColor="#777"
+                                BackgroundColor="#121212" />
+
+                            <Label
+                                Text="Contenu"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}" />
+                            <Editor
+                                HeightRequest="140"
+                                Text="{Binding ActualiteContent}"
+                                Placeholder="Décrivez brièvement l'actualité"
+                                TextColor="{StaticResource GoldText}"
+                                PlaceholderColor="#777"
+                                BackgroundColor="#121212" />
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                <Button
+                                    Text="Prendre une photo"
+                                    Command="{Binding CapturePhotoCommand}"
+                                    BackgroundColor="#C18F1A"
+                                    TextColor="{StaticResource GoldText}" />
+                                <Button
+                                    Grid.Column="1"
+                                    Text="Bibliothèque"
+                                    Command="{Binding PickFromGalleryCommand}"
+                                    BackgroundColor="#303030"
+                                    TextColor="{StaticResource GoldText}" />
+                            </Grid>
+
+                            <Label
+                                Text="{Binding SelectedImageName}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.85" />
+
+                            <Border Background="#111" Padding="10" Stroke="#2D2D2D" StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Image
+                                    Source="{Binding SelectedImage}"
+                                    Aspect="AspectFit"
+                                    HeightRequest="220"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center" />
+                            </Border>
+
+                            <Button
+                                Text="Ajouter une actualité"
+                                Command="{Binding SubmitCommand}"
+                                BackgroundColor="#C18F1A"
+                                TextColor="{StaticResource GoldText}" />
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <Label
+                        Text="{Binding StatusMessage}"
+                        TextColor="{Binding StatusColor}"
+                        FontSize="14"
+                        HorizontalTextAlignment="Center"
+                        LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
