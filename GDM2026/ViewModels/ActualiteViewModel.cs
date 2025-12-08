@@ -26,7 +26,7 @@ public class ActualiteViewModel : BaseViewModel
     private string? _selectedImageUrl;
     private string _selectedImageName = "Aucune image sélectionnée.";
     private string _selectedImageCustomName = string.Empty;
-    private string _imageLibraryMessage = "Sélectionnez une image dans la bibliothèque.";
+    private string _imageLibraryMessage = "Sélectionnez une image existante ou recherchez dans la bibliothèque.";
     private bool _isImageLibraryLoading;
     private AdminImage? _selectedLibraryImage;
     private bool _hasSelectedImage;
@@ -35,6 +35,7 @@ public class ActualiteViewModel : BaseViewModel
     private string _actualitesStatusMessage = "Chargement des actualités…";
 
     public ObservableCollection<AdminImage> ImageLibrary { get; } = new();
+    public ObservableCollection<AdminImage> FilteredImageLibrary { get; } = new();
     public ObservableCollection<Actualite> Actualites { get; } = new();
 
     public ActualiteViewModel()
@@ -145,6 +146,20 @@ public class ActualiteViewModel : BaseViewModel
         set => SetProperty(ref _imageLibraryMessage, value);
     }
 
+    private string _imageSearchTerm = string.Empty;
+
+    public string ImageSearchTerm
+    {
+        get => _imageSearchTerm;
+        set
+        {
+            if (SetProperty(ref _imageSearchTerm, value))
+            {
+                RefreshImageLibraryFilter();
+            }
+        }
+    }
+
     public string StatusMessage
     {
         get => _statusMessage;
@@ -246,9 +261,8 @@ public class ActualiteViewModel : BaseViewModel
                 ImageLibrary.Add(image);
             }
 
-            ImageLibraryMessage = ImageLibrary.Count == 0
-                ? "Aucune image disponible dans l'admin."
-                : "Sélectionnez une image existante pour votre actualité.";
+            UpdateDefaultImageLibraryMessage();
+            RefreshImageLibraryFilter();
         }
         catch (HttpRequestException ex)
         {
@@ -264,6 +278,52 @@ public class ActualiteViewModel : BaseViewModel
         {
             IsImageLibraryLoading = false;
         }
+    }
+
+    private void RefreshImageLibraryFilter()
+    {
+        if (IsImageLibraryLoading)
+        {
+            return;
+        }
+
+        var hasSearch = !string.IsNullOrWhiteSpace(_imageSearchTerm);
+        var normalizedSearch = _imageSearchTerm?.Trim().ToLowerInvariant();
+
+        var filtered = hasSearch
+            ? ImageLibrary.Where(img =>
+                (!string.IsNullOrWhiteSpace(img.DisplayName) && img.DisplayName.ToLowerInvariant().Contains(normalizedSearch))
+                || (!string.IsNullOrWhiteSpace(img.Url) && img.Url.ToLowerInvariant().Contains(normalizedSearch)))
+            : ImageLibrary.AsEnumerable();
+
+        FilteredImageLibrary.Clear();
+        foreach (var image in filtered)
+        {
+            FilteredImageLibrary.Add(image);
+        }
+
+        if (hasSearch)
+        {
+            ImageLibraryMessage = FilteredImageLibrary.Count == 0
+                ? "Aucune image ne correspond à cette recherche."
+                : $"Résultats pour \"{_imageSearchTerm}\" ({FilteredImageLibrary.Count}).";
+
+            if (SelectedLibraryImage is not null && !FilteredImageLibrary.Contains(SelectedLibraryImage))
+            {
+                SelectedLibraryImage = null;
+            }
+        }
+        else
+        {
+            UpdateDefaultImageLibraryMessage();
+        }
+    }
+
+    private void UpdateDefaultImageLibraryMessage()
+    {
+        ImageLibraryMessage = ImageLibrary.Count == 0
+            ? "Aucune image disponible dans l'admin."
+            : "Sélectionnez une image existante ou recherchez dans la bibliothèque.";
     }
 
     private async Task LoadActualitesAsync()

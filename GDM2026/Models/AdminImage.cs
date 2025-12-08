@@ -8,26 +8,28 @@ public class AdminImage
     public string Url { get; set; } = string.Empty;
     public string? ImageName { get; set; }
 
-    public string FullUrl
-    {
-        get
-        {
-            if (string.IsNullOrWhiteSpace(Url))
-            {
-                return string.Empty;
-            }
-
-            if (Uri.TryCreate(Url, UriKind.Absolute, out var absolute))
-            {
-                return absolute.ToString();
-            }
-
-            var relativePath = Url.StartsWith("/") ? Url : $"/{Url}";
-            return $"{Constantes.BaseImagesAddress}{relativePath}";
-        }
-    }
+    public string FullUrl => BuildFullUrl(Url);
 
     public string DisplayName => string.IsNullOrWhiteSpace(ImageName)
         ? System.IO.Path.GetFileName(Url)
         : ImageName;
+
+    private static string BuildFullUrl(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return string.Empty;
+        }
+
+        var sanitized = path.Replace("\\", "/").Trim();
+
+        if (Uri.TryCreate(sanitized, UriKind.Absolute, out var absolute))
+        {
+            return absolute.ToString();
+        }
+
+        var trimmedPath = sanitized.TrimStart('/');
+        var baseAddress = Constantes.BaseImagesAddress.TrimEnd('/');
+        return $"{baseAddress}/{trimmedPath}";
+    }
 }
