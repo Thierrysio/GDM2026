@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.PartnersPage"
+             x:Name="PartnersPageRoot"
+             BackgroundColor="#0B0B0B">
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+        <Color x:Key="CardBackground">#151515</Color>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="18">
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="#000000"
+                StrokeThickness="1.5"
+                Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="12">
+                    <Label
+                        Text="Partenaires"
+                        FontSize="28"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
+
+                    <Label
+                        Text="Consultez la liste des partenaires et ouvrez leur site."
+                        FontSize="16"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85" />
+
+                    <ActivityIndicator
+                        IsRunning="{Binding IsBusy}"
+                        IsVisible="{Binding IsBusy}"
+                        Color="{StaticResource GoldText}" />
+
+                    <Label
+                        Text="{Binding StatusMessage}"
+                        FontSize="14"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85" />
+                </VerticalStackLayout>
+            </Border>
+
+            <RefreshView
+                Command="{Binding RefreshCommand}"
+                IsRefreshing="{Binding IsRefreshing}">
+                <CollectionView
+                    ItemsSource="{Binding Partners}"
+                    SelectionMode="None"
+                    Margin="0,6,0,0">
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout
+                            Orientation="Vertical"
+                            Span="2"
+                            HorizontalItemSpacing="12"
+                            VerticalItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border
+                                Background="{StaticResource CardBackground}"
+                                Stroke="#000000"
+                                StrokeThickness="1"
+                                Padding="14"
+                                Margin="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="16" />
+                                </Border.StrokeShape>
+
+                                <VerticalStackLayout Spacing="10">
+                                    <Border
+                                        HeightRequest="120"
+                                        BackgroundColor="#1E1E1E"
+                                        Stroke="#2D2D2D"
+                                        StrokeThickness="1"
+                                        HorizontalOptions="Fill">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Grid>
+                                            <Image
+                                                Source="{Binding FullImageUrl}"
+                                                Aspect="AspectFill"
+                                                AutomationId="PartnerImage">
+                                                <Image.Triggers>
+                                                    <DataTrigger TargetType="Image" Binding="{Binding HasImage}" Value="False">
+                                                        <Setter Property="IsVisible" Value="False" />
+                                                    </DataTrigger>
+                                                </Image.Triggers>
+                                            </Image>
+
+                                            <Label
+                                                Text="Pas d'image"
+                                                TextColor="{StaticResource GoldText}"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center"
+                                                FontSize="12">
+                                                <Label.Triggers>
+                                                    <DataTrigger TargetType="Label" Binding="{Binding HasImage}" Value="True">
+                                                        <Setter Property="IsVisible" Value="False" />
+                                                    </DataTrigger>
+                                                </Label.Triggers>
+                                            </Label>
+                                        </Grid>
+                                    </Border>
+
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label
+                                            Text="{Binding DisplayName}"
+                                            FontSize="18"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource GoldText}" />
+
+                                        <Label
+                                            Text="{Binding WebsiteDisplay}"
+                                            FontSize="14"
+                                            TextColor="{StaticResource GoldText}"
+                                            LineBreakMode="TailTruncation">
+                                            <Label.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding BindingContext.OpenWebsiteCommand, Source={x:Reference PartnersPageRoot}}"
+                                                    CommandParameter="{Binding Website}" />
+                                            </Label.GestureRecognizers>
+                                        </Label>
+
+                                        <Button
+                                            Text="Ouvrir le site"
+                                            Padding="12,8"
+                                            HorizontalOptions="Start"
+                                            BackgroundColor="#303030"
+                                            TextColor="{StaticResource GoldText}"
+                                            CornerRadius="10"
+                                            Command="{Binding BindingContext.OpenWebsiteCommand, Source={x:Reference PartnersPageRoot}}"
+                                            CommandParameter="{Binding Website}" />
+                                    </VerticalStackLayout>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
