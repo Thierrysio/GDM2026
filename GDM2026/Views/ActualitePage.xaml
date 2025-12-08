@@ -71,19 +71,50 @@
                                 PlaceholderColor="#777"
                                 BackgroundColor="#121212" />
 
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                                <Button
-                                    Text="Prendre une photo"
-                                    Command="{Binding CapturePhotoCommand}"
-                                    BackgroundColor="#C18F1A"
-                                    TextColor="{StaticResource GoldText}" />
-                                <Button
-                                    Grid.Column="1"
-                                    Text="Bibliothèque"
-                                    Command="{Binding PickFromGalleryCommand}"
-                                    BackgroundColor="#303030"
-                                    TextColor="{StaticResource GoldText}" />
-                            </Grid>
+                            <Label
+                                Text="Bibliothèque d'images (admin)"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}" />
+
+                            <Label
+                                Text="{Binding ImageLibraryMessage}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.85" />
+
+                            <ActivityIndicator
+                                IsRunning="{Binding IsImageLibraryLoading}"
+                                IsVisible="{Binding IsImageLibraryLoading}"
+                                Color="{StaticResource GoldText}" />
+
+                            <CollectionView
+                                ItemsSource="{Binding ImageLibrary}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedLibraryImage}"
+                                HeightRequest="260">
+                                <CollectionView.ItemsLayout>
+                                    <GridItemsLayout Orientation="Vertical" Span="3" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="6" Margin="4">
+                                            <VerticalStackLayout Spacing="6">
+                                                <Image
+                                                    Source="{Binding FullUrl}"
+                                                    Aspect="AspectFill"
+                                                    HeightRequest="80"
+                                                    WidthRequest="100" />
+                                                <Label
+                                                    Text="{Binding DisplayName}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontSize="11"
+                                                    LineBreakMode="TailTruncation"
+                                                    HorizontalTextAlignment="Center" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
 
                             <Label
                                 Text="{Binding SelectedImageName}"
