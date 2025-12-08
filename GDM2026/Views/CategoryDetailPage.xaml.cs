@@ -21,6 +21,12 @@ namespace GDM2026
             BindingContext = _viewModel;
         }
 
+        protected override async void OnAppearing()
+        {
+            base.OnAppearing();
+            await _viewModel.EnsureInitializedAsync();
+        }
+
         public void ApplyQueryAttributes(IDictionary<string, object> query)
         {
             if (query.TryGetValue("card", out var card) && card is CategoryCard selectedCard)
