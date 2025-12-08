@@ -3,7 +3,7 @@
     x:Class="GDM2026.PartnersPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    x:Name="PartnersPage"
+    x:Name="PartnersRoot"
     Title="Partenaires">
 
     <ContentPage.Content>
@@ -48,7 +48,6 @@
                                     ColumnSpacing="10">
 
                                     <!-- Image / logo du partenaire -->
-                                    <!-- Je suppose qu'il y a une propriété LogoUrl côté Partner -->
                                     <Image
                                         Grid.Column="0"
                                         WidthRequest="64"
@@ -64,21 +63,19 @@
                                         VerticalOptions="Center">
 
                                         <!-- Nom du partenaire -->
-                                        <!-- Je suppose une propriété Name -->
                                         <Label
                                             Text="{Binding Name}"
                                             FontAttributes="Bold"
                                             FontSize="16" />
 
                                         <!-- URL du partenaire (affichée + cliquable) -->
-                                        <!-- Je suppose une propriété WebsiteUrl -->
                                         <Label
                                             Text="{Binding WebsiteUrl}"
                                             FontSize="12"
                                             TextColor="Blue">
                                             <Label.GestureRecognizers>
                                                 <TapGestureRecognizer
-                                                    Command="{Binding BindingContext.OpenWebsiteCommand, Source={x:Reference PartnersPage}}"
+                                                    Command="{Binding BindingContext.OpenWebsiteCommand, Source={x:Reference PartnersRoot}}"
                                                     CommandParameter="{Binding WebsiteUrl}" />
                                             </Label.GestureRecognizers>
                                         </Label>
