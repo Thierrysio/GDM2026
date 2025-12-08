@@ -149,6 +149,11 @@ public partial class HomePageViewModel : BaseViewModel
             return Shell.Current.GoToAsync(nameof(ImageUploadPage), animate: false);
         }
 
+        if (string.Equals(card.Title, "Actualite", StringComparison.OrdinalIgnoreCase))
+        {
+            return Shell.Current.GoToAsync(nameof(ActualitePage), animate: false);
+        }
+
         return Shell.Current.GoToAsync(nameof(CategoryDetailPage), animate: false, new Dictionary<string, object>
         {
             { "card", card }
