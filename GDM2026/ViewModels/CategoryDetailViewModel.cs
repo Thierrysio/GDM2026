@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -23,21 +24,34 @@ public class CategoryDetailViewModel : BaseViewModel
     private string _hint = string.Empty;
     private bool _isSuperCategoryPage;
     private bool _hasLoadedSuperCategories;
+    private bool _hasLoadedSubCategories;
     private bool _sessionLoaded;
     private string _superCategoryStatus = "Chargement des super catégories…";
+    private string _subCategoryStatus = "Chargement des sous-catégories…";
     private string _newSuperCategoryName = string.Empty;
     private string _newSuperCategoryDescription = string.Empty;
     private string _newSuperCategoryProducts = string.Empty;
+    private bool _isSubCategoryMenuOpen;
+    private int _selectedSubCategoryCount;
 
     public CategoryDetailViewModel()
     {
         SuperCategories = new ObservableCollection<SuperCategory>();
+        AvailableSubCategories = new ObservableCollection<SelectableSubCategory>();
         CreateSuperCategoryCommand = new Command(async () => await CreateSuperCategoryAsync(), CanCreateSuperCategory);
+        ToggleSubCategoryMenuCommand = new Command(() =>
+        {
+            IsSubCategoryMenuOpen = !IsSubCategoryMenuOpen;
+        });
     }
 
     public ObservableCollection<SuperCategory> SuperCategories { get; }
 
+    public ObservableCollection<SelectableSubCategory> AvailableSubCategories { get; }
+
     public ICommand CreateSuperCategoryCommand { get; }
+
+    public ICommand ToggleSubCategoryMenuCommand { get; }
 
     public CategoryCard? Card
     {
@@ -89,6 +103,50 @@ public class CategoryDetailViewModel : BaseViewModel
 
     public bool HasSuperCategoryStatus => !string.IsNullOrWhiteSpace(SuperCategoryStatus);
 
+    public string SubCategoryStatus
+    {
+        get => _subCategoryStatus;
+        set
+        {
+            if (SetProperty(ref _subCategoryStatus, value))
+            {
+                OnPropertyChanged(nameof(HasSubCategoryStatus));
+            }
+        }
+    }
+
+    public bool HasSubCategoryStatus => !string.IsNullOrWhiteSpace(SubCategoryStatus);
+
+    public bool IsSubCategoryMenuOpen
+    {
+        get => _isSubCategoryMenuOpen;
+        set
+        {
+            if (SetProperty(ref _isSubCategoryMenuOpen, value))
+            {
+                OnPropertyChanged(nameof(SubCategoryMenuLabel));
+            }
+        }
+    }
+
+    public string SubCategoryMenuLabel => IsSubCategoryMenuOpen
+        ? "Masquer les sous-catégories"
+        : "Afficher les sous-catégories disponibles";
+
+    public int SelectedSubCategoryCount
+    {
+        get => _selectedSubCategoryCount;
+        private set => SetProperty(ref _selectedSubCategoryCount, value);
+    }
+
+    private string _selectedSubCategorySummary = "Aucune sous-catégorie sélectionnée";
+
+    public string SelectedSubCategorySummary
+    {
+        get => _selectedSubCategorySummary;
+        private set => SetProperty(ref _selectedSubCategorySummary, value);
+    }
+
     public string NewSuperCategoryName
     {
         get => _newSuperCategoryName;
@@ -133,12 +191,20 @@ public class CategoryDetailViewModel : BaseViewModel
             _sessionLoaded = true;
         }
 
-        if (_hasLoadedSuperCategories)
+        if (_hasLoadedSuperCategories && _hasLoadedSubCategories)
         {
             return;
         }
 
-        await LoadSuperCategoriesAsync(ct).ConfigureAwait(false);
+        if (!_hasLoadedSuperCategories)
+        {
+            await LoadSuperCategoriesAsync(ct).ConfigureAwait(false);
+        }
+
+        if (!_hasLoadedSubCategories)
+        {
+            await LoadAvailableSubCategoriesAsync(ct).ConfigureAwait(false);
+        }
     }
 
     public void ApplyCard(CategoryCard? card)
@@ -230,6 +296,66 @@ public class CategoryDetailViewModel : BaseViewModel
         }
     }
 
+    private async Task LoadAvailableSubCategoriesAsync(CancellationToken ct = default)
+    {
+        if (IsBusy || _hasLoadedSubCategories)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            SubCategoryStatus = "Chargement des sous-catégories…";
+
+            var result = await _apis.GetListAsync<SubCategory>("/api/crud/categorie/list", ct).ConfigureAwait(false);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                DetachSubCategoryHandlers();
+                AvailableSubCategories.Clear();
+                foreach (var item in result)
+                {
+                    var selectable = new SelectableSubCategory(item);
+                    selectable.PropertyChanged += OnSubCategoryPropertyChanged;
+                    AvailableSubCategories.Add(selectable);
+                }
+
+                _hasLoadedSubCategories = true;
+                UpdateSelectedSubCategorySelection();
+                SubCategoryStatus = AvailableSubCategories.Any()
+                    ? "Sélectionnez les sous-catégories à inclure."
+                    : "Aucune sous-catégorie n'est encore disponible.";
+            });
+        }
+        catch (TaskCanceledException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                SubCategoryStatus = "Le chargement des sous-catégories a expiré.";
+            });
+        }
+        catch (HttpRequestException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                SubCategoryStatus = "Impossible de récupérer les sous-catégories.";
+            });
+        }
+        catch
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                SubCategoryStatus = "Une erreur est survenue pendant le chargement.";
+            });
+        }
+        finally
+        {
+            IsBusy = false;
+            RefreshCreateAvailability();
+        }
+    }
+
     private async Task CreateSuperCategoryAsync()
     {
         if (IsBusy || !IsSuperCategoryPage)
@@ -243,26 +369,21 @@ public class CategoryDetailViewModel : BaseViewModel
             RefreshCreateAvailability();
             SuperCategoryStatus = "Création de la super catégorie en cours…";
 
-            var productIds = NewSuperCategoryProducts
-                .Split(new[] { ',', ';', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(p =>
-                {
-                    if (int.TryParse(p.Trim(), out var id))
-                    {
-                        return (int?)id;
-                    }
+            var productIds = ParseProductIds();
+            var selectedSubCategoryIds = AvailableSubCategories
+                .Where(c => c.IsSelected)
+                .Select(c => c.Id);
 
-                    return null;
-                })
-                .Where(id => id.HasValue)
-                .Select(id => id!.Value)
+            var mergedIds = productIds
+                .Concat(selectedSubCategoryIds)
+                .Distinct()
                 .ToList();
 
             var payload = new
             {
                 nom = NewSuperCategoryName,
                 description = NewSuperCategoryDescription,
-                produits = productIds
+                produits = mergedIds
             };
 
             var created = await _apis
@@ -279,6 +400,11 @@ public class CategoryDetailViewModel : BaseViewModel
                 NewSuperCategoryName = string.Empty;
                 NewSuperCategoryDescription = string.Empty;
                 NewSuperCategoryProducts = string.Empty;
+                foreach (var subCategory in AvailableSubCategories)
+                {
+                    subCategory.IsSelected = false;
+                }
+                UpdateSelectedSubCategorySelection();
                 SuperCategoryStatus = "Super catégorie créée avec succès.";
             });
 
@@ -313,5 +439,66 @@ public class CategoryDetailViewModel : BaseViewModel
             IsBusy = false;
             RefreshCreateAvailability();
         }
+    }
+
+    private void UpdateSelectedSubCategorySelection()
+    {
+        var selected = AvailableSubCategories
+            .Where(c => c.IsSelected)
+            .ToList();
+
+        SelectedSubCategoryCount = selected.Count;
+
+        if (SelectedSubCategoryCount == 0)
+        {
+            SelectedSubCategorySummary = "Aucune sous-catégorie sélectionnée";
+            return;
+        }
+
+        var previewNames = selected
+            .Select(c => c.Name)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Take(5)
+            .ToList();
+
+        var hasMore = SelectedSubCategoryCount > previewNames.Count;
+        var joinedNames = string.Join(", ", previewNames);
+        var suffix = hasMore ? $" (+{SelectedSubCategoryCount - previewNames.Count} autres)" : string.Empty;
+
+        SelectedSubCategorySummary = $"{SelectedSubCategoryCount} sous-catégorie(s) : {joinedNames}{suffix}";
+    }
+
+    private void DetachSubCategoryHandlers()
+    {
+        foreach (var subCategory in AvailableSubCategories)
+        {
+            subCategory.PropertyChanged -= OnSubCategoryPropertyChanged;
+        }
+    }
+
+    private void OnSubCategoryPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SelectableSubCategory.IsSelected))
+        {
+            UpdateSelectedSubCategorySelection();
+        }
+    }
+
+    private List<int> ParseProductIds()
+    {
+        return NewSuperCategoryProducts
+            .Split(new[] { ',', ';', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(p =>
+            {
+                if (int.TryParse(p.Trim(), out var id))
+                {
+                    return (int?)id;
+                }
+
+                return null;
+            })
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .ToList();
     }
 }
