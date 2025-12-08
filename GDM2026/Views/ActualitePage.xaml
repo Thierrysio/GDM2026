@@ -122,7 +122,21 @@
                                 FontSize="13"
                                 Opacity="0.85" />
 
-                            <Border Background="#111" Padding="10" Stroke="#2D2D2D" StrokeThickness="1">
+                            <VerticalStackLayout Spacing="6">
+                                <Label
+                                    Text="Renommer la photo sélectionnée"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource GoldText}" />
+                                <Entry
+                                    Placeholder="Nom personnalisé pour la photo"
+                                    Text="{Binding SelectedImageCustomName}"
+                                    IsEnabled="{Binding HasSelectedImage}"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    BackgroundColor="#121212" />
+                            </VerticalStackLayout>
+
+                            <Border Background="#111" Padding="10" Stroke="#2D2D2D" StrokeThickness="1" IsVisible="{Binding HasSelectedImage}">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="12" />
                                 </Border.StrokeShape>
