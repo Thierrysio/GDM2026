@@ -24,9 +24,11 @@ public class ActualiteViewModel : BaseViewModel
     private ImageSource? _selectedImage;
     private string? _selectedImageUrl;
     private string _selectedImageName = "Aucune image sélectionnée.";
+    private string _selectedImageCustomName = string.Empty;
     private string _imageLibraryMessage = "Sélectionnez une image dans la bibliothèque.";
     private bool _isImageLibraryLoading;
     private AdminImage? _selectedLibraryImage;
+    private bool _hasSelectedImage;
 
     public ObservableCollection<AdminImage> ImageLibrary { get; } = new();
 
@@ -90,6 +92,18 @@ public class ActualiteViewModel : BaseViewModel
         set => SetProperty(ref _selectedImageName, value);
     }
 
+    public string SelectedImageCustomName
+    {
+        get => _selectedImageCustomName;
+        set
+        {
+            if (SetProperty(ref _selectedImageCustomName, value))
+            {
+                UpdateSelectedImageLabel();
+            }
+        }
+    }
+
     public AdminImage? SelectedLibraryImage
     {
         get => _selectedLibraryImage;
@@ -100,6 +114,12 @@ public class ActualiteViewModel : BaseViewModel
                 ApplyImageSelection(value);
             }
         }
+    }
+
+    public bool HasSelectedImage
+    {
+        get => _hasSelectedImage;
+        set => SetProperty(ref _hasSelectedImage, value);
     }
 
     public string ImageLibraryMessage
@@ -147,19 +167,30 @@ public class ActualiteViewModel : BaseViewModel
     {
         if (image is null)
         {
+            HasSelectedImage = false;
             _selectedImageUrl = null;
             SelectedImage = null;
+            SelectedImageCustomName = string.Empty;
             SelectedImageName = "Aucune image sélectionnée.";
             RefreshSubmitAvailability();
             return;
         }
 
+        HasSelectedImage = true;
         _selectedImageUrl = image.Url;
-        SelectedImageName = image.DisplayName;
+        SelectedImageCustomName = image.DisplayName;
         SelectedImage = ImageSource.FromUri(new Uri(image.FullUrl));
         StatusMessage = "Image sélectionnée depuis la bibliothèque.";
         StatusColor = Colors.LightGreen;
+        UpdateSelectedImageLabel();
         RefreshSubmitAvailability();
+    }
+
+    private void UpdateSelectedImageLabel()
+    {
+        SelectedImageName = HasSelectedImage && !string.IsNullOrWhiteSpace(_selectedImageCustomName)
+            ? $"Image sélectionnée : {_selectedImageCustomName}"
+            : "Aucune image sélectionnée.";
     }
 
     private async Task LoadImageLibraryAsync()
@@ -260,8 +291,10 @@ public class ActualiteViewModel : BaseViewModel
                 ActualiteTitle = string.Empty;
                 ActualiteContent = string.Empty;
                 SelectedImage = null;
+                SelectedImageCustomName = string.Empty;
                 SelectedImageName = "Aucune image sélectionnée.";
                 _selectedImageUrl = null;
+                HasSelectedImage = false;
                 IsFormVisible = false;
             }
         }
