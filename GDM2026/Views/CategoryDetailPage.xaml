@@ -116,9 +116,80 @@
                             Placeholder="Description"
                             AutoSize="TextChanges"
                             Text="{Binding NewSuperCategoryDescription}" />
-                        <Entry
-                            Placeholder="Identifiants des sous-catégories (séparés par des virgules)"
-                            Text="{Binding NewSuperCategoryProducts}" />
+
+                        <VerticalStackLayout Spacing="8">
+                            <Label
+                                Text="Sélection des sous-catégories"
+                                FontSize="16"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}" />
+
+                            <Label
+                                Text="{Binding SelectedSubCategorySummary}"
+                                FontSize="13"
+                                TextColor="{StaticResource GoldText}" />
+
+                            <Button
+                                Text="{Binding SubCategoryMenuLabel}"
+                                Command="{Binding ToggleSubCategoryMenuCommand}"
+                                BackgroundColor="#262626"
+                                TextColor="{StaticResource GoldText}"
+                                CornerRadius="10"
+                                Padding="10,8" />
+
+                            <Border
+                                IsVisible="{Binding IsSubCategoryMenuOpen}"
+                                BackgroundColor="#101010"
+                                Stroke="#2D2D2D"
+                                StrokeThickness="1.5"
+                                Padding="12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="8">
+                                    <Label
+                                        Text="{Binding SubCategoryStatus}"
+                                        IsVisible="{Binding HasSubCategoryStatus}"
+                                        FontSize="13"
+                                        TextColor="{StaticResource GoldText}" />
+
+                                    <CollectionView
+                                        ItemsSource="{Binding AvailableSubCategories}"
+                                        SelectionMode="None"
+                                        HeightRequest="200">
+                                        <CollectionView.ItemsLayout>
+                                            <VerticalLinearItemsLayout />
+                                        </CollectionView.ItemsLayout>
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Padding="4,6">
+                                                    <CheckBox
+                                                        IsChecked="{Binding IsSelected}"
+                                                        VerticalOptions="Center" />
+                                                    <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                        <Label
+                                                            Text="{Binding Name}"
+                                                            FontSize="15"
+                                                            FontAttributes="Bold"
+                                                            TextColor="{StaticResource GoldText}" />
+                                                        <Label
+                                                            Text="{Binding Description}"
+                                                            FontSize="13"
+                                                            TextColor="{StaticResource GoldText}"
+                                                            Opacity="0.8"
+                                                            LineBreakMode="WordWrap" />
+                                                    </VerticalStackLayout>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Entry
+                                Placeholder="Identifiants supplémentaires (séparés par des virgules)"
+                                Text="{Binding NewSuperCategoryProducts}" />
+                        </VerticalStackLayout>
 
                         <Button
                             Text="Créer"
