@@ -1,6 +1,7 @@
 ﻿using GDM2026;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -64,6 +65,32 @@ namespace GDM2026.Services
                 string.IsNullOrWhiteSpace(token) ? null : new AuthenticationHeaderValue("Bearer", token);
         }
 
+        private static bool TryExtractDataEnvelope<T>(string json, JsonSerializerSettings settings, out T value)
+        {
+            value = default;
+
+            var trimmedJson = json.TrimStart();
+            if (!trimmedJson.StartsWith("{"))
+                return false;
+
+            try
+            {
+                var token = JsonConvert.DeserializeObject<JToken>(json, settings);
+                if (token is JObject obj && obj.TryGetValue("data", out var dataToken))
+                {
+                    value = dataToken.ToObject<T>(JsonSerializer.CreateDefault(settings));
+                    return true;
+                }
+            }
+            catch (JsonException)
+            {
+                // Ignore malformed JSON envelopes and fall back to standard deserialization.
+            }
+
+            value = default;
+            return false;
+        }
+
         // ---------- GET : renvoie List<T> ----------
         public async Task<List<T>> GetListAsync<T>(string relativeUrl, CancellationToken ct = default)
         {
@@ -72,6 +99,15 @@ namespace GDM2026.Services
             await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            // L'API des actualités renvoie un objet { data: [...] }, tandis que
+            // d'autres endpoints retournent directement le tableau. On gère les deux
+            // formats pour éviter de multiplier les appels dédiés.
+            if (TryExtractDataEnvelope(json, _json, out List<T> wrappedList) && wrappedList != null)
+            {
+                return wrappedList;
+            }
+
             return JsonConvert.DeserializeObject<List<T>>(json, _json) ?? new List<T>();
         }
 
@@ -108,6 +144,11 @@ namespace GDM2026.Services
             await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (TryExtractDataEnvelope(json, _json, out TResponse wrapped))
+            {
+                return wrapped;
+            }
+
             return JsonConvert.DeserializeObject<TResponse>(json, _json);
         }
 
