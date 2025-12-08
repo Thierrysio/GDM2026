@@ -24,11 +24,18 @@ public class ActualiteViewModel : BaseViewModel
     private ImageSource? _selectedImage;
     private string? _selectedImageUrl;
     private string _selectedImageName = "Aucune image sélectionnée.";
+    private string _selectedImageCustomName = string.Empty;
     private string _imageLibraryMessage = "Sélectionnez une image dans la bibliothèque.";
     private bool _isImageLibraryLoading;
     private AdminImage? _selectedLibraryImage;
+    private bool _hasSelectedImage;
+    private bool _hasLoadedExistingActualites;
+    private string _existingActualitesMessage = "Chargement des actualités de l'admin…";
+    private bool _isActualitesLoading;
 
     public ObservableCollection<AdminImage> ImageLibrary { get; } = new();
+
+    public ObservableCollection<AdminActualite> ExistingActualites { get; } = new();
 
     public ActualiteViewModel()
     {
@@ -36,11 +43,14 @@ public class ActualiteViewModel : BaseViewModel
 
         ToggleFormCommand = new Command(async () => await ToggleFormAsync());
         SubmitCommand = new Command(async () => await SubmitAsync(), CanSubmit);
+        RefreshActualitesCommand = new Command(async () => await LoadExistingActualitesAsync(forceRefresh: true));
     }
 
     public ICommand ToggleFormCommand { get; }
 
     public ICommand SubmitCommand { get; }
+
+    public ICommand RefreshActualitesCommand { get; }
 
     public bool IsFormVisible
     {
@@ -90,6 +100,18 @@ public class ActualiteViewModel : BaseViewModel
         set => SetProperty(ref _selectedImageName, value);
     }
 
+    public string SelectedImageCustomName
+    {
+        get => _selectedImageCustomName;
+        set
+        {
+            if (SetProperty(ref _selectedImageCustomName, value))
+            {
+                UpdateSelectedImageLabel();
+            }
+        }
+    }
+
     public AdminImage? SelectedLibraryImage
     {
         get => _selectedLibraryImage;
@@ -100,6 +122,12 @@ public class ActualiteViewModel : BaseViewModel
                 ApplyImageSelection(value);
             }
         }
+    }
+
+    public bool HasSelectedImage
+    {
+        get => _hasSelectedImage;
+        set => SetProperty(ref _hasSelectedImage, value);
     }
 
     public string ImageLibraryMessage
@@ -118,6 +146,28 @@ public class ActualiteViewModel : BaseViewModel
     {
         get => _statusColor;
         set => SetProperty(ref _statusColor, value);
+    }
+
+    public string ExistingActualitesMessage
+    {
+        get => _existingActualitesMessage;
+        set => SetProperty(ref _existingActualitesMessage, value);
+    }
+
+    public bool IsActualitesLoading
+    {
+        get => _isActualitesLoading;
+        set => SetProperty(ref _isActualitesLoading, value);
+    }
+
+    public async Task InitializeAsync()
+    {
+        if (_hasLoadedExistingActualites)
+        {
+            return;
+        }
+
+        await LoadExistingActualitesAsync();
     }
 
     private bool CanSubmit()
@@ -147,19 +197,30 @@ public class ActualiteViewModel : BaseViewModel
     {
         if (image is null)
         {
+            HasSelectedImage = false;
             _selectedImageUrl = null;
             SelectedImage = null;
+            SelectedImageCustomName = string.Empty;
             SelectedImageName = "Aucune image sélectionnée.";
             RefreshSubmitAvailability();
             return;
         }
 
+        HasSelectedImage = true;
         _selectedImageUrl = image.Url;
-        SelectedImageName = image.DisplayName;
+        SelectedImageCustomName = image.DisplayName;
         SelectedImage = ImageSource.FromUri(new Uri(image.FullUrl));
         StatusMessage = "Image sélectionnée depuis la bibliothèque.";
         StatusColor = Colors.LightGreen;
+        UpdateSelectedImageLabel();
         RefreshSubmitAvailability();
+    }
+
+    private void UpdateSelectedImageLabel()
+    {
+        SelectedImageName = HasSelectedImage && !string.IsNullOrWhiteSpace(_selectedImageCustomName)
+            ? $"Image sélectionnée : {_selectedImageCustomName}"
+            : "Aucune image sélectionnée.";
     }
 
     private async Task LoadImageLibraryAsync()
@@ -260,9 +321,13 @@ public class ActualiteViewModel : BaseViewModel
                 ActualiteTitle = string.Empty;
                 ActualiteContent = string.Empty;
                 SelectedImage = null;
+                SelectedImageCustomName = string.Empty;
                 SelectedImageName = "Aucune image sélectionnée.";
                 _selectedImageUrl = null;
+                HasSelectedImage = false;
                 IsFormVisible = false;
+
+                await LoadExistingActualitesAsync(forceRefresh: true);
             }
         }
         catch (OperationCanceledException)
@@ -299,6 +364,53 @@ public class ActualiteViewModel : BaseViewModel
         {
             IsBusy = false;
             RefreshSubmitAvailability();
+        }
+    }
+
+    private async Task LoadExistingActualitesAsync(bool forceRefresh = false)
+    {
+        if (IsActualitesLoading || (!forceRefresh && _hasLoadedExistingActualites && ExistingActualites.Count > 0))
+        {
+            return;
+        }
+
+        try
+        {
+            IsActualitesLoading = true;
+            ExistingActualitesMessage = "Chargement des actualités de l'admin…";
+
+            if (!await EnsureAuthenticationAsync())
+            {
+                ExistingActualitesMessage = "Connectez-vous pour voir les actualités existantes.";
+                return;
+            }
+
+            var actualites = await _apis.GetListAsync<AdminActualite>("/api/crud/actualite/list");
+
+            ExistingActualites.Clear();
+            foreach (var actualite in actualites)
+            {
+                ExistingActualites.Add(actualite);
+            }
+
+            ExistingActualitesMessage = ExistingActualites.Count == 0
+                ? "Aucune actualité publiée dans l'admin."
+                : "Actualités en ligne côté admin :";
+        }
+        catch (HttpRequestException ex)
+        {
+            Debug.WriteLine($"[ACTUALITES] HTTP error: {ex}");
+            ExistingActualitesMessage = "Impossible de charger les actualités de l'admin.";
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ACTUALITES] Error: {ex}");
+            ExistingActualitesMessage = "Erreur lors du chargement des actualités.";
+        }
+        finally
+        {
+            _hasLoadedExistingActualites = true;
+            IsActualitesLoading = false;
         }
     }
 

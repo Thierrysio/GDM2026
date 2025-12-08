@@ -34,6 +34,70 @@
                         TextColor="{StaticResource GoldText}"
                         Opacity="0.85" />
 
+                    <VerticalStackLayout Spacing="10">
+                        <Label
+                            Text="Actualités publiées (admin)"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource GoldText}"
+                            FontSize="18" />
+
+                        <Label
+                            Text="{Binding ExistingActualitesMessage}"
+                            TextColor="{StaticResource GoldText}"
+                            FontSize="13"
+                            Opacity="0.85" />
+
+                        <ActivityIndicator
+                            IsRunning="{Binding IsActualitesLoading}"
+                            IsVisible="{Binding IsActualitesLoading}"
+                            Color="{StaticResource GoldText}" />
+
+                        <CollectionView
+                            ItemsSource="{Binding ExistingActualites}"
+                            HeightRequest="320">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout ItemSpacing="8" Orientation="Vertical" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="8" Margin="2">
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" RowDefinitions="Auto,Auto">
+                                            <Border Grid.RowSpan="2" Background="#1A1A1A" Stroke="#2D2D2D" StrokeThickness="1" CornerRadius="10">
+                                                <Image
+                                                    Source="{Binding FullImageUrl}"
+                                                    Aspect="AspectFill"
+                                                    HeightRequest="90"
+                                                    WidthRequest="120" />
+                                            </Border>
+
+                                            <Label
+                                                Grid.Column="1"
+                                                Text="{Binding DisplayTitle}"
+                                                FontAttributes="Bold"
+                                                FontSize="14"
+                                                TextColor="{StaticResource GoldText}" />
+
+                                            <Label
+                                                Grid.Column="1"
+                                                Grid.Row="1"
+                                                Text="{Binding DisplayDescription}"
+                                                FontSize="12"
+                                                LineBreakMode="WordWrap"
+                                                TextColor="{StaticResource GoldText}"
+                                                Opacity="0.85" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                        <Button
+                            Text="Actualiser les actualités"
+                            Command="{Binding RefreshActualitesCommand}"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}" />
+                    </VerticalStackLayout>
+
                     <Button
                         Text="+ Nouvelle actualité"
                         BackgroundColor="#303030"
@@ -122,7 +186,21 @@
                                 FontSize="13"
                                 Opacity="0.85" />
 
-                            <Border Background="#111" Padding="10" Stroke="#2D2D2D" StrokeThickness="1">
+                            <VerticalStackLayout Spacing="6">
+                                <Label
+                                    Text="Renommer la photo sélectionnée"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource GoldText}" />
+                                <Entry
+                                    Placeholder="Nom personnalisé pour la photo"
+                                    Text="{Binding SelectedImageCustomName}"
+                                    IsEnabled="{Binding HasSelectedImage}"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    BackgroundColor="#121212" />
+                            </VerticalStackLayout>
+
+                            <Border Background="#111" Padding="10" Stroke="#2D2D2D" StrokeThickness="1" IsVisible="{Binding HasSelectedImage}">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="12" />
                                 </Border.StrokeShape>

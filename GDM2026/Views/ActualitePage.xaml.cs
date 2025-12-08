@@ -12,4 +12,11 @@ public partial class ActualitePage : ContentPage
         InitializeComponent();
         BindingContext = _viewModel;
     }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        await _viewModel.InitializeAsync();
+    }
 }
