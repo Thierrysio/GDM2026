@@ -1,14 +1,10 @@
 using GDM2026.Models;
 using GDM2026.Services;
-using System;
-using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
-using Microsoft.Maui.Storage;
-using SkiaSharp;
+using System;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Windows.Input;
 
@@ -17,7 +13,6 @@ namespace GDM2026.ViewModels;
 public class ActualiteViewModel : BaseViewModel
 {
     private readonly Apis _apis;
-    private readonly ImageUploadService _uploadService;
     private readonly SessionService _sessionService = new();
 
     private bool _sessionLoaded;
@@ -27,25 +22,23 @@ public class ActualiteViewModel : BaseViewModel
     private string _statusMessage = "Ajoutez une actualité avec une image pour la publier.";
     private Color _statusColor = Colors.Gold;
     private ImageSource? _selectedImage;
-    private string? _selectedFilePath;
+    private string? _selectedImageUrl;
     private string _selectedImageName = "Aucune image sélectionnée.";
+    private string _imageLibraryMessage = "Sélectionnez une image dans la bibliothèque.";
+    private bool _isImageLibraryLoading;
+    private AdminImage? _selectedLibraryImage;
+
+    public ObservableCollection<AdminImage> ImageLibrary { get; } = new();
 
     public ActualiteViewModel()
     {
         _apis = new Apis();
-        _uploadService = new ImageUploadService(_apis.HttpClient);
 
-        ToggleFormCommand = new Command(() => IsFormVisible = !IsFormVisible);
-        CapturePhotoCommand = new Command(async () => await PickPhotoAsync(fromCamera: true), () => !IsBusy);
-        PickFromGalleryCommand = new Command(async () => await PickPhotoAsync(fromCamera: false), () => !IsBusy);
+        ToggleFormCommand = new Command(async () => await ToggleFormAsync());
         SubmitCommand = new Command(async () => await SubmitAsync(), CanSubmit);
     }
 
     public ICommand ToggleFormCommand { get; }
-
-    public ICommand CapturePhotoCommand { get; }
-
-    public ICommand PickFromGalleryCommand { get; }
 
     public ICommand SubmitCommand { get; }
 
@@ -53,6 +46,12 @@ public class ActualiteViewModel : BaseViewModel
     {
         get => _isFormVisible;
         set => SetProperty(ref _isFormVisible, value);
+    }
+
+    public bool IsImageLibraryLoading
+    {
+        get => _isImageLibraryLoading;
+        set => SetProperty(ref _isImageLibraryLoading, value);
     }
 
     public string ActualiteTitle
@@ -91,6 +90,24 @@ public class ActualiteViewModel : BaseViewModel
         set => SetProperty(ref _selectedImageName, value);
     }
 
+    public AdminImage? SelectedLibraryImage
+    {
+        get => _selectedLibraryImage;
+        set
+        {
+            if (SetProperty(ref _selectedLibraryImage, value))
+            {
+                ApplyImageSelection(value);
+            }
+        }
+    }
+
+    public string ImageLibraryMessage
+    {
+        get => _imageLibraryMessage;
+        set => SetProperty(ref _imageLibraryMessage, value);
+    }
+
     public string StatusMessage
     {
         get => _statusMessage;
@@ -108,7 +125,7 @@ public class ActualiteViewModel : BaseViewModel
         return !IsBusy
             && !string.IsNullOrWhiteSpace(_actualiteContent)
             && !string.IsNullOrWhiteSpace(_actualiteTitle)
-            && !string.IsNullOrWhiteSpace(_selectedFilePath);
+            && !string.IsNullOrWhiteSpace(_selectedImageUrl);
     }
 
     private void RefreshSubmitAvailability()
@@ -116,141 +133,78 @@ public class ActualiteViewModel : BaseViewModel
         (SubmitCommand as Command)?.ChangeCanExecute();
     }
 
-    private async Task PickPhotoAsync(bool fromCamera)
+    private async Task ToggleFormAsync()
     {
-        if (IsBusy)
+        IsFormVisible = !IsFormVisible;
+
+        if (IsFormVisible && ImageLibrary.Count == 0)
+        {
+            await LoadImageLibraryAsync();
+        }
+    }
+
+    private void ApplyImageSelection(AdminImage? image)
+    {
+        if (image is null)
+        {
+            _selectedImageUrl = null;
+            SelectedImage = null;
+            SelectedImageName = "Aucune image sélectionnée.";
+            RefreshSubmitAvailability();
+            return;
+        }
+
+        _selectedImageUrl = image.Url;
+        SelectedImageName = image.DisplayName;
+        SelectedImage = ImageSource.FromUri(new Uri(image.FullUrl));
+        StatusMessage = "Image sélectionnée depuis la bibliothèque.";
+        StatusColor = Colors.LightGreen;
+        RefreshSubmitAvailability();
+    }
+
+    private async Task LoadImageLibraryAsync()
+    {
+        if (IsImageLibraryLoading)
         {
             return;
         }
 
         try
         {
-            IsBusy = true;
-            RefreshSubmitAvailability();
+            IsImageLibraryLoading = true;
+            ImageLibraryMessage = "Chargement de la bibliothèque d'images…";
 
-            StatusMessage = fromCamera ? "Ouverture de l'appareil photo…" : "Ouverture de la bibliothèque…";
-            StatusColor = Colors.Gold;
-
-            if (!await EnsurePermissionsAsync(fromCamera))
+            if (!await EnsureAuthenticationAsync())
             {
-                StatusMessage = "Autorisez l'accès à l'appareil photo ou à la galerie pour continuer.";
-                StatusColor = Colors.OrangeRed;
+                ImageLibraryMessage = "Connectez-vous pour parcourir les images du site.";
                 return;
             }
 
-            FileResult fileResult;
-            if (fromCamera)
-            {
-                if (!MediaPicker.Default.IsCaptureSupported)
-                {
-                    StatusMessage = "La capture photo n'est pas supportée sur cet appareil.";
-                    StatusColor = Colors.OrangeRed;
-                    return;
-                }
+            var images = await _apis.GetListAsync<AdminImage>("/api/crud/images/list");
 
-                fileResult = await MediaPicker.Default.CapturePhotoAsync(new MediaPickerOptions
-                {
-                    Title = $"actualite-{DateTimeOffset.Now:yyyyMMddHHmmss}"
-                });
-            }
-            else
+            ImageLibrary.Clear();
+            foreach (var image in images)
             {
-                var selectedPhotos = await MediaPicker.Default.PickPhotosAsync();
-                fileResult = selectedPhotos?.FirstOrDefault();
+                ImageLibrary.Add(image);
             }
 
-            if (fileResult == null)
-            {
-                StatusMessage = "Sélection annulée.";
-                StatusColor = Colors.Gold;
-                return;
-            }
-
-            var optimizedFilePath = await OptimizeAndSaveAsync(fileResult);
-            _selectedFilePath = optimizedFilePath;
-            SelectedImage = ImageSource.FromFile(optimizedFilePath);
-            SelectedImageName = Path.GetFileName(optimizedFilePath);
-            StatusMessage = "Image prête pour la publication.";
-            StatusColor = Colors.Gold;
+            ImageLibraryMessage = ImageLibrary.Count == 0
+                ? "Aucune image disponible dans l'admin."
+                : "Sélectionnez une image existante pour votre actualité.";
         }
-        catch (FeatureNotSupportedException)
+        catch (HttpRequestException ex)
         {
-            StatusMessage = "La fonctionnalité photo n'est pas supportée sur cet appareil.";
-            StatusColor = Colors.OrangeRed;
+            Debug.WriteLine($"[IMAGES] HTTP error: {ex}");
+            ImageLibraryMessage = "Impossible de charger la bibliothèque d'images.";
         }
-        catch (PermissionException)
+        catch (Exception ex)
         {
-            StatusMessage = "Autorisez l'accès à l'appareil photo ou à la galerie pour continuer.";
-            StatusColor = Colors.OrangeRed;
-        }
-        catch (TaskCanceledException)
-        {
-            StatusMessage = "Sélection annulée.";
-            StatusColor = Colors.Gold;
-        }
-        catch (Exception)
-        {
-            StatusMessage = "Impossible de sélectionner la photo. Vérifiez les autorisations de stockage et réessayez.";
-            StatusColor = Colors.OrangeRed;
+            Debug.WriteLine($"[IMAGES] Error: {ex}");
+            ImageLibraryMessage = "Erreur lors du chargement des images.";
         }
         finally
         {
-            IsBusy = false;
-            RefreshSubmitAvailability();
-        }
-    }
-
-    private static async Task<bool> EnsurePermissionsAsync(bool fromCamera)
-    {
-        try
-        {
-            if (fromCamera)
-            {
-                var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
-                if (cameraStatus != PermissionStatus.Granted)
-                {
-                    cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
-                }
-
-                var storageWriteStatus = await Permissions.CheckStatusAsync<Permissions.StorageWrite>();
-                if (storageWriteStatus != PermissionStatus.Granted)
-                {
-                    storageWriteStatus = await Permissions.RequestAsync<Permissions.StorageWrite>();
-                }
-
-                var readStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
-                if (readStatus != PermissionStatus.Granted)
-                {
-                    readStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
-                }
-
-                return cameraStatus == PermissionStatus.Granted
-                    && storageWriteStatus == PermissionStatus.Granted
-                    && readStatus == PermissionStatus.Granted;
-            }
-
-            var photosStatus = await Permissions.CheckStatusAsync<Permissions.Photos>();
-            if (photosStatus != PermissionStatus.Granted)
-            {
-                photosStatus = await Permissions.RequestAsync<Permissions.Photos>();
-            }
-
-            if (photosStatus == PermissionStatus.Granted)
-            {
-                return true;
-            }
-
-            var storageReadStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
-            if (storageReadStatus != PermissionStatus.Granted)
-            {
-                storageReadStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
-            }
-
-            return storageReadStatus == PermissionStatus.Granted;
-        }
-        catch (Exception)
-        {
-            return false;
+            IsImageLibraryLoading = false;
         }
     }
 
@@ -268,7 +222,7 @@ public class ActualiteViewModel : BaseViewModel
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(_selectedFilePath))
+        if (string.IsNullOrWhiteSpace(_selectedImageUrl))
         {
             StatusMessage = "Ajoutez une image avant de publier l'actualité.";
             StatusColor = Colors.OrangeRed;
@@ -288,35 +242,11 @@ public class ActualiteViewModel : BaseViewModel
                 return;
             }
 
-            if (!await _uploadService.TestConnectivityAsync())
-            {
-                StatusMessage = "Impossible de contacter le serveur dantecmarket.com.";
-                StatusColor = Colors.OrangeRed;
-                return;
-            }
-
-            await using var uploadStream = File.OpenRead(_selectedFilePath);
-            var uploadResult = await _uploadService.UploadAsync(uploadStream, SelectedImageName, "actualites");
-
-            var imagePayload = new
-            {
-                url = uploadResult.RelativeUrl,
-                imageName = uploadResult.FileName
-            };
-
-            var imageSaved = await _apis.PostBoolAsync("/api/crud/images/create", imagePayload);
-            if (!imageSaved)
-            {
-                StatusMessage = "Image envoyée mais non enregistrée côté serveur.";
-                StatusColor = Colors.OrangeRed;
-                return;
-            }
-
             var creationPayload = new
             {
                 titre = _actualiteTitle.Trim(),
                 description = _actualiteContent.Trim(),
-                image = uploadResult.RelativeUrl
+                image = _selectedImageUrl
             };
 
             var created = await _apis.PostBoolAsync("/api/crud/actualite/create", creationPayload);
@@ -331,7 +261,7 @@ public class ActualiteViewModel : BaseViewModel
                 ActualiteContent = string.Empty;
                 SelectedImage = null;
                 SelectedImageName = "Aucune image sélectionnée.";
-                _selectedFilePath = null;
+                _selectedImageUrl = null;
                 IsFormVisible = false;
             }
         }
@@ -403,7 +333,6 @@ public class ActualiteViewModel : BaseViewModel
     private void ApplyAuthToken()
     {
         _apis.SetBearerToken(_sessionService.AuthToken);
-        _uploadService.SetBearerToken(_sessionService.AuthToken);
     }
 
     private async Task<bool> PromptInlineLoginAsync()
@@ -508,44 +437,4 @@ public class ActualiteViewModel : BaseViewModel
         }
     }
 
-    private static async Task<string> OptimizeAndSaveAsync(FileResult fileResult)
-    {
-        await using var sourceStream = await fileResult.OpenReadAsync();
-        using var managedStream = new SKManagedStream(sourceStream);
-        using var originalBitmap = SKBitmap.Decode(managedStream) ?? throw new InvalidOperationException("Impossible de lire l'image sélectionnée.");
-
-        var resizedBitmap = ResizeBitmap(originalBitmap, 1280);
-
-        var newFileName = $"{Path.GetFileNameWithoutExtension(fileResult.FileName)}-{Guid.NewGuid():N}.jpg";
-        var newFilePath = Path.Combine(FileSystem.CacheDirectory, newFileName);
-
-        using var image = SKImage.FromBitmap(resizedBitmap);
-        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 80);
-        await using (var destStream = File.Open(newFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
-        {
-            data.SaveTo(destStream);
-        }
-
-        if (!ReferenceEquals(resizedBitmap, originalBitmap))
-        {
-            resizedBitmap.Dispose();
-        }
-
-        return newFilePath;
-    }
-
-    private static SKBitmap ResizeBitmap(SKBitmap originalBitmap, int maxSize)
-    {
-        if (originalBitmap.Width <= maxSize && originalBitmap.Height <= maxSize)
-        {
-            return originalBitmap;
-        }
-
-        var scale = Math.Min(maxSize / (float)originalBitmap.Width, maxSize / (float)originalBitmap.Height);
-        var newWidth = Math.Max(1, (int)Math.Round(originalBitmap.Width * scale));
-        var newHeight = Math.Max(1, (int)Math.Round(originalBitmap.Height * scale));
-
-        var resized = originalBitmap.Resize(new SKImageInfo(newWidth, newHeight, originalBitmap.ColorType, originalBitmap.AlphaType), SKFilterQuality.High);
-        return resized ?? originalBitmap;
-    }
 }
