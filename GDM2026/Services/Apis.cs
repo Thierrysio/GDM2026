@@ -64,6 +64,12 @@ namespace GDM2026.Services
                 string.IsNullOrWhiteSpace(token) ? null : new AuthenticationHeaderValue("Bearer", token);
         }
 
+        private class ListResponse<T>
+        {
+            [JsonProperty("data")]
+            public List<T> Data { get; set; } = new();
+        }
+
         // ---------- GET : renvoie List<T> ----------
         public async Task<List<T>> GetListAsync<T>(string relativeUrl, CancellationToken ct = default)
         {
@@ -72,6 +78,21 @@ namespace GDM2026.Services
             await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            var trimmedJson = json.TrimStart();
+
+            // L'API des actualités renvoie un objet { data: [...] }, tandis que
+            // d'autres endpoints retournent directement le tableau. On gère les deux
+            // formats pour éviter de multiplier les appels dédiés.
+            if (!trimmedJson.StartsWith("["))
+            {
+                var wrapped = JsonConvert.DeserializeObject<ListResponse<T>>(json, _json);
+                if (wrapped?.Data != null)
+                {
+                    return wrapped.Data;
+                }
+            }
+
             return JsonConvert.DeserializeObject<List<T>>(json, _json) ?? new List<T>();
         }
 
