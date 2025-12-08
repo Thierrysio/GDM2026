@@ -63,6 +63,20 @@
                             Text="{Binding NewCategoryName}"
                             TextColor="White" />
 
+                        <Label
+                            Text="Catégorie parente"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource GoldText}" />
+
+                        <Picker
+                            Title="Sélectionnez une catégorie parente (optionnel)"
+                            ItemsSource="{Binding SuperCategories}"
+                            ItemDisplayBinding="{Binding DisplayName}"
+                            SelectedItem="{Binding SelectedParentCategory}"
+                            TitleColor="{StaticResource GoldText}"
+                            TextColor="{StaticResource GoldText}" />
+
                         <Button
                             Text="Créer"
                             Command="{Binding CreateCategoryCommand}"
@@ -110,6 +124,16 @@
                                         FontSize="18"
                                         FontAttributes="Bold"
                                         TextColor="{StaticResource GoldText}" />
+                                    <Label
+                                        Text="{Binding Id, StringFormat='ID : {0}'}"
+                                        FontSize="13"
+                                        TextColor="{StaticResource GoldText}"
+                                        Opacity="0.75" />
+                                    <Label
+                                        Text="{Binding ParentDisplayName, StringFormat='Catégorie parente : {0}'}"
+                                        FontSize="13"
+                                        TextColor="{StaticResource GoldText}"
+                                        Opacity="0.75" />
                                     <Label
                                         Text="{Binding Description}"
                                         FontSize="14"

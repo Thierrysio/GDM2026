@@ -41,6 +41,7 @@ public class CategoryDetailViewModel : BaseViewModel
     private int _selectedSubCategoryCount;
     private bool _isCategoryPage;
     private bool _isPromoCategoryPage;
+    private SuperCategory? _selectedParentCategory;
 
     public CategoryDetailViewModel()
     {
@@ -199,6 +200,14 @@ public class CategoryDetailViewModel : BaseViewModel
         private set => SetProperty(ref _selectedSubCategoryCount, value);
     }
 
+    public bool HasParentCategories => SuperCategories.Any();
+
+    public SuperCategory? SelectedParentCategory
+    {
+        get => _selectedParentCategory;
+        set => SetProperty(ref _selectedParentCategory, value);
+    }
+
     private string _selectedSubCategorySummary = "Aucune sous-catégorie sélectionnée";
 
     public string SelectedSubCategorySummary
@@ -281,6 +290,11 @@ public class CategoryDetailViewModel : BaseViewModel
             {
                 await LoadAvailableSubCategoriesAsync(ct).ConfigureAwait(false);
             }
+        }
+
+        if (IsCategoryPage && !_hasLoadedSuperCategories)
+        {
+            await LoadSuperCategoriesAsync(ct).ConfigureAwait(false);
         }
 
         if (IsCategoryPage && !_hasLoadedCategories)
@@ -401,9 +415,15 @@ public class CategoryDetailViewModel : BaseViewModel
                 }
 
                 _hasLoadedSuperCategories = true;
+                OnPropertyChanged(nameof(HasParentCategories));
                 SuperCategoryStatus = SuperCategories.Any()
                     ? ""
                     : "Aucune super catégorie n'est encore configurée.";
+
+                if (_hasLoadedCategories)
+                {
+                    UpdateExistingCategoryParents();
+                }
             });
         }
         catch (TaskCanceledException)
@@ -453,6 +473,7 @@ public class CategoryDetailViewModel : BaseViewModel
                 Categories.Clear();
                 foreach (var item in result)
                 {
+                    ApplyParentCategoryName(item);
                     Categories.Add(item);
                 }
 
@@ -621,7 +642,8 @@ public class CategoryDetailViewModel : BaseViewModel
 
             var payload = new
             {
-                nom = NewCategoryName
+                nom = NewCategoryName,
+                categorieParent = SelectedParentCategory?.Id
             };
 
             var created = await _apis
@@ -632,10 +654,14 @@ public class CategoryDetailViewModel : BaseViewModel
             {
                 if (created != null)
                 {
+                    created.ParentCategoryId = SelectedParentCategory?.Id;
+                    created.ParentCategoryName = SelectedParentCategory?.Name;
+                    ApplyParentCategoryName(created);
                     Categories.Insert(0, created);
                 }
 
                 NewCategoryName = string.Empty;
+                SelectedParentCategory = null;
                 CategoryStatus = "Catégorie créée avec succès.";
             });
 
@@ -787,6 +813,7 @@ public class CategoryDetailViewModel : BaseViewModel
                     subCategory.IsSelected = false;
                 }
                 UpdateSelectedSubCategorySelection();
+                OnPropertyChanged(nameof(HasParentCategories));
                 SuperCategoryStatus = "Super catégorie créée avec succès.";
             });
 
@@ -848,6 +875,45 @@ public class CategoryDetailViewModel : BaseViewModel
         var suffix = hasMore ? $" (+{SelectedSubCategoryCount - previewNames.Count} autres)" : string.Empty;
 
         SelectedSubCategorySummary = $"{SelectedSubCategoryCount} sous-catégorie(s) : {joinedNames}{suffix}";
+    }
+
+    private void ApplyParentCategoryName(SubCategory subCategory)
+    {
+        if (subCategory == null || !subCategory.ParentCategoryId.HasValue)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(subCategory.ParentCategoryName))
+        {
+            return;
+        }
+
+        var parentName = FindParentCategoryName(subCategory.ParentCategoryId);
+        if (!string.IsNullOrWhiteSpace(parentName))
+        {
+            subCategory.ParentCategoryName = parentName;
+        }
+    }
+
+    private void UpdateExistingCategoryParents()
+    {
+        for (var i = 0; i < Categories.Count; i++)
+        {
+            var category = Categories[i];
+            ApplyParentCategoryName(category);
+            Categories[i] = category;
+        }
+    }
+
+    private string? FindParentCategoryName(int? parentId)
+    {
+        if (!parentId.HasValue)
+        {
+            return null;
+        }
+
+        return SuperCategories.FirstOrDefault(s => s.Id == parentId.Value)?.Name;
     }
 
     private void DetachSubCategoryHandlers()
