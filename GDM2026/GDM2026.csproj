@@ -70,8 +70,10 @@
                 <PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.2-preview.1" />
         </ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="ViewModels\" />
-	</ItemGroup>
+        <ItemGroup>
+          <MauiXaml Update="Views\ReservationsPage.xaml">
+            <Generator>MSBuild:Compile</Generator>
+          </MauiXaml>
+        </ItemGroup>
 
 </Project>

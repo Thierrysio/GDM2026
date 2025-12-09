@@ -4,7 +4,8 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     x:Name="PartnersRoot"
-    Title="Partenaires">
+    Title="Partenaires"
+    BackgroundColor="Black">
 
     <ContentPage.Content>
         <VerticalStackLayout Padding="16" Spacing="12">
@@ -13,13 +14,14 @@
             <Label
                 Text="Nos partenaires"
                 FontSize="24"
-                FontAttributes="Bold" />
+                FontAttributes="Bold"
+                TextColor="White" />
 
             <!-- Message de statut (chargement / erreurs / nb de partenaires) -->
             <Label
                 Text="{Binding StatusMessage}"
                 FontSize="12"
-                TextColor="Gray" />
+                TextColor="LightGray" />
 
             <!-- Liste des partenaires avec Pull-to-Refresh -->
             <RefreshView
@@ -32,7 +34,8 @@
                         <Label
                             Text="Aucun partenaire à afficher."
                             HorizontalOptions="Center"
-                            VerticalOptions="Center" />
+                            VerticalOptions="Center"
+                            TextColor="White" />
                     </CollectionView.EmptyView>
 
                     <CollectionView.ItemTemplate>
@@ -41,20 +44,35 @@
                                 Padding="10"
                                 Margin="0,4"
                                 HasShadow="False"
-                                BorderColor="LightGray">
+                                BorderColor="DarkGray"
+                                BackgroundColor="#111111">
 
                                 <Grid
                                     ColumnDefinitions="80,*"
                                     ColumnSpacing="10">
 
-                                    <!-- Image / logo du partenaire -->
+                                    <!-- Image / logo du partenaire depuis la page admin (avec cache) -->
                                     <Image
                                         Grid.Column="0"
                                         WidthRequest="64"
                                         HeightRequest="64"
                                         Aspect="AspectFit"
                                         VerticalOptions="Center"
-                                        Source="{Binding LogoUrl}" />
+                                        IsVisible="{Binding HasImage}">
+                                        <Image.Source>
+                                            <UriImageSource Uri="{Binding FullImageUrl}" CachingEnabled="True" CacheValidity="7.00:00:00" />
+                                        </Image.Source>
+                                    </Image>
+
+                                    <!-- Fallback si aucune image -->
+                                    <Label
+                                        Grid.Column="0"
+                                        HorizontalTextAlignment="Center"
+                                        VerticalTextAlignment="Center"
+                                        Text="Pas d'image"
+                                        FontSize="10"
+                                        TextColor="LightGray"
+                                        IsVisible="{Binding HasImage, Converter={StaticResource InverseBoolConverter}}" />
 
                                     <!-- Texte : nom + URL cliquable -->
                                     <VerticalStackLayout
@@ -64,19 +82,20 @@
 
                                         <!-- Nom du partenaire -->
                                         <Label
-                                            Text="{Binding Name}"
+                                            Text="{Binding DisplayName}"
                                             FontAttributes="Bold"
-                                            FontSize="16" />
+                                            FontSize="16"
+                                            TextColor="White" />
 
                                         <!-- URL du partenaire (affichée + cliquable) -->
                                         <Label
-                                            Text="{Binding WebsiteUrl}"
+                                            Text="{Binding WebsiteDisplay}"
                                             FontSize="12"
-                                            TextColor="Blue">
+                                            TextColor="#66CCFF">
                                             <Label.GestureRecognizers>
                                                 <TapGestureRecognizer
                                                     Command="{Binding BindingContext.OpenWebsiteCommand, Source={x:Reference PartnersRoot}}"
-                                                    CommandParameter="{Binding WebsiteUrl}" />
+                                                    CommandParameter="{Binding Website}" />
                                             </Label.GestureRecognizers>
                                         </Label>
 

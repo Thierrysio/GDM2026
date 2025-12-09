@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="GDM2026.ReservationsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:GDM2026.ViewModels"
+    Title="Reservations">
+
+    <ContentPage.BindingContext>
+        <vm:ReservationsViewModel />
+    </ContentPage.BindingContext>
+
+    <ContentPage.Content>
+        <Grid RowDefinitions="Auto,*" Padding="16">
+            <VerticalStackLayout Grid.Row="0" Spacing="12">
+                <Label Text="Reservations" FontSize="24" FontAttributes="Bold" />
+                <Label Text="{Binding StatusMessage}" FontSize="12" TextColor="Gray" />
+
+                <Button Text="Ajouter une reservation" Command="{Binding ToggleCreateFormCommand}" />
+
+                <!-- Formulaire simple de creation -->
+                <Frame Padding="12" BorderColor="LightGray" HasShadow="False" IsVisible="{Binding IsFormVisible}">
+                    <VerticalStackLayout Spacing="8">
+                        <Entry Placeholder="Nom du client" Text="{Binding CustomerName}" />
+                        <DatePicker Date="{Binding ReservationDate}" />
+                        <Button Text="Creer une reservation" Command="{Binding CreateCommand}" />
+                    </VerticalStackLayout>
+                </Frame>
+            </VerticalStackLayout>
+
+            <RefreshView Grid.Row="1" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsLoading}">
+                <CollectionView ItemsSource="{Binding Reservations}" VerticalOptions="FillAndExpand">
+                    <CollectionView.EmptyView>
+                        <Label Text="Aucune reservation a afficher." HorizontalOptions="Center" VerticalOptions="Center" />
+                    </CollectionView.EmptyView>
+
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Frame Padding="10" Margin="0,4" HasShadow="False" BorderColor="LightGray">
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="{Binding DisplayTitle}" FontAttributes="Bold" />
+                                    <Label Text="{Binding DisplayClient}" />
+                                    <Label Text="{Binding DisplayDate}" FontSize="12" TextColor="Gray" />
+                                </VerticalStackLayout>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
+        </Grid>
+    </ContentPage.Content>
+</ContentPage>
