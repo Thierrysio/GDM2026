@@ -11,16 +11,10 @@ public class SuperCategory
     [JsonProperty("nom")]
     public string? Name { get; set; }
 
-    [JsonProperty("description")]
-    public string? Description { get; set; }
+    [JsonProperty("lescategories")]
+    public List<int> CategoryIds { get; set; } = new();
 
-    [JsonProperty("image")]
-    public string? ImageUrl { get; set; }
-
-    [JsonProperty("produits")]
-    public List<int> Products { get; set; } = new();
-
-    public string DisplayName => string.IsNullOrWhiteSpace(Name) ? $"Super catégorie #{Id}" : Name!;
-
-    public int ProductCount => Products?.Count ?? 0;
+    public string DisplayName => string.IsNullOrWhiteSpace(Name)
+        ? $"Catégorie parente #{Id}"
+        : Name!;
 }

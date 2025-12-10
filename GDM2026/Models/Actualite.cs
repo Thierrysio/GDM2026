@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace GDM2026.Models;
@@ -17,13 +19,21 @@ public class Actualite
     [JsonProperty("image")]
     public string? Image { get; set; }
 
+    [JsonProperty("images")]
+    public List<string> Images { get; set; } = new();
+
     [JsonProperty("created_at")]
     public DateTime? CreatedAt { get; set; }
 
     [JsonProperty("updated_at")]
     public DateTime? UpdatedAt { get; set; }
 
-    public string FullImageUrl => BuildFullUrl(Image);
+    [JsonIgnore]
+    public string? PrimaryImage => !string.IsNullOrWhiteSpace(Image)
+        ? Image
+        : Images?.FirstOrDefault();
+
+    public string FullImageUrl => BuildFullUrl(PrimaryImage);
 
     private static string BuildFullUrl(string? path)
     {

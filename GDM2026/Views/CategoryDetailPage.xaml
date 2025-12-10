@@ -2,7 +2,11 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="GDM2026.CategoryDetailPage"
+             x:Name="CategoryDetailPageRoot"
              BackgroundColor="#0B0B0B">
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior Command="{Binding NavigateHomeCommand}" />
+    </Shell.BackButtonBehavior>
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
         <Color x:Key="CardBackground">#151515</Color>
@@ -30,526 +34,281 @@
                         FontSize="16"
                         HorizontalTextAlignment="Center"
                         TextColor="{StaticResource GoldText}"
+                        Opacity="0.85"
                         Text="{Binding Description}" />
 
                     <Label
                         FontSize="14"
                         HorizontalTextAlignment="Center"
                         TextColor="{StaticResource GoldText}"
-                        Opacity="0.8"
+                        Opacity="0.75"
                         LineBreakMode="WordWrap"
                         Text="{Binding Hint}" />
                 </VerticalStackLayout>
             </Border>
 
-            <VerticalStackLayout Spacing="12" IsVisible="{Binding IsCategoryPage}">
-                <Border
-                    Background="{StaticResource CardBackground}"
-                    Stroke="#000000"
-                    StrokeThickness="1.5"
-                    Padding="18">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="14" />
-                    </Border.StrokeShape>
-                    <VerticalStackLayout Spacing="10">
-                        <Label
-                            Text="Créer une nouvelle catégorie"
-                            FontSize="20"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource GoldText}" />
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="#000000"
+                StrokeThickness="1.5"
+                Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
 
-                        <Entry
-                            Placeholder="Nom de la catégorie"
-                            Text="{Binding NewCategoryName}"
-                            TextColor="White" />
+                <VerticalStackLayout Spacing="14">
+                    <Label
+                        Text="Catégories parentes"
+                        FontSize="24"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
 
-                        <Label
-                            Text="Catégorie parente"
-                            FontSize="16"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource GoldText}" />
+                    <Label
+                        Text="Choisissez une action pour créer ou modifier les catégories parentes."
+                        FontSize="14"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85"
+                        LineBreakMode="WordWrap" />
 
-                        <Picker
-                            Title="Sélectionnez une catégorie parente (optionnel)"
-                            ItemsSource="{Binding SuperCategories}"
-                            ItemDisplayBinding="{Binding DisplayName}"
-                            SelectedItem="{Binding SelectedParentCategory}"
-                            TitleColor="{StaticResource GoldText}"
-                            TextColor="{StaticResource GoldText}" />
-
+                    <VerticalStackLayout Spacing="8">
                         <Button
-                            Text="Créer"
-                            Command="{Binding CreateCategoryCommand}"
-                            BackgroundColor="#D4AF37"
-                            TextColor="#0B0B0B"
-                            CornerRadius="12"
-                            Padding="14,10"
-                            FontAttributes="Bold" />
-
-                        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
-                    </VerticalStackLayout>
-                </Border>
-
-                <Label
-                    Text="Catégories existantes"
-                    FontSize="22"
-                    FontAttributes="Bold"
-                    TextColor="{StaticResource GoldText}" />
-
-                <Label
-                    Text="{Binding CategoryStatus}"
-                    FontSize="14"
-                    TextColor="{StaticResource GoldText}"
-                    Opacity="0.85"
-                    IsVisible="{Binding HasCategoryStatus}" />
-
-                <CollectionView ItemsSource="{Binding Categories}" SelectionMode="None">
-                    <CollectionView.ItemsLayout>
-                        <GridItemsLayout Orientation="Vertical" Span="1" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                            <Border
-                                Margin="0,6"
-                                Padding="16"
-                                Background="{StaticResource CardBackground}"
-                                Stroke="#000000"
-                                StrokeThickness="1.5">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="14" />
-                                </Border.StrokeShape>
-                                <VerticalStackLayout Spacing="6">
-                                    <Label
-                                        Text="{Binding DisplayName}"
-                                        FontSize="18"
-                                        FontAttributes="Bold"
-                                        TextColor="{StaticResource GoldText}" />
-                                    <Label
-                                        Text="{Binding Id, StringFormat='ID : {0}'}"
-                                        FontSize="13"
-                                        TextColor="{StaticResource GoldText}"
-                                        Opacity="0.75" />
-                                    <Label
-                                        Text="{Binding ParentDisplayName, StringFormat='Catégorie parente : {0}'}"
-                                        FontSize="13"
-                                        TextColor="{StaticResource GoldText}"
-                                        Opacity="0.75" />
-                                    <Label
-                                        Text="{Binding Description}"
-                                        FontSize="14"
-                                        TextColor="{StaticResource GoldText}"
-                                        Opacity="0.8"
-                                        LineBreakMode="WordWrap" />
-                                </VerticalStackLayout>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </VerticalStackLayout>
-
-            <VerticalStackLayout Spacing="12" IsVisible="{Binding IsPromoCategoryPage}">
-                <Border
-                    Background="{StaticResource CardBackground}"
-                    Stroke="#000000"
-                    StrokeThickness="1.5"
-                    Padding="18">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="14" />
-                    </Border.StrokeShape>
-                    <VerticalStackLayout Spacing="10">
-                        <Label
-                            Text="Créer une nouvelle catégorie promo"
-                            FontSize="20"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource GoldText}" />
-
-                        <Entry
-                            Placeholder="Nom de la catégorie promo"
-                            Text="{Binding NewPromoCategoryName}"
-                            TextColor="White" />
-
+                            Text="+ Nouvelle catégorie parente"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowParentCreateCommand}" />
                         <Button
-                            Text="Créer"
-                            Command="{Binding CreatePromoCategoryCommand}"
-                            BackgroundColor="#D4AF37"
-                            TextColor="#0B0B0B"
-                            CornerRadius="12"
-                            Padding="14,10"
-                            FontAttributes="Bold" />
-
-                        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+                            Text="Mettre à jour une catégorie parente"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowParentUpdateCommand}" />
+                        <Button
+                            Text="Gérer les catégories filles"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ToggleCategorySectionCommand}" />
                     </VerticalStackLayout>
-                </Border>
 
-                <Label
-                    Text="Catégories promo existantes"
-                    FontSize="22"
-                    FontAttributes="Bold"
-                    TextColor="{StaticResource GoldText}" />
-
-                <Label
-                    Text="{Binding PromoCategoryStatus}"
-                    FontSize="14"
-                    TextColor="{StaticResource GoldText}"
-                    Opacity="0.85"
-                    IsVisible="{Binding HasPromoCategoryStatus}" />
-
-                <CollectionView ItemsSource="{Binding PromoCategories}" SelectionMode="None">
-                    <CollectionView.ItemsLayout>
-                        <GridItemsLayout Orientation="Vertical" Span="1" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                            <Border
-                                Margin="0,6"
-                                Padding="16"
-                                Background="{StaticResource CardBackground}"
-                                Stroke="#000000"
-                                StrokeThickness="1.5">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="14" />
-                                </Border.StrokeShape>
-                                <VerticalStackLayout Spacing="6">
-                                    <Label
-                                        Text="{Binding DisplayName}"
-                                        FontSize="18"
-                                        FontAttributes="Bold"
-                                        TextColor="{StaticResource GoldText}" />
-                                    <Label
-                                        Text="{Binding Id, StringFormat='Identifiant : {0}'}"
-                                        FontSize="13"
-                                        TextColor="{StaticResource GoldText}"
-                                        Opacity="0.75" />
-                                </VerticalStackLayout>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </VerticalStackLayout>
-
-            <VerticalStackLayout Spacing="12" IsVisible="{Binding IsSuperCategoryPage}">
-                <Border
-                    Background="{StaticResource CardBackground}"
-                    Stroke="#000000"
-                    StrokeThickness="1.5"
-                    Padding="18">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="14" />
-                    </Border.StrokeShape>
-                    <VerticalStackLayout Spacing="10">
-                        <Label
-                            Text="Créer une nouvelle super catégorie"
-                            FontSize="20"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource GoldText}" />
-
-                        <Entry
-                            Placeholder="Nom de la super catégorie"
-                            Text="{Binding NewSuperCategoryName}"
-                            TextColor="White" />
-
-                        <VerticalStackLayout Spacing="8">
+                    <Frame
+                        IsVisible="{Binding IsParentFormVisible}"
+                        BackgroundColor="#1E1E1E"
+                        Padding="16"
+                        CornerRadius="14"
+                        HasShadow="False"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
                             <Label
-                                Text="Sélection des sous-catégories"
-                                FontSize="16"
+                                Text="{Binding ParentFormHeader}"
+                                FontAttributes="Bold"
+                                FontSize="20"
+                                TextColor="{StaticResource GoldText}" />
+
+                            <Label
+                                Text="{Binding ParentHelperMessage}"
+                                FontSize="13"
+                                TextColor="{StaticResource GoldText}"
+                                Opacity="0.8"
+                                LineBreakMode="WordWrap" />
+
+                            <Entry
+                                Placeholder="Nom de la catégorie parente"
+                                Text="{Binding ParentNameInput}"
+                                TextColor="{StaticResource GoldText}"
+                                PlaceholderColor="#777"
+                                BackgroundColor="#121212" />
+
+                            <ActivityIndicator
+                                IsRunning="{Binding IsParentListLoading}"
+                                IsVisible="{Binding IsParentListLoading}"
+                                Color="{StaticResource GoldText}" />
+
+                            <Label
+                                Text="{Binding ParentListMessage}"
+                                FontSize="13"
+                                TextColor="{StaticResource GoldText}"
+                                Opacity="0.75"
+                                IsVisible="{Binding IsParentUpdateMode}" />
+
+                            <CollectionView
+                                ItemsSource="{Binding ParentCategories}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedParentForEdit}"
+                                IsVisible="{Binding IsParentUpdateMode}"
+                                HeightRequest="220">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="10" Margin="0,4">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="12" />
+                                            </Border.StrokeShape>
+                                            <VerticalStackLayout Spacing="4">
+                                                <Label
+                                                    Text="{Binding DisplayName}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontAttributes="Bold" />
+                                                <Label
+                                                    Text="{Binding Id, StringFormat='Id : {0}'}"
+                                                    FontSize="12"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    Opacity="0.75" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+
+                            <Button
+                                Text="{Binding ParentActionButtonText}"
+                                Command="{Binding ParentActionCommand}"
+                                BackgroundColor="#C18F1A"
+                                TextColor="{StaticResource GoldText}" />
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <Label
+                        Text="{Binding ParentStatusMessage}"
+                        FontSize="14"
+                        TextColor="{StaticResource GoldText}"
+                        LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Frame
+                IsVisible="{Binding IsCategorySectionVisible}"
+                BackgroundColor="#1E1E1E"
+                Padding="18"
+                CornerRadius="18"
+                HasShadow="False"
+                BorderColor="#2D2D2D">
+                <VerticalStackLayout Spacing="14">
+                    <Label
+                        Text="Gestion des catégories filles"
+                        FontSize="22"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource GoldText}" />
+
+                    <Label
+                        Text="Choisissez de créer ou mettre à jour une catégorie puis remplissez le formulaire."
+                        FontSize="13"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85" />
+
+                    <VerticalStackLayout Spacing="8">
+                        <Button
+                            Text="+ Nouvelle catégorie"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowCategoryCreateCommand}" />
+                        <Button
+                            Text="Mettre à jour une catégorie"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowCategoryUpdateCommand}" />
+                    </VerticalStackLayout>
+
+                    <Frame
+                        IsVisible="{Binding IsCategoryFormVisible}"
+                        BackgroundColor="#101010"
+                        Padding="16"
+                        CornerRadius="14"
+                        HasShadow="False"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="{Binding CategoryFormHeader}"
+                                FontAttributes="Bold"
+                                FontSize="20"
+                                TextColor="{StaticResource GoldText}" />
+
+                            <Label
+                                Text="{Binding CategoryHelperMessage}"
+                                FontSize="13"
+                                TextColor="{StaticResource GoldText}"
+                                Opacity="0.8"
+                                LineBreakMode="WordWrap" />
+
+                            <Entry
+                                Placeholder="Nom de la catégorie"
+                                Text="{Binding CategoryNameInput}"
+                                TextColor="{StaticResource GoldText}"
+                                PlaceholderColor="#777"
+                                BackgroundColor="#121212" />
+
+                            <Label
+                                Text="Catégorie parente"
                                 FontAttributes="Bold"
                                 TextColor="{StaticResource GoldText}" />
 
-                            <Label
-                                Text="{Binding SelectedSubCategorySummary}"
-                                FontSize="13"
+                            <Picker
+                                Title="Sélectionnez une catégorie parente"
+                                ItemsSource="{Binding ParentCategories}"
+                                ItemDisplayBinding="{Binding DisplayName}"
+                                SelectedItem="{Binding SelectedParentForCategory}"
+                                TitleColor="{StaticResource GoldText}"
                                 TextColor="{StaticResource GoldText}" />
 
-                            <Button
-                                Text="{Binding SubCategoryMenuLabel}"
-                                Command="{Binding ToggleSubCategoryMenuCommand}"
-                                BackgroundColor="#262626"
+                            <ActivityIndicator
+                                IsRunning="{Binding IsCategoryListLoading}"
+                                IsVisible="{Binding IsCategoryListLoading}"
+                                Color="{StaticResource GoldText}" />
+
+                            <Label
+                                Text="{Binding CategoryListMessage}"
+                                FontSize="13"
                                 TextColor="{StaticResource GoldText}"
-                                CornerRadius="10"
-                                Padding="10,8" />
+                                Opacity="0.75"
+                                IsVisible="{Binding IsCategoryUpdateMode}" />
 
-                            <Border
-                                IsVisible="{Binding IsSubCategoryMenuOpen}"
-                                BackgroundColor="#101010"
-                                Stroke="#2D2D2D"
-                                StrokeThickness="1.5"
-                                Padding="12">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="10" />
-                                </Border.StrokeShape>
-                                <VerticalStackLayout Spacing="8">
-                                    <Label
-                                        Text="{Binding SubCategoryStatus}"
-                                        IsVisible="{Binding HasSubCategoryStatus}"
-                                        FontSize="13"
-                                        TextColor="{StaticResource GoldText}" />
-
-                                    <CollectionView
-                                        ItemsSource="{Binding AvailableSubCategories}"
-                                        SelectionMode="None"
-                                        HeightRequest="200">
-                                        <CollectionView.ItemsLayout>
-                                            <VerticalLinearItemsLayout />
-                                        </CollectionView.ItemsLayout>
-                                        <CollectionView.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Padding="4,6">
-                                                    <CheckBox
-                                                        IsChecked="{Binding IsSelected}"
-                                                        VerticalOptions="Center" />
-                                                    <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                                        <Label
-                                                            Text="{Binding Name}"
-                                                            FontSize="15"
-                                                            FontAttributes="Bold"
-                                                            TextColor="{StaticResource GoldText}" />
-                                                        <Label
-                                                            Text="{Binding Description}"
-                                                            FontSize="13"
-                                                            TextColor="{StaticResource GoldText}"
-                                                            Opacity="0.8"
-                                                            LineBreakMode="WordWrap" />
-                                                    </VerticalStackLayout>
-                                                </Grid>
-                                            </DataTemplate>
-                                        </CollectionView.ItemTemplate>
-                                    </CollectionView>
-                                </VerticalStackLayout>
-                            </Border>
-
-                            <Entry
-                                Placeholder="Identifiants supplémentaires (séparés par des virgules)"
-                                Text="{Binding NewSuperCategoryProducts}"
-                                TextColor="White" />
-                        </VerticalStackLayout>
-
-                        <Button
-                            Text="Créer"
-                            Command="{Binding CreateSuperCategoryCommand}"
-                            BackgroundColor="#D4AF37"
-                            TextColor="#0B0B0B"
-                            CornerRadius="12"
-                            Padding="14,10"
-                            FontAttributes="Bold" />
-
-                        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
-                    </VerticalStackLayout>
-                </Border>
-
-                <Label
-                    Text="Super catégories existantes"
-                    FontSize="22"
-                    FontAttributes="Bold"
-                    TextColor="{StaticResource GoldText}" />
-
-                <Label
-                    Text="{Binding SuperCategoryStatus}"
-                    FontSize="14"
-                    TextColor="{StaticResource GoldText}"
-                    Opacity="0.85"
-                    IsVisible="{Binding HasSuperCategoryStatus}" />
-
-                <CollectionView ItemsSource="{Binding SuperCategories}" SelectionMode="None">
-                    <CollectionView.ItemsLayout>
-                        <GridItemsLayout Orientation="Vertical" Span="1" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                            <Border
-                                Margin="0,6"
-                                Padding="16"
-                                Background="{StaticResource CardBackground}"
-                                Stroke="#000000"
-                                StrokeThickness="1.5">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="14" />
-                                </Border.StrokeShape>
-                                <VerticalStackLayout Spacing="6">
-                                    <Label
-                                        Text="{Binding DisplayName}"
-                                        FontSize="18"
-                                        FontAttributes="Bold"
-                                        TextColor="{StaticResource GoldText}" />
-                                    <Label
-                                        Text="{Binding Description}"
-                                        FontSize="14"
-                                        TextColor="{StaticResource GoldText}"
-                                        Opacity="0.8"
-                                        LineBreakMode="WordWrap" />
-                                    <Label
-                                        Text="{Binding ProductCount, StringFormat='Produits associés : {0}'}"
-                                        FontSize="13"
-                                        TextColor="{StaticResource GoldText}"
-                                        Opacity="0.75" />
-                                </VerticalStackLayout>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </VerticalStackLayout>
-
-            <VerticalStackLayout Spacing="12" IsVisible="{Binding IsHistoryPage}">
-                <Border
-                    Background="{StaticResource CardBackground}"
-                    Stroke="#000000"
-                    StrokeThickness="1.5"
-                    Padding="18">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="14" />
-                    </Border.StrokeShape>
-                    <VerticalStackLayout Spacing="10">
-                        <Label
-                            Text="Créer une histoire"
-                            FontSize="20"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource GoldText}" />
-
-                        <Entry
-                            Placeholder="Titre de l'histoire"
-                            Text="{Binding NewHistoryTitle}"
-                            TextColor="{StaticResource GoldText}"
-                            PlaceholderColor="#7E7030" />
-
-                        <Editor
-                            Placeholder="Description de l'histoire"
-                            HeightRequest="120"
-                            Text="{Binding NewHistoryDescription}"
-                            TextColor="{StaticResource GoldText}"
-                            PlaceholderColor="#7E7030" />
-
-                        <Label
-                            Text="Date de l'histoire"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource GoldText}" />
-                        <DatePicker Date="{Binding HistoryDate}" />
-
-                        <Label
-                            Text="{Binding SelectedHistoryImageName}"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource GoldText}" />
-
-                        <Border
-                            BackgroundColor="#111"
-                            Stroke="#2D2D2D"
-                            StrokeThickness="1.5"
-                            Padding="12">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="12" />
-                            </Border.StrokeShape>
-                            <VerticalStackLayout Spacing="8">
-                                <SearchBar
-                                    Placeholder="Rechercher une image"
-                                    Text="{Binding HistoryImageSearchTerm}"
-                                    TextColor="{StaticResource GoldText}"
-                                    PlaceholderColor="#7E7030"
-                                    CancelButtonColor="{StaticResource GoldText}"
-                                    BackgroundColor="#101010" />
-
-                                <Label
-                                    Text="{Binding HistoryImageLibraryMessage}"
-                                    FontSize="12"
-                                    TextColor="{StaticResource GoldText}"
-                                    Opacity="0.8" />
-
-                                <ActivityIndicator
-                                    IsRunning="{Binding IsHistoryImageLibraryLoading}"
-                                    IsVisible="{Binding IsHistoryImageLibraryLoading}"
-                                    Color="{StaticResource GoldText}" />
-
-                                <CollectionView
-                                    ItemsSource="{Binding FilteredHistoryImages}"
-                                    SelectionMode="Single"
-                                    SelectedItem="{Binding SelectedHistoryImage}"
-                                    HeightRequest="200">
-                                    <CollectionView.ItemsLayout>
-                                        <GridItemsLayout Orientation="Vertical" Span="3" />
-                                    </CollectionView.ItemsLayout>
-                                    <CollectionView.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Padding="4" Margin="4" BackgroundColor="#1B1B1B" Stroke="#333">
-                                                <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="10" />
-                                                </Border.StrokeShape>
-                                                <VerticalStackLayout Spacing="4">
-                                                    <Image Source="{Binding FullUrl}" HeightRequest="70" Aspect="AspectFill" />
-                                                    <Label Text="{Binding DisplayName}" FontSize="11" TextColor="{StaticResource GoldText}" HorizontalTextAlignment="Center" />
-                                                </VerticalStackLayout>
-                                            </Border>
-                                        </DataTemplate>
-                                    </CollectionView.ItemTemplate>
-                                </CollectionView>
-                            </VerticalStackLayout>
-                        </Border>
-
-                        <Button
-                            Text="Ajouter l'histoire"
-                            Command="{Binding CreateHistoryCommand}"
-                            BackgroundColor="#D4AF37"
-                            TextColor="#0B0B0B"
-                            CornerRadius="12"
-                            Padding="14,10"
-                            FontAttributes="Bold" />
-                    </VerticalStackLayout>
-                </Border>
-
-                <Label
-                    Text="{Binding HistoryFormStatusMessage}"
-                    FontSize="14"
-                    TextColor="{StaticResource GoldText}"
-                    LineBreakMode="WordWrap" />
-
-                <Label
-                    Text="Histoires existantes"
-                    FontSize="22"
-                    FontAttributes="Bold"
-                    TextColor="{StaticResource GoldText}" />
-
-                <Label
-                    Text="{Binding HistoryStatusMessage}"
-                    FontSize="14"
-                    TextColor="{StaticResource GoldText}"
-                    Opacity="0.85" />
-
-                <ActivityIndicator
-                    IsRunning="{Binding IsHistoryLoading}"
-                    IsVisible="{Binding IsHistoryLoading}"
-                    Color="{StaticResource GoldText}" />
-
-                <RefreshView Command="{Binding RefreshHistoriesCommand}" IsRefreshing="{Binding IsHistoryLoading}">
-                    <CollectionView ItemsSource="{Binding Histories}" SelectionMode="None">
-                        <CollectionView.ItemsLayout>
-                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
-                        </CollectionView.ItemsLayout>
-                        <CollectionView.EmptyView>
-                            <Label Text="Aucune histoire à afficher." HorizontalTextAlignment="Center" TextColor="{StaticResource GoldText}" Opacity="0.6" />
-                        </CollectionView.EmptyView>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate>
-                                <Border
-                                    Margin="0,6"
-                                    Padding="16"
-                                    Background="{StaticResource CardBackground}"
-                                    Stroke="#000000"
-                                    StrokeThickness="1.5">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="14" />
-                                    </Border.StrokeShape>
-                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                                        <Border WidthRequest="80" HeightRequest="80" BackgroundColor="#111" Stroke="#333">
-                                            <Image Source="{Binding FullImageUrl}" Aspect="AspectFill" WidthRequest="80" HeightRequest="80" />
+                            <CollectionView
+                                ItemsSource="{Binding Categories}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedCategoryForEdit}"
+                                IsVisible="{Binding IsCategoryUpdateMode}"
+                                HeightRequest="220">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="10" Margin="0,4">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="12" />
+                                            </Border.StrokeShape>
+                                            <VerticalStackLayout Spacing="4">
+                                                <Label
+                                                    Text="{Binding DisplayName}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontAttributes="Bold" />
+                                                <Label
+                                                    Text="{Binding ParentDisplayName}"
+                                                    FontSize="12"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    Opacity="0.75" />
+                                            </VerticalStackLayout>
                                         </Border>
-                                        <VerticalStackLayout Grid.Column="1" Spacing="4">
-                                            <Label Text="{Binding DisplayTitle}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
-                                            <Label Text="{Binding DisplayDate}" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.75" />
-                                            <Label Text="{Binding DisplayDescription}" FontSize="14" TextColor="{StaticResource GoldText}" LineBreakMode="WordWrap" />
-                                        </VerticalStackLayout>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
-                </RefreshView>
-            </VerticalStackLayout>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+
+                            <Button
+                                Text="{Binding CategoryActionButtonText}"
+                                Command="{Binding CategoryActionCommand}"
+                                BackgroundColor="#C18F1A"
+                                TextColor="{StaticResource GoldText}" />
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <Label
+                        Text="{Binding CategoryStatusMessage}"
+                        FontSize="14"
+                        TextColor="{StaticResource GoldText}"
+                        LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+            </Frame>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

@@ -10,13 +10,10 @@ public class SubCategory
     [JsonProperty("nom")]
     public string? Name { get; set; }
 
-    [JsonProperty("description")]
-    public string? Description { get; set; }
-
-    [JsonProperty("categorieParent")]
+    [JsonProperty("lacategorieParent")]
     public int? ParentCategoryId { get; set; }
 
-    [JsonProperty("categorieParentNom")]
+    [JsonIgnore]
     public string? ParentCategoryName { get; set; }
 
     public string DisplayName => string.IsNullOrWhiteSpace(Name) ? $"Sous-catégorie #{Id}" : Name!;

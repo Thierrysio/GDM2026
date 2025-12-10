@@ -12,6 +12,7 @@ namespace GDM2026
             Routing.RegisterRoute(nameof(SplashPage), typeof(SplashPage));
             Routing.RegisterRoute(nameof(HomePage), typeof(HomePage));
             Routing.RegisterRoute(nameof(CategoryDetailPage), typeof(CategoryDetailPage));
+            Routing.RegisterRoute(nameof(EvenementPage), typeof(EvenementPage));
             Routing.RegisterRoute(nameof(OrderStatusPage), typeof(OrderStatusPage));
             Routing.RegisterRoute(nameof(ImageUploadPage), typeof(ImageUploadPage));
             Routing.RegisterRoute(nameof(ActualitePage), typeof(ActualitePage));

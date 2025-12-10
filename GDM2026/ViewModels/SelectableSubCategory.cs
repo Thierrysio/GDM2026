@@ -13,7 +13,7 @@ public class SelectableSubCategory : INotifyPropertyChanged
     {
         Id = subCategory.Id;
         Name = subCategory.DisplayName;
-        Description = subCategory.Description;
+        Description = subCategory.ParentDisplayName;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -22,7 +22,7 @@ public class SelectableSubCategory : INotifyPropertyChanged
 
     public string Name { get; }
 
-    public string? Description { get; }
+    public string Description { get; }
 
     public bool IsSelected
     {

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.Views.EvenementPage"
+             BackgroundColor="#0B0B0B"
+             Title="Categories Evenements">
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+        <Color x:Key="CardBackground">#151515</Color>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="18">
+            <Border BackgroundColor="{StaticResource CardBackground}" Stroke="#000000" StrokeThickness="1.5" Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Categories Evenements" FontSize="28" FontAttributes="Bold" HorizontalTextAlignment="Center" TextColor="{StaticResource GoldText}" />
+                    <Label Text="Creez, renommez et supprimez les categories promo utilisees sur le site." FontSize="14" HorizontalTextAlignment="Center" TextColor="{StaticResource GoldText}" Opacity="0.85" LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Frame BackgroundColor="{StaticResource CardBackground}" BorderColor="#2D2D2D" HasShadow="False" Padding="18" CornerRadius="16">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Ajouter une categorie" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
+                    <Entry Placeholder="Nom de la nouvelle categorie" Text="{Binding NewCategoryName}" PlaceholderColor="#777777" TextColor="{StaticResource GoldText}" BackgroundColor="#111111" />
+                    <Button Text="Creer" Command="{Binding CreateCommand}" BackgroundColor="#C18F1A" TextColor="{StaticResource GoldText}" FontAttributes="Bold" CornerRadius="12" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame BackgroundColor="{StaticResource CardBackground}" BorderColor="#2D2D2D" HasShadow="False" Padding="18" CornerRadius="16">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Modifier une categorie" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
+                    <Label Text="{Binding SelectedCategoryName}" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.85" />
+                    <Entry Placeholder="Nouveau nom" Text="{Binding EditCategoryName}" PlaceholderColor="#777777" TextColor="{StaticResource GoldText}" BackgroundColor="#111111" />
+                    <HorizontalStackLayout Spacing="10">
+                        <Button Text="Mettre a jour" Command="{Binding UpdateCommand}" BackgroundColor="#3A3A3A" TextColor="{StaticResource GoldText}" FontAttributes="Bold" CornerRadius="12" />
+                        <Button Text="Supprimer" Command="{Binding DeleteCommand}" BackgroundColor="#7A1C1C" TextColor="{StaticResource GoldText}" FontAttributes="Bold" CornerRadius="12" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Label Text="{Binding StatusMessage}" TextColor="{StaticResource GoldText}" FontSize="13" LineBreakMode="WordWrap" />
+
+            <RefreshView Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}">
+                <CollectionView ItemsSource="{Binding PromoCategories}" SelectionMode="Single" SelectedItem="{Binding SelectedCategory}">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.EmptyView>
+                        <Label Text="Aucune categorie promo pour le moment." HorizontalTextAlignment="Center" TextColor="{StaticResource GoldText}" Opacity="0.7" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border BackgroundColor="#111111" Stroke="#2D2D2D" StrokeThickness="1" Padding="14" Margin="0,4">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="{Binding DisplayName}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
+                                    <Label Text="{Binding Id, StringFormat='Id : {0}'}" FontSize="12" TextColor="{StaticResource GoldText}" Opacity="0.65" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

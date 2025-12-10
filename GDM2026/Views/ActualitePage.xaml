@@ -29,7 +29,7 @@
                         TextColor="{StaticResource GoldText}" />
 
                     <Label
-                        Text="Gérez la création, la mise à jour et la suppression des actualités affichées sur Dantec Market."
+                        Text="Gérez la création et la mise à jour des actualités affichées sur Dantec Market."
                         FontSize="16"
                         HorizontalTextAlignment="Center"
                         TextColor="{StaticResource GoldText}"
@@ -46,11 +46,6 @@
                             BackgroundColor="#303030"
                             TextColor="{StaticResource GoldText}"
                             Command="{Binding ShowUpdatePanelCommand}" />
-                        <Button
-                            Text="Supprimer une actualité"
-                            BackgroundColor="#303030"
-                            TextColor="{StaticResource GoldText}"
-                            Command="{Binding ShowDeletePanelCommand}" />
                     </VerticalStackLayout>
 
                     <Frame
@@ -103,77 +98,6 @@
                                                     FontAttributes="Bold"
                                                     LineBreakMode="TailTruncation" />
                                             </VerticalStackLayout>
-                                        </Border>
-                                    </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>
-
-                            <Label
-                                Text="{Binding ActualitesStatusMessage}"
-                                TextColor="{StaticResource GoldText}"
-                                FontSize="13"
-                                Opacity="0.85"
-                                HorizontalTextAlignment="Center" />
-                        </VerticalStackLayout>
-                    </Frame>
-
-                    <Frame
-                        IsVisible="{Binding IsDeleteMode}"
-                        BackgroundColor="#1E1E1E"
-                        Padding="14"
-                        HasShadow="False"
-                        CornerRadius="14"
-                        BorderColor="#2D2D2D">
-                        <VerticalStackLayout Spacing="12">
-                            <Label
-                                Text="Sélectionnez une actualité pour la supprimer"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource GoldText}" />
-
-                            <ActivityIndicator
-                                IsRunning="{Binding IsLoadingActualites}"
-                                IsVisible="{Binding IsLoadingActualites}"
-                                Color="{StaticResource GoldText}" />
-
-                            <CollectionView
-                                ItemsSource="{Binding Actualites}"
-                                SelectionMode="None"
-                                HeightRequest="240">
-                                <CollectionView.ItemsLayout>
-                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
-                                </CollectionView.ItemsLayout>
-                                <CollectionView.EmptyView>
-                                    <Label
-                                        Text="Aucune actualité n'a encore été chargée."
-                                        TextColor="{StaticResource GoldText}"
-                                        HorizontalTextAlignment="Center"
-                                        Opacity="0.6" />
-                                </CollectionView.EmptyView>
-                                <CollectionView.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="10" Margin="0,4">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="12" />
-                                            </Border.StrokeShape>
-                                            <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
-                                                <VerticalStackLayout Spacing="2" HorizontalOptions="StartAndExpand">
-                                                    <Label
-                                                        Text="{Binding Id, StringFormat='Id : {0}'}"
-                                                        TextColor="{StaticResource GoldText}"
-                                                        FontSize="12" />
-                                                    <Label
-                                                        Text="{Binding Titre}"
-                                                        TextColor="{StaticResource GoldText}"
-                                                        FontAttributes="Bold"
-                                                        LineBreakMode="TailTruncation" />
-                                                </VerticalStackLayout>
-                                                <Button
-                                                    Text="Supprimer"
-                                                    BackgroundColor="#8B0000"
-                                                    TextColor="{StaticResource GoldText}"
-                                                    Command="{Binding Source={x:Reference ActualitePageRoot}, Path=BindingContext.DeleteActualiteCommand}"
-                                                    CommandParameter="{Binding .}" />
-                                            </HorizontalStackLayout>
                                         </Border>
                                     </DataTemplate>
                                 </CollectionView.ItemTemplate>

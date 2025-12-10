@@ -155,6 +155,12 @@ public partial class HomePageViewModel : BaseViewModel
             return Shell.Current.GoToAsync(nameof(ActualitePage), animate: false);
         }
 
+        if (string.Equals(card.Title, "Catégories Evenements", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(card.Title, "Catégories événements", StringComparison.OrdinalIgnoreCase))
+        {
+            return Shell.Current.GoToAsync(nameof(EvenementPage), animate: false);
+        }
+
         if (string.Equals(card.Title, "Messages", StringComparison.OrdinalIgnoreCase))
         {
             return Shell.Current.GoToAsync(nameof(MessagesPage), animate: false);

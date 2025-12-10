@@ -2,7 +2,9 @@ using GDM2026.Models;
 using GDM2026.Services;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
+using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
@@ -17,12 +19,16 @@ public class ActualiteViewModel : BaseViewModel
     {
         None,
         Create,
-        Update,
-        Delete
+        Update
     }
 
     private readonly Apis _apis;
     private readonly SessionService _sessionService = new();
+    private sealed class ActualiteListResponse
+    {
+        [JsonProperty("data")]
+        public List<Actualite>? Data { get; set; }
+    }
 
     private bool _sessionLoaded;
     private ActualiteFormMode _currentMode;
@@ -54,30 +60,22 @@ public class ActualiteViewModel : BaseViewModel
 
         ShowCreatePanelCommand = new Command(async () => await SetModeAsync(ActualiteFormMode.Create));
         ShowUpdatePanelCommand = new Command(async () => await SetModeAsync(ActualiteFormMode.Update));
-        ShowDeletePanelCommand = new Command(async () => await SetModeAsync(ActualiteFormMode.Delete));
 
         CreateActualiteCommand = new Command(async () => await CreateActualiteAsync(), CanCreateActualite);
         UpdateActualiteCommand = new Command(async () => await UpdateActualiteAsync(), CanUpdateActualite);
-        DeleteActualiteCommand = new Command<Actualite>(async actualite => await DeleteActualiteAsync(actualite));
     }
 
     public ICommand ShowCreatePanelCommand { get; }
 
     public ICommand ShowUpdatePanelCommand { get; }
 
-    public ICommand ShowDeletePanelCommand { get; }
-
     public ICommand CreateActualiteCommand { get; }
 
     public ICommand UpdateActualiteCommand { get; }
 
-    public ICommand DeleteActualiteCommand { get; }
-
     public bool IsCreateMode => _currentMode == ActualiteFormMode.Create;
 
     public bool IsUpdateMode => _currentMode == ActualiteFormMode.Update;
-
-    public bool IsDeleteMode => _currentMode == ActualiteFormMode.Delete;
 
     public bool IsFormSectionVisible => _currentMode == ActualiteFormMode.Create || _currentMode == ActualiteFormMode.Update;
 
@@ -292,10 +290,6 @@ public class ActualiteViewModel : BaseViewModel
                 await EnsureImageLibraryAsync();
                 await LoadActualitesAsync(forceReload: true);
                 break;
-            case ActualiteFormMode.Delete:
-                SelectedActualiteForEdit = null;
-                await LoadActualitesAsync(forceReload: true);
-                break;
         }
 
         RefreshFormCommands();
@@ -305,7 +299,6 @@ public class ActualiteViewModel : BaseViewModel
     {
         OnPropertyChanged(nameof(IsCreateMode));
         OnPropertyChanged(nameof(IsUpdateMode));
-        OnPropertyChanged(nameof(IsDeleteMode));
         OnPropertyChanged(nameof(IsFormSectionVisible));
         OnPropertyChanged(nameof(IsFormInputEnabled));
         OnPropertyChanged(nameof(FormHeader));
@@ -349,19 +342,15 @@ public class ActualiteViewModel : BaseViewModel
         ActualiteTitle = actualite.Titre ?? string.Empty;
         ActualiteContent = actualite.Description ?? string.Empty;
 
-        if (!string.IsNullOrWhiteSpace(actualite.Image))
+        var imagePath = actualite.PrimaryImage;
+        if (!string.IsNullOrWhiteSpace(imagePath))
         {
-            _selectedImageUrl = actualite.Image;
+            _selectedImageUrl = imagePath;
             HasSelectedImage = true;
             SelectedImageCustomName = actualite.Titre;
-            if (!string.IsNullOrWhiteSpace(actualite.FullImageUrl))
-            {
-                SelectedImage = ImageSource.FromUri(new Uri(actualite.FullImageUrl));
-            }
-            else
-            {
-                SelectedImage = null;
-            }
+            SelectedImage = string.IsNullOrWhiteSpace(actualite.FullImageUrl)
+                ? null
+                : ImageSource.FromUri(new Uri(actualite.FullImageUrl));
             UpdateSelectedImageLabel();
         }
         else
@@ -508,10 +497,11 @@ public class ActualiteViewModel : BaseViewModel
             IsLoadingActualites = true;
             ActualitesStatusMessage = "Chargement des actualités…";
 
-            var actualites = await _apis.GetListAsync<Actualite>("/api/crud/actualite/list");
+            var actualites = await FetchActualitesAsync();
 
             Actualites.Clear();
-            foreach (var actualite in actualites.OrderByDescending(a => a.CreatedAt ?? DateTime.MinValue))
+            foreach (var actualite in actualites.OrderByDescending(a => a.CreatedAt ?? DateTime.MinValue)
+                                               .ThenByDescending(a => a.Id))
             {
                 Actualites.Add(actualite);
             }
@@ -578,7 +568,7 @@ public class ActualiteViewModel : BaseViewModel
                 image = _selectedImageUrl
             };
 
-            var created = await _apis.PostBoolAsync("/api/crud/actualite/create", payload);
+            var created = await _apis.PostBoolAsync("/actualite/create", payload);
             StatusMessage = created
                 ? "Actualité publiée avec succès."
                 : "La publication a échoué. Veuillez réessayer.";
@@ -662,7 +652,7 @@ public class ActualiteViewModel : BaseViewModel
                 image = _selectedImageUrl
             };
 
-            var updated = await _apis.PostBoolAsync("/api/crud/actualite/update", payload);
+            var updated = await _apis.PostBoolAsync("/actualite/update", payload);
             StatusMessage = updated
                 ? "Actualité mise à jour."
                 : "La mise à jour a échoué.";
@@ -701,78 +691,6 @@ public class ActualiteViewModel : BaseViewModel
         catch (Exception ex)
         {
             Debug.WriteLine($"Mise à jour actualité échouée: {ex}");
-            StatusMessage = $"Une erreur est survenue : {ex.Message}";
-            StatusColor = Colors.OrangeRed;
-        }
-        finally
-        {
-            IsBusy = false;
-            RefreshFormCommands();
-        }
-    }
-
-    private async Task DeleteActualiteAsync(Actualite? actualite)
-    {
-        if (actualite is null || IsBusy)
-        {
-            return;
-        }
-
-        try
-        {
-            IsBusy = true;
-            StatusMessage = $"Suppression de l'actualité #{actualite.Id}…";
-            StatusColor = Colors.Gold;
-
-            if (!await EnsureAuthenticationAsync())
-            {
-                return;
-            }
-
-            var payload = new { id = actualite.Id };
-            var deleted = await _apis.PostBoolAsync("/api/crud/actualite/delete", payload);
-
-            StatusMessage = deleted
-                ? "Actualité supprimée."
-                : "La suppression a échoué.";
-            StatusColor = deleted ? Colors.LightGreen : Colors.OrangeRed;
-
-            if (deleted)
-            {
-                await LoadActualitesAsync(forceReload: true);
-                if (_selectedActualiteForEdit?.Id == actualite.Id)
-                {
-                    PrepareUpdateForm();
-                }
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            StatusMessage = "Suppression annulée.";
-            StatusColor = Colors.Gold;
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            Debug.WriteLine($"[ACTUALITE] Delete 401 : {ex}");
-            StatusMessage = "Authentification requise pour supprimer.";
-            StatusColor = Colors.OrangeRed;
-
-            if (await PromptInlineLoginAsync())
-            {
-                ApplyAuthToken();
-                StatusMessage = "Connexion rétablie. Relancez la suppression.";
-                StatusColor = Colors.LightGreen;
-            }
-        }
-        catch (HttpRequestException ex)
-        {
-            Debug.WriteLine($"[ACTUALITE] HTTP error delete: {ex}");
-            StatusMessage = $"Impossible de contacter le serveur dantecmarket.com. ({ex.Message})";
-            StatusColor = Colors.OrangeRed;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Suppression actualité échouée: {ex}");
             StatusMessage = $"Une erreur est survenue : {ex.Message}";
             StatusColor = Colors.OrangeRed;
         }
@@ -916,5 +834,11 @@ public class ActualiteViewModel : BaseViewModel
         {
             return null;
         }
+    }
+
+    private async Task<List<Actualite>> FetchActualitesAsync()
+    {
+        var response = await _apis.PostAsync<object, ActualiteListResponse>("/actualite/list", new { });
+        return response?.Data ?? new List<Actualite>();
     }
 }

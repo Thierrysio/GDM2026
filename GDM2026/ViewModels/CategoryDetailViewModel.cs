@@ -1,115 +1,84 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using GDM2026.Models;
 using GDM2026.Services;
-using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 
 namespace GDM2026.ViewModels;
 
 public class CategoryDetailViewModel : BaseViewModel
 {
+    private enum ParentFormMode
+    {
+        None,
+        Create,
+        Update
+    }
+
+    private enum CategoryFormMode
+    {
+        None,
+        Create,
+        Update
+    }
+
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
 
-    private CategoryCard? _card;
-    private string _title = string.Empty;
-    private string _description = string.Empty;
-    private string _hint = string.Empty;
-
     private bool _sessionLoaded;
-    private bool _isSuperCategoryPage;
-    private bool _isCategoryPage;
-    private bool _isPromoCategoryPage;
-    private bool _isHistoryPage;
+    private CategoryCard? _card;
+    private string _title = "Gestion des catégories";
+    private string _description = "Créez ou mettez à jour vos catégories parentes et filles.";
+    private string _hint = "Choisissez une action pour commencer.";
 
-    private bool _hasLoadedSuperCategories;
-    private bool _hasLoadedSubCategories;
-    private bool _hasLoadedCategories;
-    private bool _hasLoadedPromoCategories;
-    private bool _hasLoadedHistories;
-    private bool _historyImageLibraryLoaded;
+    private ParentFormMode _parentMode;
+    private CategoryFormMode _categoryMode;
+    private bool _isCategorySectionVisible;
 
-    private string _superCategoryStatus = "Chargement des super catégories…";
-    private string _subCategoryStatus = "Chargement des sous-catégories…";
-    private string _categoryStatus = "Chargement des catégories…";
-    private string _promoCategoryStatus = "Chargement des catégories promo…";
+    private bool _parentsLoaded;
+    private bool _categoriesLoaded;
+    private bool _isParentListLoading;
+    private bool _isCategoryListLoading;
 
-    private string _newSuperCategoryName = string.Empty;
-    private string _newSuperCategoryDescription = string.Empty;
-    private string _newSuperCategoryProducts = string.Empty;
-    private string _newCategoryName = string.Empty;
-    private string _newPromoCategoryName = string.Empty;
+    private string _parentNameInput = string.Empty;
+    private string _categoryNameInput = string.Empty;
 
-    private bool _isSubCategoryMenuOpen;
-    private int _selectedSubCategoryCount;
-    private string _selectedSubCategorySummary = "Aucune sous-catégorie sélectionnée";
-    private SuperCategory? _selectedParentCategory;
+    private string _parentStatusMessage = "Sélectionnez une action pour gérer les catégories parentes.";
+    private string _categoryStatusMessage = "Ouvrez la gestion des catégories filles pour commencer.";
+    private string _parentListMessage = "Aucune donnée chargée.";
+    private string _categoryListMessage = "Aucune donnée chargée.";
 
-    private string _newHistoryTitle = string.Empty;
-    private string _newHistoryDescription = string.Empty;
-    private DateTime _historyDate = DateTime.Today;
-    private string _historyStatusMessage = "Chargement des histoires…";
-    private string _historyFormStatusMessage = "Renseignez les informations de l'histoire.";
-    private string _historyImageLibraryMessage = "Sélectionnez une image dans la bibliothèque.";
-    private string _historyImageSearchTerm = string.Empty;
-    private string _selectedHistoryImageName = "Aucune image sélectionnée.";
-    private string? _selectedHistoryImageUrl;
-    private bool _isHistoryLoading;
-    private bool _isHistorySubmitting;
-    private bool _isHistoryImageLibraryLoading;
-    private AdminImage? _selectedHistoryImage;
+    private SuperCategory? _selectedParentForEdit;
+    private SuperCategory? _selectedParentForCategory;
+    private SubCategory? _selectedCategoryForEdit;
 
     public CategoryDetailViewModel()
     {
-        SuperCategories = new ObservableCollection<SuperCategory>();
-        AvailableSubCategories = new ObservableCollection<SelectableSubCategory>();
+        ParentCategories = new ObservableCollection<SuperCategory>();
         Categories = new ObservableCollection<SubCategory>();
-        PromoCategories = new ObservableCollection<PromoCategory>();
-        Histories = new ObservableCollection<HistoryEntry>();
-        HistoryImageLibrary = new ObservableCollection<AdminImage>();
-        FilteredHistoryImages = new ObservableCollection<AdminImage>();
 
-        CreateSuperCategoryCommand = new Command(async () => await CreateSuperCategoryAsync(), CanCreateSuperCategory);
+        ShowParentCreateCommand = new Command(async () => await ToggleParentModeAsync(ParentFormMode.Create));
+        ShowParentUpdateCommand = new Command(async () => await ToggleParentModeAsync(ParentFormMode.Update));
+        ToggleCategorySectionCommand = new Command(async () => await ToggleCategorySectionAsync());
+        ShowCategoryCreateCommand = new Command(async () => await ToggleCategoryModeAsync(CategoryFormMode.Create));
+        ShowCategoryUpdateCommand = new Command(async () => await ToggleCategoryModeAsync(CategoryFormMode.Update));
+        RefreshParentsCommand = new Command(async () => await LoadParentsAsync(forceReload: true));
+        RefreshCategoriesCommand = new Command(async () => await LoadCategoriesAsync(forceReload: true));
+
+        CreateParentCommand = new Command(async () => await CreateParentAsync(), CanCreateParent);
+        UpdateParentCommand = new Command(async () => await UpdateParentAsync(), CanUpdateParent);
         CreateCategoryCommand = new Command(async () => await CreateCategoryAsync(), CanCreateCategory);
-        CreatePromoCategoryCommand = new Command(async () => await CreatePromoCategoryAsync(), CanCreatePromoCategory);
-        CreateHistoryCommand = new Command(async () => await CreateHistoryAsync(), CanCreateHistory);
-        RefreshHistoriesCommand = new Command(async () => await LoadHistoriesAsync(forceRefresh: true));
-        ToggleSubCategoryMenuCommand = new Command(() => IsSubCategoryMenuOpen = !IsSubCategoryMenuOpen);
+        UpdateCategoryCommand = new Command(async () => await UpdateCategoryAsync(), CanUpdateCategory);
+        NavigateHomeCommand = new Command(async () => await NavigateHomeAsync());
     }
 
-    public ObservableCollection<SuperCategory> SuperCategories { get; }
-
-    public ObservableCollection<SelectableSubCategory> AvailableSubCategories { get; }
-
-    public ObservableCollection<SubCategory> Categories { get; }
-
-    public ObservableCollection<PromoCategory> PromoCategories { get; }
-
-    public ObservableCollection<HistoryEntry> Histories { get; }
-
-    public ObservableCollection<AdminImage> HistoryImageLibrary { get; }
-
-    public ObservableCollection<AdminImage> FilteredHistoryImages { get; }
-
-    public ICommand CreateSuperCategoryCommand { get; }
-
-    public ICommand CreateCategoryCommand { get; }
-
-    public ICommand CreatePromoCategoryCommand { get; }
-
-    public ICommand CreateHistoryCommand { get; }
-
-    public ICommand RefreshHistoriesCommand { get; }
-
-    public ICommand ToggleSubCategoryMenuCommand { get; }
-
+    #region Header
     public CategoryCard? Card
     {
         get => _card;
@@ -139,1120 +108,827 @@ public class CategoryDetailViewModel : BaseViewModel
         get => _hint;
         set => SetProperty(ref _hint, value);
     }
+    #endregion
 
-    public bool IsSuperCategoryPage
-    {
-        get => _isSuperCategoryPage;
-        set => SetProperty(ref _isSuperCategoryPage, value);
-    }
+    #region Collections
+    public ObservableCollection<SuperCategory> ParentCategories { get; }
 
-    public bool IsCategoryPage
-    {
-        get => _isCategoryPage;
-        set => SetProperty(ref _isCategoryPage, value);
-    }
+    public ObservableCollection<SubCategory> Categories { get; }
+    #endregion
 
-    public bool IsPromoCategoryPage
-    {
-        get => _isPromoCategoryPage;
-        set => SetProperty(ref _isPromoCategoryPage, value);
-    }
+    #region Parent bindings
+    public ICommand ShowParentCreateCommand { get; }
 
-    public bool IsHistoryPage
-    {
-        get => _isHistoryPage;
-        set => SetProperty(ref _isHistoryPage, value);
-    }
+    public ICommand ShowParentUpdateCommand { get; }
 
-    public string SuperCategoryStatus
+    public ICommand RefreshParentsCommand { get; }
+
+    public ICommand CreateParentCommand { get; }
+
+    public ICommand UpdateParentCommand { get; }
+
+    public bool IsParentFormVisible => _parentMode != ParentFormMode.None;
+
+    public bool IsParentCreateMode => _parentMode == ParentFormMode.Create;
+
+    public bool IsParentUpdateMode => _parentMode == ParentFormMode.Update;
+
+    public string ParentFormHeader => _parentMode switch
     {
-        get => _superCategoryStatus;
+        ParentFormMode.Create => "Nouvelle catégorie parente",
+        ParentFormMode.Update => "Mettre à jour une catégorie parente",
+        _ => string.Empty
+    };
+
+    public string ParentHelperMessage => _parentMode switch
+    {
+        ParentFormMode.Create => "Renseignez le nom de la nouvelle catégorie parente.",
+        ParentFormMode.Update when SelectedParentForEdit is null => "Sélectionnez une catégorie parente à modifier.",
+        ParentFormMode.Update => $"Modification de la catégorie #{SelectedParentForEdit?.Id}.",
+        _ => string.Empty
+    };
+
+    public ICommand ParentActionCommand => IsParentUpdateMode ? UpdateParentCommand : CreateParentCommand;
+
+    public string ParentActionButtonText => IsParentUpdateMode ? "Mettre à jour" : "Créer";
+
+    public string ParentNameInput
+    {
+        get => _parentNameInput;
         set
         {
-            if (SetProperty(ref _superCategoryStatus, value))
+            if (SetProperty(ref _parentNameInput, value))
             {
-                OnPropertyChanged(nameof(HasSuperCategoryStatus));
+                RefreshParentCommands();
             }
         }
     }
 
-    public bool HasSuperCategoryStatus => !string.IsNullOrWhiteSpace(SuperCategoryStatus);
-
-    public string SubCategoryStatus
+    public string ParentStatusMessage
     {
-        get => _subCategoryStatus;
+        get => _parentStatusMessage;
+        set => SetProperty(ref _parentStatusMessage, value);
+    }
+
+    public string ParentListMessage
+    {
+        get => _parentListMessage;
+        set => SetProperty(ref _parentListMessage, value);
+    }
+
+    public bool IsParentListLoading
+    {
+        get => _isParentListLoading;
+        private set => SetProperty(ref _isParentListLoading, value);
+    }
+
+    public SuperCategory? SelectedParentForEdit
+    {
+        get => _selectedParentForEdit;
         set
         {
-            if (SetProperty(ref _subCategoryStatus, value))
+            if (SetProperty(ref _selectedParentForEdit, value))
             {
-                OnPropertyChanged(nameof(HasSubCategoryStatus));
+                ParentNameInput = value?.Name ?? string.Empty;
+                RefreshParentCommands();
+                OnPropertyChanged(nameof(HasParentSelection));
             }
         }
     }
 
-    public bool HasSubCategoryStatus => !string.IsNullOrWhiteSpace(SubCategoryStatus);
+    public bool HasParentSelection => SelectedParentForEdit is not null;
+    #endregion
 
-    public string CategoryStatus
+    #region Category bindings
+    public ICommand ToggleCategorySectionCommand { get; }
+
+    public ICommand ShowCategoryCreateCommand { get; }
+
+    public ICommand ShowCategoryUpdateCommand { get; }
+
+    public ICommand RefreshCategoriesCommand { get; }
+
+    public ICommand CreateCategoryCommand { get; }
+
+    public ICommand UpdateCategoryCommand { get; }
+
+    public ICommand NavigateHomeCommand { get; }
+
+    public bool IsCategorySectionVisible
     {
-        get => _categoryStatus;
+        get => _isCategorySectionVisible;
+        set => SetProperty(ref _isCategorySectionVisible, value);
+    }
+
+    public bool IsCategoryFormVisible => _categoryMode != CategoryFormMode.None;
+
+    public bool IsCategoryCreateMode => _categoryMode == CategoryFormMode.Create;
+
+    public bool IsCategoryUpdateMode => _categoryMode == CategoryFormMode.Update;
+
+    public string CategoryFormHeader => _categoryMode switch
+    {
+        CategoryFormMode.Create => "Nouvelle catégorie",
+        CategoryFormMode.Update => "Mettre à jour une catégorie",
+        _ => string.Empty
+    };
+
+    public string CategoryHelperMessage => _categoryMode switch
+    {
+        CategoryFormMode.Create => "Renseignez le nom de la catégorie et assignez un parent.",
+        CategoryFormMode.Update when SelectedCategoryForEdit is null => "Sélectionnez une catégorie existante.",
+        CategoryFormMode.Update => $"Modification de la catégorie #{SelectedCategoryForEdit?.Id}.",
+        _ => string.Empty
+    };
+
+    public ICommand CategoryActionCommand => IsCategoryUpdateMode ? UpdateCategoryCommand : CreateCategoryCommand;
+
+    public string CategoryActionButtonText => IsCategoryUpdateMode ? "Mettre à jour" : "Créer";
+
+    public string CategoryNameInput
+    {
+        get => _categoryNameInput;
         set
         {
-            if (SetProperty(ref _categoryStatus, value))
+            if (SetProperty(ref _categoryNameInput, value))
             {
-                OnPropertyChanged(nameof(HasCategoryStatus));
+                RefreshCategoryCommands();
             }
         }
     }
 
-    public bool HasCategoryStatus => !string.IsNullOrWhiteSpace(CategoryStatus);
-
-    public string PromoCategoryStatus
+    public string CategoryStatusMessage
     {
-        get => _promoCategoryStatus;
+        get => _categoryStatusMessage;
+        set => SetProperty(ref _categoryStatusMessage, value);
+    }
+
+    public string CategoryListMessage
+    {
+        get => _categoryListMessage;
+        set => SetProperty(ref _categoryListMessage, value);
+    }
+
+    public bool IsCategoryListLoading
+    {
+        get => _isCategoryListLoading;
+        private set => SetProperty(ref _isCategoryListLoading, value);
+    }
+
+    public SuperCategory? SelectedParentForCategory
+    {
+        get => _selectedParentForCategory;
         set
         {
-            if (SetProperty(ref _promoCategoryStatus, value))
+            if (SetProperty(ref _selectedParentForCategory, value))
             {
-                OnPropertyChanged(nameof(HasPromoCategoryStatus));
+                RefreshCategoryCommands();
             }
         }
     }
 
-    public bool HasPromoCategoryStatus => !string.IsNullOrWhiteSpace(PromoCategoryStatus);
-
-    public string HistoryStatusMessage
+    public SubCategory? SelectedCategoryForEdit
     {
-        get => _historyStatusMessage;
-        set => SetProperty(ref _historyStatusMessage, value);
-    }
-
-    public string HistoryFormStatusMessage
-    {
-        get => _historyFormStatusMessage;
-        set => SetProperty(ref _historyFormStatusMessage, value);
-    }
-
-    public DateTime HistoryDate
-    {
-        get => _historyDate;
-        set => SetProperty(ref _historyDate, value);
-    }
-
-    public string HistoryImageLibraryMessage
-    {
-        get => _historyImageLibraryMessage;
-        set => SetProperty(ref _historyImageLibraryMessage, value);
-    }
-
-    public string HistoryImageSearchTerm
-    {
-        get => _historyImageSearchTerm;
+        get => _selectedCategoryForEdit;
         set
         {
-            if (SetProperty(ref _historyImageSearchTerm, value))
+            if (SetProperty(ref _selectedCategoryForEdit, value))
             {
-                RefreshHistoryImageFilter();
+                CategoryNameInput = value?.Name ?? string.Empty;
+                if (value?.ParentCategoryId is int parentId)
+                {
+                    SelectedParentForCategory = ParentCategories.FirstOrDefault(p => p.Id == parentId);
+                }
+                else
+                {
+                    SelectedParentForCategory = null;
+                }
+
+                RefreshCategoryCommands();
+                OnPropertyChanged(nameof(HasCategorySelection));
             }
         }
     }
 
-    public string SelectedHistoryImageName
-    {
-        get => _selectedHistoryImageName;
-        set => SetProperty(ref _selectedHistoryImageName, value);
-    }
+    public bool HasCategorySelection => SelectedCategoryForEdit is not null;
+    #endregion
 
-    public AdminImage? SelectedHistoryImage
-    {
-        get => _selectedHistoryImage;
-        set
-        {
-            if (SetProperty(ref _selectedHistoryImage, value))
-            {
-                ApplyHistoryImageSelection(value);
-            }
-        }
-    }
-
-    public bool IsHistoryImageLibraryLoading
-    {
-        get => _isHistoryImageLibraryLoading;
-        set => SetProperty(ref _isHistoryImageLibraryLoading, value);
-    }
-
-    public bool IsHistoryLoading
-    {
-        get => _isHistoryLoading;
-        set => SetProperty(ref _isHistoryLoading, value);
-    }
-
-    public bool IsHistorySubmitting
-    {
-        get => _isHistorySubmitting;
-        set
-        {
-            if (SetProperty(ref _isHistorySubmitting, value))
-            {
-                (CreateHistoryCommand as Command)?.ChangeCanExecute();
-            }
-        }
-    }
-
-    public bool IsSubCategoryMenuOpen
-    {
-        get => _isSubCategoryMenuOpen;
-        set
-        {
-            if (SetProperty(ref _isSubCategoryMenuOpen, value))
-            {
-                OnPropertyChanged(nameof(SubCategoryMenuLabel));
-            }
-        }
-    }
-
-    public string SubCategoryMenuLabel => IsSubCategoryMenuOpen
-        ? "Masquer les sous-catégories"
-        : "Afficher les sous-catégories disponibles";
-
-    public int SelectedSubCategoryCount
-    {
-        get => _selectedSubCategoryCount;
-        private set => SetProperty(ref _selectedSubCategoryCount, value);
-    }
-
-    public string SelectedSubCategorySummary
-    {
-        get => _selectedSubCategorySummary;
-        private set => SetProperty(ref _selectedSubCategorySummary, value);
-    }
-
-    public bool HasParentCategories => SuperCategories.Any();
-
-    public SuperCategory? SelectedParentCategory
-    {
-        get => _selectedParentCategory;
-        set => SetProperty(ref _selectedParentCategory, value);
-    }
-
-    public string NewSuperCategoryName
-    {
-        get => _newSuperCategoryName;
-        set
-        {
-            if (SetProperty(ref _newSuperCategoryName, value))
-            {
-                RefreshCreateAvailability();
-            }
-        }
-    }
-
-    public string NewSuperCategoryDescription
-    {
-        get => _newSuperCategoryDescription;
-        set
-        {
-            if (SetProperty(ref _newSuperCategoryDescription, value))
-            {
-                RefreshCreateAvailability();
-            }
-        }
-    }
-
-    public string NewSuperCategoryProducts
-    {
-        get => _newSuperCategoryProducts;
-        set => SetProperty(ref _newSuperCategoryProducts, value);
-    }
-
-    public string NewCategoryName
-    {
-        get => _newCategoryName;
-        set
-        {
-            if (SetProperty(ref _newCategoryName, value))
-            {
-                RefreshCreateAvailability();
-            }
-        }
-    }
-
-    public string NewPromoCategoryName
-    {
-        get => _newPromoCategoryName;
-        set
-        {
-            if (SetProperty(ref _newPromoCategoryName, value))
-            {
-                RefreshCreateAvailability();
-            }
-        }
-    }
-
-    public string NewHistoryTitle
-    {
-        get => _newHistoryTitle;
-        set
-        {
-            if (SetProperty(ref _newHistoryTitle, value))
-            {
-                RefreshCreateAvailability();
-            }
-        }
-    }
-
-    public string NewHistoryDescription
-    {
-        get => _newHistoryDescription;
-        set
-        {
-            if (SetProperty(ref _newHistoryDescription, value))
-            {
-                RefreshCreateAvailability();
-            }
-        }
-    }
-
-    public async Task EnsureInitializedAsync(CancellationToken ct = default)
-    {
-        if (!_sessionLoaded)
-        {
-            await _sessionService.LoadAsync().ConfigureAwait(false);
-            _apis.SetBearerToken(_sessionService.AuthToken);
-            _sessionLoaded = true;
-        }
-
-        if (IsSuperCategoryPage)
-        {
-            if (!_hasLoadedSuperCategories)
-            {
-                await LoadSuperCategoriesAsync(ct).ConfigureAwait(false);
-            }
-
-            if (!_hasLoadedSubCategories)
-            {
-                await LoadAvailableSubCategoriesAsync(ct).ConfigureAwait(false);
-            }
-        }
-
-        if (IsCategoryPage)
-        {
-            if (!_hasLoadedSuperCategories)
-            {
-                await LoadSuperCategoriesAsync(ct).ConfigureAwait(false);
-            }
-
-            if (!_hasLoadedCategories)
-            {
-                await LoadCategoriesAsync(ct).ConfigureAwait(false);
-            }
-        }
-
-        if (IsPromoCategoryPage && !_hasLoadedPromoCategories)
-        {
-            await LoadPromoCategoriesAsync(ct).ConfigureAwait(false);
-        }
-
-        if (IsHistoryPage)
-        {
-            if (!_hasLoadedHistories)
-            {
-                await LoadHistoriesAsync().ConfigureAwait(false);
-            }
-
-            if (!_historyImageLibraryLoaded)
-            {
-                await LoadHistoryImageLibraryAsync(ct).ConfigureAwait(false);
-            }
-        }
-    }
+    #region Initialization
+    public Task EnsureInitializedAsync() => Task.CompletedTask;
 
     public void ApplyCard(CategoryCard? card)
     {
-        if (card == null)
+        if (card is null)
         {
-            Title = "Catégorie introuvable";
-            Description = "Impossible de charger les détails de cette catégorie.";
-            Hint = "Retournez à l'accueil et sélectionnez une catégorie.";
-            IsSuperCategoryPage = false;
-            IsCategoryPage = false;
-            IsPromoCategoryPage = false;
-            IsHistoryPage = false;
+            Title = "Gestion des catégories";
+            Description = "Créez ou mettez à jour vos catégories parentes et filles.";
+            Hint = "Choisissez l'action à effectuer.";
             return;
         }
 
         Title = card.Title;
         Description = card.Description;
+        Hint = "Utilisez les actions ci-dessous pour gérer cette section.";
+    }
+    #endregion
 
-        IsSuperCategoryPage = string.Equals(card.Title, "Super categories", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(card.Title, "Super catégories", StringComparison.OrdinalIgnoreCase);
-        IsCategoryPage = string.Equals(card.Title, "Categories", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(card.Title, "Catégories", StringComparison.OrdinalIgnoreCase);
-        IsPromoCategoryPage = string.Equals(card.Title, "Promo", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(card.Title, "Catégories Evenements", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(card.Title, "Catégories événements", StringComparison.OrdinalIgnoreCase);
-        IsHistoryPage = string.Equals(card.Title, "Histoire", StringComparison.OrdinalIgnoreCase);
-
-        if (IsSuperCategoryPage)
+    #region Parent workflow
+    private async Task ToggleParentModeAsync(ParentFormMode mode)
+    {
+        if (_parentMode == mode)
         {
-            Hint = "Ajoutez des super catégories parentes pour organiser vos sous-catégories.";
-            _hasLoadedCategories = false;
-            _hasLoadedPromoCategories = false;
+            _parentMode = ParentFormMode.None;
+            OnParentModeChanged();
             return;
         }
 
-        if (IsCategoryPage)
+        _parentMode = mode;
+        OnParentModeChanged();
+
+        if (mode == ParentFormMode.Create)
         {
-            Hint = "Créez et organisez les catégories principales utilisées dans votre boutique.";
-            _hasLoadedCategories = false;
-            CategoryStatus = "Chargement des catégories…";
+            ClearParentForm();
             return;
         }
 
-        if (IsPromoCategoryPage)
+        if (mode == ParentFormMode.Update)
         {
-            Hint = "Gérez les catégories promo et ajoutez-en de nouvelles pour organiser vos offres.";
-            _hasLoadedPromoCategories = false;
-            PromoCategoryStatus = "Chargement des catégories promo…";
-            return;
+            await LoadParentsAsync(forceReload: !_parentsLoaded);
         }
-
-        if (IsHistoryPage)
-        {
-            Hint = "Gérez les histoires présentées dans la rubrique Histoire.";
-            _hasLoadedHistories = false;
-            _historyImageLibraryLoaded = false;
-            HistoryStatusMessage = "Chargement des histoires…";
-            HistoryFormStatusMessage = "Ajoutez un titre, une description, une date et une image.";
-            return;
-        }
-
-        Hint = $"Vous êtes sur la page {card.Title}. Ajoutez ici les fonctionnalités spécifiques à cette catégorie.";
     }
 
-    private bool CanCreateSuperCategory() => !IsBusy
-        && IsSuperCategoryPage
-        && !string.IsNullOrWhiteSpace(NewSuperCategoryName)
-        && !string.IsNullOrWhiteSpace(NewSuperCategoryDescription);
-
-    private bool CanCreateCategory() => !IsBusy
-        && IsCategoryPage
-        && !string.IsNullOrWhiteSpace(NewCategoryName);
-
-    private bool CanCreatePromoCategory() => !IsBusy
-        && IsPromoCategoryPage
-        && !string.IsNullOrWhiteSpace(NewPromoCategoryName);
-
-    private bool CanCreateHistory() => IsHistoryPage
-        && !IsHistorySubmitting
-        && !string.IsNullOrWhiteSpace(NewHistoryTitle)
-        && !string.IsNullOrWhiteSpace(NewHistoryDescription)
-        && !string.IsNullOrWhiteSpace(_selectedHistoryImageUrl);
-
-    private void RefreshCreateAvailability()
+    private void OnParentModeChanged()
     {
-        (CreateSuperCategoryCommand as Command)?.ChangeCanExecute();
-        (CreateCategoryCommand as Command)?.ChangeCanExecute();
-        (CreatePromoCategoryCommand as Command)?.ChangeCanExecute();
-        (CreateHistoryCommand as Command)?.ChangeCanExecute();
+        OnPropertyChanged(nameof(IsParentFormVisible));
+        OnPropertyChanged(nameof(IsParentCreateMode));
+        OnPropertyChanged(nameof(IsParentUpdateMode));
+        OnPropertyChanged(nameof(ParentFormHeader));
+        OnPropertyChanged(nameof(ParentHelperMessage));
+        OnPropertyChanged(nameof(ParentActionCommand));
+        OnPropertyChanged(nameof(ParentActionButtonText));
+        RefreshParentCommands();
     }
 
-    private async Task LoadSuperCategoriesAsync(CancellationToken ct = default)
+    private async Task LoadParentsAsync(bool forceReload)
     {
-        if (IsBusy)
+        if (IsParentListLoading)
+        {
+            return;
+        }
+
+        if (!forceReload && _parentsLoaded)
         {
             return;
         }
 
         try
         {
-            IsBusy = true;
-            SuperCategoryStatus = "Chargement des super catégories…";
-            var result = await _apis.GetListAsync<SuperCategory>("/api/crud/categorieparent/list", ct).ConfigureAwait(false);
+            IsParentListLoading = true;
+            ParentListMessage = "Chargement des catégories parentes…";
 
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            var parents = await _apis.GetListAsync<SuperCategory>("/api/crud/categorieparent/list");
+            ParentCategories.Clear();
+            foreach (var parent in parents.OrderBy(p => p.Name))
             {
-                SuperCategories.Clear();
-                foreach (var item in result)
-                {
-                    SuperCategories.Add(item);
-                }
+                ParentCategories.Add(parent);
+            }
 
-                _hasLoadedSuperCategories = true;
-                OnPropertyChanged(nameof(HasParentCategories));
-                SuperCategoryStatus = SuperCategories.Any()
-                    ? string.Empty
-                    : "Aucune super catégorie n'est encore configurée.";
-
-                if (_hasLoadedCategories)
-                {
-                    UpdateExistingCategoryParents();
-                }
-            });
+            _parentsLoaded = true;
+            ApplyParentNamesToCategories();
+            ParentListMessage = ParentCategories.Count == 0
+                ? "Aucune catégorie parente n'est disponible."
+                : "Sélectionnez une catégorie parente pour la modifier.";
         }
         catch (TaskCanceledException)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                SuperCategoryStatus = "Le chargement des super catégories a expiré.");
+            ParentListMessage = "Chargement des catégories parentes annulé.";
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                SuperCategoryStatus = "Impossible de récupérer les super catégories.");
+            Debug.WriteLine($"[CATEGORIES] Parent list error: {ex}");
+            ParentListMessage = "Impossible de récupérer les catégories parentes.";
         }
-        catch
+        catch (Exception ex)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                SuperCategoryStatus = "Une erreur est survenue pendant le chargement.");
+            Debug.WriteLine($"[CATEGORIES] Parent load error: {ex}");
+            ParentListMessage = "Erreur inconnue lors du chargement des parents.";
         }
         finally
         {
-            IsBusy = false;
-            RefreshCreateAvailability();
+            IsParentListLoading = false;
         }
     }
 
-    private async Task LoadCategoriesAsync(CancellationToken ct = default)
+    private bool CanCreateParent()
     {
-        if (IsBusy)
+        return IsParentCreateMode
+            && !IsBusy
+            && !string.IsNullOrWhiteSpace(ParentNameInput);
+    }
+
+    private bool CanUpdateParent()
+    {
+        return IsParentUpdateMode
+            && !IsBusy
+            && SelectedParentForEdit is not null
+            && !string.IsNullOrWhiteSpace(ParentNameInput);
+    }
+
+    private async Task CreateParentAsync()
+    {
+        if (!CanCreateParent())
         {
+            ParentStatusMessage = "Renseignez le nom de la catégorie parente.";
             return;
         }
 
         try
         {
             IsBusy = true;
-            CategoryStatus = "Chargement des catégories…";
-            var result = await _apis.GetListAsync<SubCategory>("/api/crud/categorie/list", ct).ConfigureAwait(false);
+            RefreshParentCommands();
+            ParentStatusMessage = "Création en cours…";
 
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            if (!await EnsureAuthenticationAsync())
             {
-                Categories.Clear();
-                foreach (var item in result)
-                {
-                    ApplyParentCategoryName(item);
-                    Categories.Add(item);
-                }
+                ParentStatusMessage = "Connexion requise pour créer une catégorie.";
+                return;
+            }
 
-                _hasLoadedCategories = true;
-                CategoryStatus = Categories.Any()
-                    ? string.Empty
-                    : "Aucune catégorie n'est encore configurée.";
-            });
+            var payload = new { nom = ParentNameInput.Trim() };
+            var created = await _apis.PostBoolAsync("/api/crud/categorieparent/create", payload);
+
+            ParentStatusMessage = created
+                ? "Catégorie parente créée avec succès."
+                : "La création a échoué.";
+
+            if (created)
+            {
+                ClearParentForm();
+                await LoadParentsAsync(forceReload: true);
+            }
         }
-        catch (TaskCanceledException)
+        catch (HttpRequestException ex)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                CategoryStatus = "Le chargement des catégories a expiré.");
+            ParentStatusMessage = $"Impossible de créer la catégorie ({ex.Message}).";
         }
-        catch (HttpRequestException)
+        catch (Exception ex)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                CategoryStatus = "Impossible de récupérer les catégories.");
-        }
-        catch
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                CategoryStatus = "Une erreur est survenue pendant le chargement." );
+            ParentStatusMessage = $"Erreur inattendue : {ex.Message}";
         }
         finally
         {
             IsBusy = false;
-            RefreshCreateAvailability();
+            RefreshParentCommands();
         }
     }
 
-    private async Task LoadPromoCategoriesAsync(CancellationToken ct = default)
+    private async Task UpdateParentAsync()
     {
-        if (IsBusy)
+        if (!CanUpdateParent())
         {
+            ParentStatusMessage = "Sélectionnez une catégorie parente et renseignez son nom.";
             return;
         }
 
         try
         {
             IsBusy = true;
-            PromoCategoryStatus = "Chargement des catégories promo…";
-            var result = await _apis.GetListAsync<PromoCategory>("/api/crud/categoriepromo/list", ct).ConfigureAwait(false);
+            RefreshParentCommands();
+            ParentStatusMessage = "Mise à jour en cours…";
 
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            if (!await EnsureAuthenticationAsync())
             {
-                PromoCategories.Clear();
-                foreach (var item in result)
-                {
-                    PromoCategories.Add(item);
-                }
+                ParentStatusMessage = "Connexion requise pour mettre à jour.";
+                return;
+            }
 
-                _hasLoadedPromoCategories = true;
-                PromoCategoryStatus = PromoCategories.Any()
-                    ? string.Empty
-                    : "Aucune catégorie promo n'est encore configurée.";
-            });
+            var payload = new
+            {
+                id = SelectedParentForEdit!.Id,
+                nom = ParentNameInput.Trim()
+            };
+
+            var updated = await _apis.PostBoolAsync("/api/crud/categorieparent/update", payload);
+            ParentStatusMessage = updated
+                ? "Catégorie parente mise à jour."
+                : "La mise à jour a échoué.";
+
+            if (updated)
+            {
+                await LoadParentsAsync(forceReload: true);
+                SelectedParentForEdit = null;
+                ParentNameInput = string.Empty;
+            }
         }
-        catch (TaskCanceledException)
+        catch (HttpRequestException ex)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                PromoCategoryStatus = "Le chargement des catégories promo a expiré." );
+            ParentStatusMessage = $"Impossible de mettre à jour ({ex.Message}).";
         }
-        catch (HttpRequestException)
+        catch (Exception ex)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                PromoCategoryStatus = "Impossible de récupérer les catégories promo." );
-        }
-        catch
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                PromoCategoryStatus = "Une erreur est survenue pendant le chargement." );
+            ParentStatusMessage = $"Erreur inattendue : {ex.Message}";
         }
         finally
         {
             IsBusy = false;
-            RefreshCreateAvailability();
+            RefreshParentCommands();
         }
     }
 
-    private async Task LoadAvailableSubCategoriesAsync(CancellationToken ct = default)
+    private void ClearParentForm()
     {
-        if (IsBusy || _hasLoadedSubCategories)
+        ParentNameInput = string.Empty;
+        SelectedParentForEdit = null;
+    }
+    #endregion
+
+    #region Category workflow
+    private async Task ToggleCategorySectionAsync()
+    {
+        IsCategorySectionVisible = !IsCategorySectionVisible;
+
+        if (IsCategorySectionVisible)
+        {
+            await LoadParentsAsync(forceReload: !_parentsLoaded);
+        }
+        else
+        {
+            _categoryMode = CategoryFormMode.None;
+            OnCategoryModeChanged();
+        }
+    }
+
+    private async Task ToggleCategoryModeAsync(CategoryFormMode mode)
+    {
+        if (!IsCategorySectionVisible)
+        {
+            IsCategorySectionVisible = true;
+        }
+
+        if (_categoryMode == mode)
+        {
+            _categoryMode = CategoryFormMode.None;
+            OnCategoryModeChanged();
+            return;
+        }
+
+        _categoryMode = mode;
+        OnCategoryModeChanged();
+
+        if (mode == CategoryFormMode.Create)
+        {
+            ClearCategoryForm();
+            await LoadParentsAsync(forceReload: !_parentsLoaded);
+            return;
+        }
+
+        if (mode == CategoryFormMode.Update)
+        {
+            await LoadParentsAsync(forceReload: !_parentsLoaded);
+            await LoadCategoriesAsync(forceReload: !_categoriesLoaded);
+        }
+    }
+
+    private void OnCategoryModeChanged()
+    {
+        OnPropertyChanged(nameof(IsCategoryFormVisible));
+        OnPropertyChanged(nameof(IsCategoryCreateMode));
+        OnPropertyChanged(nameof(IsCategoryUpdateMode));
+        OnPropertyChanged(nameof(CategoryFormHeader));
+        OnPropertyChanged(nameof(CategoryHelperMessage));
+        OnPropertyChanged(nameof(CategoryActionCommand));
+        OnPropertyChanged(nameof(CategoryActionButtonText));
+        RefreshCategoryCommands();
+    }
+
+    private async Task LoadCategoriesAsync(bool forceReload)
+    {
+        if (IsCategoryListLoading)
+        {
+            return;
+        }
+
+        if (!forceReload && _categoriesLoaded)
         {
             return;
         }
 
         try
         {
-            IsBusy = true;
-            SubCategoryStatus = "Chargement des sous-catégories…";
-            var result = await _apis.GetListAsync<SubCategory>("/api/crud/categorie/list", ct).ConfigureAwait(false);
+            IsCategoryListLoading = true;
+            CategoryListMessage = "Chargement des catégories…";
 
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            var categories = await _apis.GetListAsync<SubCategory>("/api/crud/categorie/list");
+            Categories.Clear();
+            foreach (var category in categories.OrderBy(c => c.Name))
             {
-                DetachSubCategoryHandlers();
-                AvailableSubCategories.Clear();
-                foreach (var item in result)
-                {
-                    var selectable = new SelectableSubCategory(item);
-                    selectable.PropertyChanged += OnSubCategoryPropertyChanged;
-                    AvailableSubCategories.Add(selectable);
-                }
+                Categories.Add(category);
+            }
 
-                _hasLoadedSubCategories = true;
-                UpdateSelectedSubCategorySelection();
-                SubCategoryStatus = AvailableSubCategories.Any()
-                    ? "Sélectionnez les sous-catégories à inclure."
-                    : "Aucune sous-catégorie n'est encore disponible.";
-            });
+            _categoriesLoaded = true;
+            ApplyParentNamesToCategories();
+            CategoryListMessage = Categories.Count == 0
+                ? "Aucune catégorie n'est disponible."
+                : "Sélectionnez une catégorie pour la modifier.";
         }
         catch (TaskCanceledException)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                SubCategoryStatus = "Le chargement des sous-catégories a expiré." );
+            CategoryListMessage = "Chargement des catégories annulé.";
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                SubCategoryStatus = "Impossible de récupérer les sous-catégories." );
+            Debug.WriteLine($"[CATEGORIES] Sub list error: {ex}");
+            CategoryListMessage = "Impossible de récupérer les catégories.";
         }
-        catch
+        catch (Exception ex)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                SubCategoryStatus = "Une erreur est survenue pendant le chargement." );
+            Debug.WriteLine($"[CATEGORIES] Sub load error: {ex}");
+            CategoryListMessage = "Erreur inconnue lors du chargement des catégories.";
         }
         finally
         {
-            IsBusy = false;
-            RefreshCreateAvailability();
+            IsCategoryListLoading = false;
         }
+    }
+
+    private bool CanCreateCategory()
+    {
+        return IsCategoryCreateMode
+            && !IsBusy
+            && !string.IsNullOrWhiteSpace(CategoryNameInput)
+            && SelectedParentForCategory is not null;
+    }
+
+    private bool CanUpdateCategory()
+    {
+        return IsCategoryUpdateMode
+            && !IsBusy
+            && SelectedCategoryForEdit is not null
+            && !string.IsNullOrWhiteSpace(CategoryNameInput)
+            && SelectedParentForCategory is not null;
     }
 
     private async Task CreateCategoryAsync()
     {
-        if (IsBusy || !IsCategoryPage)
+        if (!CanCreateCategory())
         {
+            CategoryStatusMessage = "Renseignez le nom et sélectionnez un parent.";
             return;
         }
 
         try
         {
             IsBusy = true;
-            RefreshCreateAvailability();
-            CategoryStatus = "Création de la catégorie en cours…";
+            RefreshCategoryCommands();
+            CategoryStatusMessage = "Création en cours…";
+
+            if (!await EnsureAuthenticationAsync())
+            {
+                CategoryStatusMessage = "Connexion requise pour créer.";
+                return;
+            }
 
             var payload = new
             {
-                nom = NewCategoryName,
-                categorieParent = SelectedParentCategory?.Id
+                nom = CategoryNameInput.Trim(),
+                lacategorieParentId = SelectedParentForCategory!.Id
             };
 
-            var created = await _apis.PostAsync<object, SubCategory>("/api/crud/categorie/create", payload).ConfigureAwait(false);
-
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (created != null)
-                {
-                    created.ParentCategoryId = SelectedParentCategory?.Id;
-                    created.ParentCategoryName = SelectedParentCategory?.Name;
-                    ApplyParentCategoryName(created);
-                    Categories.Insert(0, created);
-                }
-
-                NewCategoryName = string.Empty;
-                SelectedParentCategory = null;
-                CategoryStatus = "Catégorie créée avec succès.";
-            });
-
-            if (created == null)
-            {
-                await LoadCategoriesAsync().ConfigureAwait(false);
-            }
-        }
-        catch (TaskCanceledException)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                CategoryStatus = "La création a expiré. Veuillez réessayer." );
-        }
-        catch (HttpRequestException)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                CategoryStatus = "Impossible de créer la catégorie." );
-        }
-        catch
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                CategoryStatus = "Une erreur est survenue lors de la création." );
-        }
-        finally
-        {
-            IsBusy = false;
-            RefreshCreateAvailability();
-        }
-    }
-
-    private async Task CreatePromoCategoryAsync()
-    {
-        if (IsBusy || !IsPromoCategoryPage)
-        {
-            return;
-        }
-
-        try
-        {
-            IsBusy = true;
-            RefreshCreateAvailability();
-            PromoCategoryStatus = "Création de la catégorie promo en cours…";
-
-            var payload = new { nom = NewPromoCategoryName };
-            var created = await _apis.PostAsync<object, PromoCategory>("/api/crud/categoriepromo/create", payload).ConfigureAwait(false);
-
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (created != null)
-                {
-                    PromoCategories.Insert(0, created);
-                }
-
-                NewPromoCategoryName = string.Empty;
-                PromoCategoryStatus = "Catégorie promo créée avec succès.";
-            });
-
-            if (created == null)
-            {
-                await LoadPromoCategoriesAsync().ConfigureAwait(false);
-            }
-        }
-        catch (TaskCanceledException)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                PromoCategoryStatus = "La création a expiré. Veuillez réessayer." );
-        }
-        catch (HttpRequestException)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                PromoCategoryStatus = "Impossible de créer la catégorie promo." );
-        }
-        catch
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                PromoCategoryStatus = "Une erreur est survenue lors de la création." );
-        }
-        finally
-        {
-            IsBusy = false;
-            RefreshCreateAvailability();
-        }
-    }
-
-    private async Task CreateSuperCategoryAsync()
-    {
-        if (IsBusy || !IsSuperCategoryPage)
-        {
-            return;
-        }
-
-        try
-        {
-            IsBusy = true;
-            RefreshCreateAvailability();
-            SuperCategoryStatus = "Création de la super catégorie en cours…";
-
-            var productIds = ParseProductIds();
-            var selectedIds = AvailableSubCategories.Where(c => c.IsSelected).Select(c => c.Id);
-            var mergedIds = productIds.Concat(selectedIds).Distinct().ToList();
-
-            var payload = new
-            {
-                nom = NewSuperCategoryName,
-                description = NewSuperCategoryDescription,
-                produits = mergedIds
-            };
-
-            var created = await _apis.PostAsync<object, SuperCategory>("/api/crud/categorieparent/create", payload).ConfigureAwait(false);
-
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (created != null)
-                {
-                    SuperCategories.Insert(0, created);
-                }
-
-                NewSuperCategoryName = string.Empty;
-                NewSuperCategoryDescription = string.Empty;
-                NewSuperCategoryProducts = string.Empty;
-                foreach (var sub in AvailableSubCategories)
-                {
-                    sub.IsSelected = false;
-                }
-                UpdateSelectedSubCategorySelection();
-                OnPropertyChanged(nameof(HasParentCategories));
-                SuperCategoryStatus = "Super catégorie créée avec succès.";
-            });
-
-            if (created == null)
-            {
-                await LoadSuperCategoriesAsync().ConfigureAwait(false);
-            }
-        }
-        catch (TaskCanceledException)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                SuperCategoryStatus = "La création a expiré. Veuillez réessayer." );
-        }
-        catch (HttpRequestException)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                SuperCategoryStatus = "Impossible de créer la super catégorie." );
-        }
-        catch
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                SuperCategoryStatus = "Une erreur est survenue lors de la création." );
-        }
-        finally
-        {
-            IsBusy = false;
-            RefreshCreateAvailability();
-        }
-    }
-
-    private async Task LoadHistoriesAsync(bool forceRefresh = false)
-    {
-        if (!IsHistoryPage || IsHistoryLoading)
-        {
-            return;
-        }
-
-        try
-        {
-            IsHistoryLoading = true;
-            HistoryStatusMessage = forceRefresh ? "Actualisation des histoires…" : "Chargement des histoires…";
-
-            var items = await _apis.GetListAsync<HistoryEntry>("/api/crud/histoire/list").ConfigureAwait(false);
-            var ordered = items.OrderByDescending(h => h.DateHistoire ?? DateTime.MinValue).ToList();
-
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                Histories.Clear();
-                foreach (var history in ordered)
-                {
-                    Histories.Add(history);
-                }
-
-                _hasLoadedHistories = true;
-                HistoryStatusMessage = Histories.Count == 0
-                    ? "Aucune histoire à afficher."
-                    : $"{Histories.Count} histoire(s) chargée(s).";
-            });
-        }
-        catch (TaskCanceledException)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                HistoryStatusMessage = "Chargement des histoires annulé." );
-        }
-        catch (HttpRequestException)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                HistoryStatusMessage = "Impossible de récupérer les histoires." );
-        }
-        catch
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                HistoryStatusMessage = "Une erreur est survenue lors du chargement des histoires." );
-        }
-        finally
-        {
-            IsHistoryLoading = false;
-        }
-    }
-
-    private async Task CreateHistoryAsync()
-    {
-        if (!IsHistoryPage || IsHistorySubmitting)
-        {
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(NewHistoryTitle) || string.IsNullOrWhiteSpace(NewHistoryDescription))
-        {
-            HistoryFormStatusMessage = "Renseignez le titre et la description de l'histoire.";
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(_selectedHistoryImageUrl))
-        {
-            HistoryFormStatusMessage = "Sélectionnez une image pour l'histoire.";
-            return;
-        }
-
-        try
-        {
-            IsHistorySubmitting = true;
-            HistoryFormStatusMessage = "Création de l'histoire…";
-
-            var payload = new
-            {
-                titre = NewHistoryTitle.Trim(),
-                description = NewHistoryDescription.Trim(),
-                date = HistoryDate.ToString("yyyy-MM-dd"),
-                image = _selectedHistoryImageUrl
-            };
-
-            var created = await _apis.PostBoolAsync("/api/crud/histoire/create", payload).ConfigureAwait(false);
+            var created = await _apis.PostBoolAsync("/api/crud/categorie/create", payload);
+            CategoryStatusMessage = created
+                ? "Catégorie créée avec succès."
+                : "La création a échoué.";
 
             if (created)
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    HistoryFormStatusMessage = "Histoire créée avec succès.";
-                    NewHistoryTitle = string.Empty;
-                    NewHistoryDescription = string.Empty;
-                    HistoryDate = DateTime.Today;
-                    SelectedHistoryImage = null;
-                    _selectedHistoryImageUrl = null;
-                    SelectedHistoryImageName = "Aucune image sélectionnée.";
-                });
-
-                await LoadHistoriesAsync(forceRefresh: true).ConfigureAwait(false);
-            }
-            else
-            {
-                HistoryFormStatusMessage = "La création de l'histoire a échoué.";
+                ClearCategoryForm();
+                await LoadCategoriesAsync(forceReload: true);
             }
         }
-        catch (TaskCanceledException)
+        catch (HttpRequestException ex)
         {
-            HistoryFormStatusMessage = "Création annulée.";
+            CategoryStatusMessage = $"Impossible de créer ({ex.Message}).";
         }
-        catch (HttpRequestException)
+        catch (Exception ex)
         {
-            HistoryFormStatusMessage = "Impossible de créer l'histoire.";
-        }
-        catch
-        {
-            HistoryFormStatusMessage = "Une erreur est survenue lors de la création de l'histoire.";
+            CategoryStatusMessage = $"Erreur inattendue : {ex.Message}";
         }
         finally
         {
-            IsHistorySubmitting = false;
-            RefreshCreateAvailability();
+            IsBusy = false;
+            RefreshCategoryCommands();
         }
     }
 
-    private async Task LoadHistoryImageLibraryAsync(CancellationToken ct)
+    private async Task UpdateCategoryAsync()
     {
-        if (_historyImageLibraryLoaded || IsHistoryImageLibraryLoading)
+        if (!CanUpdateCategory())
         {
+            CategoryStatusMessage = "Sélectionnez une catégorie et renseignez les champs.";
             return;
         }
 
         try
         {
-            IsHistoryImageLibraryLoading = true;
-            HistoryImageLibraryMessage = "Chargement de la bibliothèque d'images…";
+            IsBusy = true;
+            RefreshCategoryCommands();
+            CategoryStatusMessage = "Mise à jour en cours…";
 
-            var images = await _apis.GetListAsync<AdminImage>("/api/crud/images/list", ct).ConfigureAwait(false);
-
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            if (!await EnsureAuthenticationAsync())
             {
-                HistoryImageLibrary.Clear();
-                foreach (var image in images)
-                {
-                    HistoryImageLibrary.Add(image);
-                }
+                CategoryStatusMessage = "Connexion requise pour mettre à jour.";
+                return;
+            }
 
-                _historyImageLibraryLoaded = true;
-                RefreshHistoryImageFilter();
-                HistoryImageLibraryMessage = HistoryImageLibrary.Count == 0
-                    ? "Aucune image disponible dans l'admin."
-                    : "Sélectionnez une image pour l'histoire.";
-            });
+            var payload = new
+            {
+                id = SelectedCategoryForEdit!.Id,
+                nom = CategoryNameInput.Trim(),
+                lacategorieParentId = SelectedParentForCategory!.Id
+            };
+
+            var updated = await _apis.PostBoolAsync("/api/crud/categorie/update", payload);
+            CategoryStatusMessage = updated
+                ? "Catégorie mise à jour."
+                : "La mise à jour a échoué.";
+
+            if (updated)
+            {
+                await LoadCategoriesAsync(forceReload: true);
+                SelectedCategoryForEdit = null;
+                ClearCategoryForm();
+            }
         }
-        catch (TaskCanceledException)
+        catch (HttpRequestException ex)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                HistoryImageLibraryMessage = "Le chargement des images a expiré." );
+            CategoryStatusMessage = $"Impossible de mettre à jour ({ex.Message}).";
         }
-        catch (HttpRequestException)
+        catch (Exception ex)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                HistoryImageLibraryMessage = "Impossible de charger les images." );
-        }
-        catch
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-                HistoryImageLibraryMessage = "Une erreur est survenue lors du chargement des images." );
+            CategoryStatusMessage = $"Erreur inattendue : {ex.Message}";
         }
         finally
         {
-            IsHistoryImageLibraryLoading = false;
+            IsBusy = false;
+            RefreshCategoryCommands();
         }
     }
 
-    private void RefreshHistoryImageFilter()
+    private void ClearCategoryForm()
     {
-        if (!HistoryImageLibrary.Any())
-        {
-            FilteredHistoryImages.Clear();
-            return;
-        }
+        CategoryNameInput = string.Empty;
+        SelectedParentForCategory = null;
+        SelectedCategoryForEdit = null;
+    }
+    #endregion
 
-        IEnumerable<AdminImage> source = HistoryImageLibrary;
-        var query = HistoryImageSearchTerm?.Trim();
-
-        if (!string.IsNullOrWhiteSpace(query))
-        {
-            var normalized = query.ToLowerInvariant();
-            var filtered = HistoryImageLibrary
-                .Where(img =>
-                    (!string.IsNullOrWhiteSpace(img.DisplayName) && img.DisplayName!.ToLowerInvariant().Contains(normalized))
-                    || (!string.IsNullOrWhiteSpace(img.Url) && img.Url!.ToLowerInvariant().Contains(normalized)))
-                .ToList();
-
-            source = filtered;
-            HistoryImageLibraryMessage = filtered.Count == 0
-                ? "Aucune image ne correspond à cette recherche."
-                : $"{filtered.Count} résultat(s) pour \"{query}\".";
-        }
-        else if (_historyImageLibraryLoaded)
-        {
-            HistoryImageLibraryMessage = HistoryImageLibrary.Count == 0
-                ? "Aucune image disponible dans l'admin."
-                : "Sélectionnez une image pour l'histoire.";
-        }
-
-        FilteredHistoryImages.Clear();
-        foreach (var image in source)
-        {
-            FilteredHistoryImages.Add(image);
-        }
+    #region Helpers
+    private void RefreshParentCommands()
+    {
+        (CreateParentCommand as Command)?.ChangeCanExecute();
+        (UpdateParentCommand as Command)?.ChangeCanExecute();
     }
 
-    private void ApplyHistoryImageSelection(AdminImage? image)
+    private void RefreshCategoryCommands()
     {
-        if (image is null)
-        {
-            _selectedHistoryImageUrl = null;
-            SelectedHistoryImageName = "Aucune image sélectionnée.";
-            RefreshCreateAvailability();
-            return;
-        }
-
-        _selectedHistoryImageUrl = image.Url;
-        SelectedHistoryImageName = $"Image sélectionnée : {image.DisplayName}";
-        RefreshCreateAvailability();
+        (CreateCategoryCommand as Command)?.ChangeCanExecute();
+        (UpdateCategoryCommand as Command)?.ChangeCanExecute();
     }
 
-    private void UpdateSelectedSubCategorySelection()
+    private void ApplyParentNamesToCategories()
     {
-        var selected = AvailableSubCategories.Where(c => c.IsSelected).ToList();
-        SelectedSubCategoryCount = selected.Count;
-
-        if (!selected.Any())
-        {
-            SelectedSubCategorySummary = "Aucune sous-catégorie sélectionnée";
-            return;
-        }
-
-        var preview = selected.Select(c => c.Name).Where(n => !string.IsNullOrWhiteSpace(n)).Take(5).ToList();
-        var suffix = selected.Count > preview.Count
-            ? $" (+{selected.Count - preview.Count} autres)"
-            : string.Empty;
-        SelectedSubCategorySummary = $"{selected.Count} sous-catégorie(s) : {string.Join(", ", preview)}{suffix}";
-    }
-
-    private void ApplyParentCategoryName(SubCategory category)
-    {
-        if (category == null)
+        if (!Categories.Any() || !ParentCategories.Any())
         {
             return;
         }
 
-        var parentName = FindParentCategoryName(category.ParentCategoryId);
-        if (!string.IsNullOrWhiteSpace(parentName))
-        {
-            category.ParentCategoryName = parentName;
-        }
-    }
-
-    private void UpdateExistingCategoryParents()
-    {
+        var parentLookup = ParentCategories.ToDictionary(p => p.Id, p => p.Name);
         foreach (var category in Categories)
         {
-            ApplyParentCategoryName(category);
+            if (category.ParentCategoryId.HasValue && parentLookup.TryGetValue(category.ParentCategoryId.Value, out var name))
+            {
+                category.ParentCategoryName = name;
+            }
+            else
+            {
+                category.ParentCategoryName = null;
+            }
+        }
+
+        OnPropertyChanged(nameof(Categories));
+    }
+
+    private async Task<bool> EnsureAuthenticationAsync()
+    {
+        if (!_sessionLoaded)
+        {
+            _sessionLoaded = true;
+            await _sessionService.LoadAsync();
+        }
+
+        if (!string.IsNullOrWhiteSpace(_sessionService.AuthToken))
+        {
+            _apis.SetBearerToken(_sessionService.AuthToken);
+            return true;
+        }
+
+        if (!await PromptInlineLoginAsync())
+        {
+            return false;
+        }
+
+        _apis.SetBearerToken(_sessionService.AuthToken);
+        return true;
+    }
+
+    private async Task<bool> PromptInlineLoginAsync()
+    {
+        var credentials = await RequestCredentialsAsync();
+        if (credentials is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            var user = await AuthenticateAsync(credentials.Value.username, credentials.Value.password);
+            if (user is null)
+            {
+                ParentStatusMessage = "Identifiants invalides.";
+                CategoryStatusMessage = "Identifiants invalides.";
+                return false;
+            }
+
+            await _sessionService.SaveAsync(user, user.Token);
+            return true;
+        }
+        catch (HttpRequestException)
+        {
+            ParentStatusMessage = "Impossible de contacter le serveur d'authentification.";
+            CategoryStatusMessage = "Impossible de contacter le serveur d'authentification.";
+            return false;
         }
     }
 
-    private string? FindParentCategoryName(int? parentId)
+    private static async Task<(string username, string password)?> RequestCredentialsAsync()
     {
-        if (!parentId.HasValue)
+        var shell = Shell.Current;
+        if (shell is null)
         {
             return null;
         }
 
-        return SuperCategories.FirstOrDefault(sc => sc.Id == parentId.Value)?.Name;
+        var username = await shell.DisplayPromptAsync(
+            "Connexion requise",
+            "Identifiez-vous pour continuer.",
+            accept: "Continuer",
+            cancel: "Annuler");
+
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            return null;
+        }
+
+        var password = await shell.DisplayPromptAsync(
+            "Mot de passe",
+            "Entrez votre mot de passe",
+            accept: "Valider",
+            cancel: "Annuler",
+            placeholder: "Mot de passe",
+            keyboard: Keyboard.Text);
+
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            return null;
+        }
+
+        return (username.Trim(), password);
     }
 
-    private void DetachSubCategoryHandlers()
+    private async Task<User?> AuthenticateAsync(string username, string password)
     {
-        foreach (var item in AvailableSubCategories)
+        var loginData = new
         {
-            item.PropertyChanged -= OnSubCategoryPropertyChanged;
+            Email = username,
+            Password = password
+        };
+
+        try
+        {
+            return await _apis.PostAsync<object, User>("/api/mobile/GetFindUser", loginData);
+        }
+        catch (HttpRequestException ex)
+        {
+            Debug.WriteLine($"[AUTH] error: {ex}");
+            return null;
         }
     }
 
-    private void OnSubCategoryPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    private Task NavigateHomeAsync()
     {
-        if (e.PropertyName == nameof(SelectableSubCategory.IsSelected))
-        {
-            UpdateSelectedSubCategorySelection();
-        }
+        return Shell.Current is null
+            ? Task.CompletedTask
+            : Shell.Current.GoToAsync("//HomePage", animate: false);
     }
-
-    private List<int> ParseProductIds()
-    {
-        return NewSuperCategoryProducts
-            .Split(new[] { ',', ';', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(token => token.Trim())
-            .Select(token => int.TryParse(token, out var id) ? id : (int?)null)
-            .Where(id => id.HasValue)
-            .Select(id => id!.Value)
-            .ToList();
-    }
+    #endregion
 }

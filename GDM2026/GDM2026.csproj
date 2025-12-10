@@ -74,6 +74,9 @@
           <MauiXaml Update="Views\CommentsPage.xaml">
             <Generator>MSBuild:Compile</Generator>
           </MauiXaml>
+          <MauiXaml Update="Views\EvenementPage.xaml">
+            <Generator>MSBuild:Compile</Generator>
+          </MauiXaml>
           <MauiXaml Update="Views\ProductsEditPage.xaml">
             <Generator>MSBuild:Compile</Generator>
           </MauiXaml>
