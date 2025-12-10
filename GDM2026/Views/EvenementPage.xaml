@@ -143,12 +143,14 @@
                     Stroke="#000000"
                     StrokeThickness="1.5"
                     Padding="24"
-                    IsVisible="{Binding IsSelectionVisible}">
+                    IsVisible="{Binding IsSelectionVisible}"
+                    HeightRequest="620">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="18" />
                 </Border.StrokeShape>
 
-                <VerticalStackLayout Spacing="12">
+                <VerticalStackLayout Spacing="12"
+                                      VerticalOptions="FillAndExpand">
                     <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
                         <Label Text="Catégories promo"
                                Style="{StaticResource SectionTitleStyle}" />
@@ -159,10 +161,14 @@
                     </Grid>
 
                     <RefreshView Command="{Binding RefreshCommand}"
-                                 IsRefreshing="{Binding IsRefreshing}">
+                                 IsRefreshing="{Binding IsRefreshing}"
+                                 HeightRequest="540"
+                                 VerticalOptions="FillAndExpand">
                         <CollectionView ItemsSource="{Binding PromoCategories}"
                                         SelectionMode="Single"
-                                        SelectedItem="{Binding SelectedCategory}">
+                                        SelectedItem="{Binding SelectedCategory}"
+                                        VerticalOptions="FillAndExpand"
+                                        ItemSizingStrategy="MeasureAllItems">
                             <CollectionView.ItemsLayout>
                                 <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
                             </CollectionView.ItemsLayout>
