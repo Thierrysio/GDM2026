@@ -9,7 +9,7 @@
         <Color x:Key="CardBackground">#151515</Color>
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="16" Padding="24">
+    <Grid RowDefinitions="*,Auto,*" RowSpacing="16" Padding="24">
         <ScrollView Grid.Row="0">
             <VerticalStackLayout Spacing="18">
                 <Border BackgroundColor="{StaticResource CardBackground}" Stroke="#000000" StrokeThickness="1.5" Padding="20">
