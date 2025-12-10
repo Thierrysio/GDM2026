@@ -9,7 +9,7 @@
         <Color x:Key="CardBackground">#151515</Color>
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,*" RowSpacing="16" Padding="24">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="16" Padding="24">
         <ScrollView Grid.Row="0">
             <VerticalStackLayout Spacing="18">
                 <Border BackgroundColor="{StaticResource CardBackground}" Stroke="#000000" StrokeThickness="1.5" Padding="20">
@@ -41,14 +41,15 @@
                         </HorizontalStackLayout>
                     </VerticalStackLayout>
                 </Frame>
-
-                <Button Text="{Binding SelectionButtonText}" Command="{Binding ShowSelectionCommand}" BackgroundColor="#1F1F1F" TextColor="{StaticResource GoldText}" CornerRadius="14" />
-
-                <Label Text="{Binding StatusMessage}" TextColor="{StaticResource GoldText}" FontSize="13" LineBreakMode="WordWrap" />
             </VerticalStackLayout>
         </ScrollView>
 
-        <RefreshView Grid.Row="1" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}" IsVisible="{Binding IsSelectionVisible}">
+        <VerticalStackLayout Grid.Row="1" Spacing="10">
+            <Button Text="{Binding SelectionButtonText}" Command="{Binding ShowSelectionCommand}" BackgroundColor="#1F1F1F" TextColor="{StaticResource GoldText}" CornerRadius="14" />
+            <Label Text="{Binding StatusMessage}" TextColor="{StaticResource GoldText}" FontSize="13" LineBreakMode="WordWrap" />
+        </VerticalStackLayout>
+
+        <RefreshView Grid.Row="2" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}" IsVisible="{Binding IsSelectionVisible}">
             <CollectionView ItemsSource="{Binding PromoCategories}" SelectionMode="Single" SelectedItem="{Binding SelectedCategory}" VerticalOptions="FillAndExpand">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
