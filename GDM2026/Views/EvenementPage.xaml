@@ -162,7 +162,9 @@
                                  IsRefreshing="{Binding IsRefreshing}">
                         <CollectionView ItemsSource="{Binding PromoCategories}"
                                         SelectionMode="Single"
-                                        SelectedItem="{Binding SelectedCategory}">
+                                        SelectedItem="{Binding SelectedCategory}"
+                                        HeightRequest="520"
+                                        ItemSizingStrategy="MeasureAllItems">
                             <CollectionView.ItemsLayout>
                                 <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
                             </CollectionView.ItemsLayout>
