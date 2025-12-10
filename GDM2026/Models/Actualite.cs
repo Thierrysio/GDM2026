@@ -11,7 +11,7 @@ public class Actualite
     [JsonProperty("titre")]
     public string Titre { get; set; } = string.Empty;
 
-    [JsonProperty("description")]
+    [JsonProperty("texte")]
     public string Description { get; set; } = string.Empty;
 
     [JsonProperty("image")]

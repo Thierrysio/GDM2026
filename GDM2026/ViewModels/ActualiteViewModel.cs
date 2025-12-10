@@ -13,11 +13,19 @@ namespace GDM2026.ViewModels;
 
 public class ActualiteViewModel : BaseViewModel
 {
+    private enum ActualiteFormMode
+    {
+        None,
+        Create,
+        Update,
+        Delete
+    }
+
     private readonly Apis _apis;
     private readonly SessionService _sessionService = new();
 
     private bool _sessionLoaded;
-    private bool _isFormVisible;
+    private ActualiteFormMode _currentMode;
     private string _actualiteTitle = string.Empty;
     private string _actualiteContent = string.Empty;
     private string _statusMessage = "Ajoutez une actualité avec une image pour la publier.";
@@ -33,6 +41,8 @@ public class ActualiteViewModel : BaseViewModel
     private bool _hasLoadedActualites;
     private bool _isLoadingActualites;
     private string _actualitesStatusMessage = "Chargement des actualités…";
+    private Actualite? _selectedActualiteForEdit;
+    private string _imageSearchTerm = string.Empty;
 
     public ObservableCollection<AdminImage> ImageLibrary { get; } = new();
     public ObservableCollection<AdminImage> FilteredImageLibrary { get; } = new();
@@ -42,19 +52,59 @@ public class ActualiteViewModel : BaseViewModel
     {
         _apis = new Apis();
 
-        ToggleFormCommand = new Command(async () => await ToggleFormAsync());
-        SubmitCommand = new Command(async () => await SubmitAsync(), CanSubmit);
+        ShowCreatePanelCommand = new Command(async () => await SetModeAsync(ActualiteFormMode.Create));
+        ShowUpdatePanelCommand = new Command(async () => await SetModeAsync(ActualiteFormMode.Update));
+        ShowDeletePanelCommand = new Command(async () => await SetModeAsync(ActualiteFormMode.Delete));
+
+        CreateActualiteCommand = new Command(async () => await CreateActualiteAsync(), CanCreateActualite);
+        UpdateActualiteCommand = new Command(async () => await UpdateActualiteAsync(), CanUpdateActualite);
+        DeleteActualiteCommand = new Command<Actualite>(async actualite => await DeleteActualiteAsync(actualite));
     }
 
-    public ICommand ToggleFormCommand { get; }
+    public ICommand ShowCreatePanelCommand { get; }
 
-    public ICommand SubmitCommand { get; }
+    public ICommand ShowUpdatePanelCommand { get; }
 
-    public bool IsFormVisible
+    public ICommand ShowDeletePanelCommand { get; }
+
+    public ICommand CreateActualiteCommand { get; }
+
+    public ICommand UpdateActualiteCommand { get; }
+
+    public ICommand DeleteActualiteCommand { get; }
+
+    public bool IsCreateMode => _currentMode == ActualiteFormMode.Create;
+
+    public bool IsUpdateMode => _currentMode == ActualiteFormMode.Update;
+
+    public bool IsDeleteMode => _currentMode == ActualiteFormMode.Delete;
+
+    public bool IsFormSectionVisible => _currentMode == ActualiteFormMode.Create || _currentMode == ActualiteFormMode.Update;
+
+    public bool IsFormInputEnabled => _currentMode == ActualiteFormMode.Create || _selectedActualiteForEdit is not null;
+
+    public string FormHeader => _currentMode switch
     {
-        get => _isFormVisible;
-        set => SetProperty(ref _isFormVisible, value);
-    }
+        ActualiteFormMode.Update => "Mettre à jour une actualité",
+        ActualiteFormMode.Create => "Nouvelle actualité",
+        _ => "Formulaire"
+    };
+
+    public string FormHelperMessage => _currentMode switch
+    {
+        ActualiteFormMode.Create => "Renseignez les informations de la nouvelle actualité.",
+        ActualiteFormMode.Update when _selectedActualiteForEdit is null => "Sélectionnez d'abord une actualité dans la liste ci-dessous.",
+        ActualiteFormMode.Update when _selectedActualiteForEdit is not null => $"Modification de l'actualité #{_selectedActualiteForEdit.Id}.",
+        _ => string.Empty
+    };
+
+    public string FormActionButtonText => _currentMode == ActualiteFormMode.Update
+        ? "Mettre à jour l'actualité"
+        : "Ajouter une actualité";
+
+    public ICommand FormActionCommand => _currentMode == ActualiteFormMode.Update
+        ? UpdateActualiteCommand
+        : CreateActualiteCommand;
 
     public bool IsLoadingActualites
     {
@@ -81,7 +131,7 @@ public class ActualiteViewModel : BaseViewModel
         {
             if (SetProperty(ref _actualiteTitle, value))
             {
-                RefreshSubmitAvailability();
+                RefreshFormCommands();
             }
         }
     }
@@ -93,7 +143,7 @@ public class ActualiteViewModel : BaseViewModel
         {
             if (SetProperty(ref _actualiteContent, value))
             {
-                RefreshSubmitAvailability();
+                RefreshFormCommands();
             }
         }
     }
@@ -146,8 +196,6 @@ public class ActualiteViewModel : BaseViewModel
         set => SetProperty(ref _imageLibraryMessage, value);
     }
 
-    private string _imageSearchTerm = string.Empty;
-
     public string ImageSearchTerm
     {
         get => _imageSearchTerm;
@@ -172,36 +220,153 @@ public class ActualiteViewModel : BaseViewModel
         set => SetProperty(ref _statusColor, value);
     }
 
+    public Actualite? SelectedActualiteForEdit
+    {
+        get => _selectedActualiteForEdit;
+        set
+        {
+            if (SetProperty(ref _selectedActualiteForEdit, value))
+            {
+                PopulateSelection(value);
+                OnPropertyChanged(nameof(HasActualiteSelection));
+                OnPropertyChanged(nameof(FormHelperMessage));
+                OnPropertyChanged(nameof(IsFormInputEnabled));
+                RefreshFormCommands();
+            }
+        }
+    }
+
+    public bool HasActualiteSelection => _selectedActualiteForEdit is not null;
+
     public async Task EnsureActualitesLoadedAsync()
     {
-        if (_hasLoadedActualites || IsLoadingActualites)
-        {
-            return;
-        }
-
         await LoadActualitesAsync();
     }
 
-    private bool CanSubmit()
+    private bool CanCreateActualite()
     {
         return !IsBusy
+            && _currentMode == ActualiteFormMode.Create
             && !string.IsNullOrWhiteSpace(_actualiteContent)
             && !string.IsNullOrWhiteSpace(_actualiteTitle)
             && !string.IsNullOrWhiteSpace(_selectedImageUrl);
     }
 
-    private void RefreshSubmitAvailability()
+    private bool CanUpdateActualite()
     {
-        (SubmitCommand as Command)?.ChangeCanExecute();
+        return !IsBusy
+            && _currentMode == ActualiteFormMode.Update
+            && _selectedActualiteForEdit is not null
+            && !string.IsNullOrWhiteSpace(_actualiteTitle)
+            && !string.IsNullOrWhiteSpace(_actualiteContent)
+            && !string.IsNullOrWhiteSpace(_selectedImageUrl);
     }
 
-    private async Task ToggleFormAsync()
+    private void RefreshFormCommands()
     {
-        IsFormVisible = !IsFormVisible;
+        (CreateActualiteCommand as Command)?.ChangeCanExecute();
+        (UpdateActualiteCommand as Command)?.ChangeCanExecute();
+    }
 
-        if (IsFormVisible && ImageLibrary.Count == 0)
+    private async Task SetModeAsync(ActualiteFormMode mode)
+    {
+        if (_currentMode == mode)
+        {
+            _currentMode = ActualiteFormMode.None;
+            OnModeChanged();
+            SelectedActualiteForEdit = null;
+            return;
+        }
+
+        _currentMode = mode;
+        OnModeChanged();
+
+        switch (mode)
+        {
+            case ActualiteFormMode.Create:
+                PrepareCreateForm();
+                await EnsureImageLibraryAsync();
+                break;
+            case ActualiteFormMode.Update:
+                PrepareUpdateForm();
+                await EnsureImageLibraryAsync();
+                await LoadActualitesAsync(forceReload: true);
+                break;
+            case ActualiteFormMode.Delete:
+                SelectedActualiteForEdit = null;
+                await LoadActualitesAsync(forceReload: true);
+                break;
+        }
+
+        RefreshFormCommands();
+    }
+
+    private void OnModeChanged()
+    {
+        OnPropertyChanged(nameof(IsCreateMode));
+        OnPropertyChanged(nameof(IsUpdateMode));
+        OnPropertyChanged(nameof(IsDeleteMode));
+        OnPropertyChanged(nameof(IsFormSectionVisible));
+        OnPropertyChanged(nameof(IsFormInputEnabled));
+        OnPropertyChanged(nameof(FormHeader));
+        OnPropertyChanged(nameof(FormHelperMessage));
+        OnPropertyChanged(nameof(FormActionButtonText));
+        OnPropertyChanged(nameof(FormActionCommand));
+    }
+
+    private void PrepareCreateForm()
+    {
+        ActualiteTitle = string.Empty;
+        ActualiteContent = string.Empty;
+        SelectedLibraryImage = null;
+        ClearSelectedImage();
+    }
+
+    private void PrepareUpdateForm()
+    {
+        SelectedActualiteForEdit = null;
+        SelectedLibraryImage = null;
+        ClearSelectedImage();
+        ActualiteTitle = string.Empty;
+        ActualiteContent = string.Empty;
+    }
+
+    private async Task EnsureImageLibraryAsync()
+    {
+        if (ImageLibrary.Count == 0 && !IsImageLibraryLoading)
         {
             await LoadImageLibraryAsync();
+        }
+    }
+
+    private void PopulateSelection(Actualite? actualite)
+    {
+        if (actualite is null)
+        {
+            return;
+        }
+
+        ActualiteTitle = actualite.Titre ?? string.Empty;
+        ActualiteContent = actualite.Description ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(actualite.Image))
+        {
+            _selectedImageUrl = actualite.Image;
+            HasSelectedImage = true;
+            SelectedImageCustomName = actualite.Titre;
+            if (!string.IsNullOrWhiteSpace(actualite.FullImageUrl))
+            {
+                SelectedImage = ImageSource.FromUri(new Uri(actualite.FullImageUrl));
+            }
+            else
+            {
+                SelectedImage = null;
+            }
+            UpdateSelectedImageLabel();
+        }
+        else
+        {
+            ClearSelectedImage();
         }
     }
 
@@ -209,12 +374,8 @@ public class ActualiteViewModel : BaseViewModel
     {
         if (image is null)
         {
-            HasSelectedImage = false;
-            _selectedImageUrl = null;
-            SelectedImage = null;
-            SelectedImageCustomName = string.Empty;
-            SelectedImageName = "Aucune image sélectionnée.";
-            RefreshSubmitAvailability();
+            ClearSelectedImage();
+            RefreshFormCommands();
             return;
         }
 
@@ -225,7 +386,16 @@ public class ActualiteViewModel : BaseViewModel
         StatusMessage = "Image sélectionnée depuis la bibliothèque.";
         StatusColor = Colors.LightGreen;
         UpdateSelectedImageLabel();
-        RefreshSubmitAvailability();
+        RefreshFormCommands();
+    }
+
+    private void ClearSelectedImage()
+    {
+        HasSelectedImage = false;
+        _selectedImageUrl = null;
+        SelectedImage = null;
+        SelectedImageCustomName = string.Empty;
+        SelectedImageName = "Aucune image sélectionnée.";
     }
 
     private void UpdateSelectedImageLabel()
@@ -326,8 +496,13 @@ public class ActualiteViewModel : BaseViewModel
             : "Sélectionnez une image existante ou recherchez dans la bibliothèque.";
     }
 
-    private async Task LoadActualitesAsync()
+    private async Task LoadActualitesAsync(bool forceReload = false)
     {
+        if (IsLoadingActualites || (!forceReload && _hasLoadedActualites))
+        {
+            return;
+        }
+
         try
         {
             IsLoadingActualites = true;
@@ -362,7 +537,7 @@ public class ActualiteViewModel : BaseViewModel
         }
     }
 
-    private async Task SubmitAsync()
+    private async Task CreateActualiteAsync()
     {
         if (IsBusy)
         {
@@ -386,7 +561,7 @@ public class ActualiteViewModel : BaseViewModel
         try
         {
             IsBusy = true;
-            RefreshSubmitAvailability();
+            RefreshFormCommands();
 
             StatusMessage = "Publication en cours…";
             StatusColor = Colors.Gold;
@@ -396,14 +571,14 @@ public class ActualiteViewModel : BaseViewModel
                 return;
             }
 
-            var creationPayload = new
+            var payload = new
             {
                 titre = _actualiteTitle.Trim(),
-                description = _actualiteContent.Trim(),
+                texte = _actualiteContent.Trim(),
                 image = _selectedImageUrl
             };
 
-            var created = await _apis.PostBoolAsync("/api/crud/actualite/create", creationPayload);
+            var created = await _apis.PostBoolAsync("/api/crud/actualite/create", payload);
             StatusMessage = created
                 ? "Actualité publiée avec succès."
                 : "La publication a échoué. Veuillez réessayer.";
@@ -411,17 +586,8 @@ public class ActualiteViewModel : BaseViewModel
 
             if (created)
             {
-                ActualiteTitle = string.Empty;
-                ActualiteContent = string.Empty;
-                SelectedImage = null;
-                SelectedImageCustomName = string.Empty;
-                SelectedImageName = "Aucune image sélectionnée.";
-                _selectedImageUrl = null;
-                HasSelectedImage = false;
-                IsFormVisible = false;
-
-                _hasLoadedActualites = false;
-                await LoadActualitesAsync();
+                PrepareCreateForm();
+                await LoadActualitesAsync(forceReload: true);
             }
         }
         catch (OperationCanceledException)
@@ -457,7 +623,163 @@ public class ActualiteViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
-            RefreshSubmitAvailability();
+            RefreshFormCommands();
+        }
+    }
+
+    private async Task UpdateActualiteAsync()
+    {
+        if (IsBusy || _selectedActualiteForEdit is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_selectedImageUrl))
+        {
+            StatusMessage = "Ajoutez ou sélectionnez une image avant de mettre à jour.";
+            StatusColor = Colors.OrangeRed;
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            RefreshFormCommands();
+
+            StatusMessage = "Mise à jour en cours…";
+            StatusColor = Colors.Gold;
+
+            if (!await EnsureAuthenticationAsync())
+            {
+                return;
+            }
+
+            var payload = new
+            {
+                id = _selectedActualiteForEdit.Id,
+                titre = _actualiteTitle.Trim(),
+                texte = _actualiteContent.Trim(),
+                image = _selectedImageUrl
+            };
+
+            var updated = await _apis.PostBoolAsync("/api/crud/actualite/update", payload);
+            StatusMessage = updated
+                ? "Actualité mise à jour."
+                : "La mise à jour a échoué.";
+            StatusColor = updated ? Colors.LightGreen : Colors.OrangeRed;
+
+            if (updated)
+            {
+                await LoadActualitesAsync(forceReload: true);
+                PrepareUpdateForm();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "Mise à jour annulée.";
+            StatusColor = Colors.Gold;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            Debug.WriteLine($"[ACTUALITE] Update 401 : {ex}");
+            StatusMessage = "Authentification requise pour mettre à jour.";
+            StatusColor = Colors.OrangeRed;
+
+            if (await PromptInlineLoginAsync())
+            {
+                ApplyAuthToken();
+                StatusMessage = "Connexion rétablie. Relancez la mise à jour.";
+                StatusColor = Colors.LightGreen;
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Debug.WriteLine($"[ACTUALITE] HTTP error update: {ex}");
+            StatusMessage = $"Impossible de contacter le serveur dantecmarket.com. ({ex.Message})";
+            StatusColor = Colors.OrangeRed;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Mise à jour actualité échouée: {ex}");
+            StatusMessage = $"Une erreur est survenue : {ex.Message}";
+            StatusColor = Colors.OrangeRed;
+        }
+        finally
+        {
+            IsBusy = false;
+            RefreshFormCommands();
+        }
+    }
+
+    private async Task DeleteActualiteAsync(Actualite? actualite)
+    {
+        if (actualite is null || IsBusy)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            StatusMessage = $"Suppression de l'actualité #{actualite.Id}…";
+            StatusColor = Colors.Gold;
+
+            if (!await EnsureAuthenticationAsync())
+            {
+                return;
+            }
+
+            var payload = new { id = actualite.Id };
+            var deleted = await _apis.PostBoolAsync("/api/crud/actualite/delete", payload);
+
+            StatusMessage = deleted
+                ? "Actualité supprimée."
+                : "La suppression a échoué.";
+            StatusColor = deleted ? Colors.LightGreen : Colors.OrangeRed;
+
+            if (deleted)
+            {
+                await LoadActualitesAsync(forceReload: true);
+                if (_selectedActualiteForEdit?.Id == actualite.Id)
+                {
+                    PrepareUpdateForm();
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "Suppression annulée.";
+            StatusColor = Colors.Gold;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            Debug.WriteLine($"[ACTUALITE] Delete 401 : {ex}");
+            StatusMessage = "Authentification requise pour supprimer.";
+            StatusColor = Colors.OrangeRed;
+
+            if (await PromptInlineLoginAsync())
+            {
+                ApplyAuthToken();
+                StatusMessage = "Connexion rétablie. Relancez la suppression.";
+                StatusColor = Colors.LightGreen;
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Debug.WriteLine($"[ACTUALITE] HTTP error delete: {ex}");
+            StatusMessage = $"Impossible de contacter le serveur dantecmarket.com. ({ex.Message})";
+            StatusColor = Colors.OrangeRed;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Suppression actualité échouée: {ex}");
+            StatusMessage = $"Une erreur est survenue : {ex.Message}";
+            StatusColor = Colors.OrangeRed;
+        }
+        finally
+        {
+            IsBusy = false;
+            RefreshFormCommands();
         }
     }
 
@@ -475,12 +797,12 @@ public class ActualiteViewModel : BaseViewModel
             return true;
         }
 
-        StatusMessage = "Vous devez vous reconnecter pour publier.";
+        StatusMessage = "Vous devez vous reconnecter.";
         StatusColor = Colors.OrangeRed;
 
         if (!await PromptInlineLoginAsync())
         {
-            StatusMessage = "Connexion requise pour publier.";
+            StatusMessage = "Connexion requise pour continuer.";
             StatusColor = Colors.OrangeRed;
             return false;
         }
@@ -510,7 +832,7 @@ public class ActualiteViewModel : BaseViewModel
             var user = await AuthenticateAsync(credentials.Value.username, credentials.Value.password);
             if (user is null)
             {
-                StatusMessage = "Identifiants invalides. Merci de réessayer.";
+                StatusMessage = "Identifiants invalides.";
                 StatusColor = Colors.OrangeRed;
                 return false;
             }
@@ -519,12 +841,12 @@ public class ActualiteViewModel : BaseViewModel
 
             if (string.IsNullOrWhiteSpace(_sessionService.AuthToken))
             {
-                StatusMessage = "Connexion effectuée, mais aucun jeton n'a été reçu.";
+                StatusMessage = "Connexion effectuée mais aucun jeton reçu.";
                 StatusColor = Colors.OrangeRed;
                 return false;
             }
 
-            StatusMessage = "Connexion réussie. Relancez la publication.";
+            StatusMessage = "Connexion réussie. Relancez l'action.";
             StatusColor = Colors.LightGreen;
             return true;
         }
@@ -552,7 +874,7 @@ public class ActualiteViewModel : BaseViewModel
 
         var username = await shell.DisplayPromptAsync(
             "Connexion requise",
-            "Identifiez-vous pour publier une actualité.",
+            "Identifiez-vous pour continuer.",
             accept: "Continuer",
             cancel: "Annuler",
             placeholder: "Email ou identifiant");
@@ -595,5 +917,4 @@ public class ActualiteViewModel : BaseViewModel
             return null;
         }
     }
-
 }

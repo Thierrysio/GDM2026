@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="GDM2026.ActualitePage"
+             x:Name="ActualitePageRoot"
              BackgroundColor="#0B0B0B">
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
@@ -19,7 +20,7 @@
                     <RoundRectangle CornerRadius="18" />
                 </Border.StrokeShape>
 
-                <VerticalStackLayout Spacing="14">
+                <VerticalStackLayout Spacing="16">
                     <Label
                         Text="Actualités"
                         FontSize="28"
@@ -28,20 +29,32 @@
                         TextColor="{StaticResource GoldText}" />
 
                     <Label
-                        Text="Publiez rapidement une actualité avec une image pour l'afficher sur Dantec Market."
+                        Text="Gérez la création, la mise à jour et la suppression des actualités affichées sur Dantec Market."
                         FontSize="16"
                         HorizontalTextAlignment="Center"
                         TextColor="{StaticResource GoldText}"
                         Opacity="0.85" />
 
-                    <Button
-                        Text="+ Nouvelle actualité"
-                        BackgroundColor="#303030"
-                        TextColor="{StaticResource GoldText}"
-                        Command="{Binding ToggleFormCommand}" />
+                    <VerticalStackLayout Spacing="10">
+                        <Button
+                            Text="+ Nouvelle actualité"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowCreatePanelCommand}" />
+                        <Button
+                            Text="Mettre à jour une actualité"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowUpdatePanelCommand}" />
+                        <Button
+                            Text="Supprimer une actualité"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowDeletePanelCommand}" />
+                    </VerticalStackLayout>
 
                     <Frame
-                        IsVisible="{Binding IsFormVisible}"
+                        IsVisible="{Binding IsUpdateMode}"
                         BackgroundColor="#1E1E1E"
                         Padding="14"
                         HasShadow="False"
@@ -49,75 +62,46 @@
                         BorderColor="#2D2D2D">
                         <VerticalStackLayout Spacing="12">
                             <Label
-                                Text="Titre"
+                                Text="Sélectionnez une actualité à modifier"
                                 FontAttributes="Bold"
                                 TextColor="{StaticResource GoldText}" />
-                            <Entry
-                                Placeholder="Titre de l'actualité"
-                                Text="{Binding ActualiteTitle}"
-                                TextColor="{StaticResource GoldText}"
-                                PlaceholderColor="#777"
-                                BackgroundColor="#121212" />
 
-                            <Label
-                                Text="Contenu"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource GoldText}" />
-                            <Editor
-                                HeightRequest="140"
-                                Text="{Binding ActualiteContent}"
-                                Placeholder="Décrivez brièvement l'actualité"
-                                TextColor="{StaticResource GoldText}"
-                                PlaceholderColor="#777"
-                                BackgroundColor="#121212" />
+                            <ActivityIndicator
+                                IsRunning="{Binding IsLoadingActualites}"
+                                IsVisible="{Binding IsLoadingActualites}"
+                                Color="{StaticResource GoldText}" />
 
-                    <Label
-                        Text="Bibliothèque d'images (admin)"
-                        FontAttributes="Bold"
-                        TextColor="{StaticResource GoldText}" />
-
-                    <SearchBar
-                        Placeholder="Rechercher une image"
-                        Text="{Binding ImageSearchTerm}"
-                        BackgroundColor="#121212"
-                        TextColor="{StaticResource GoldText}"
-                        PlaceholderColor="#777"
-                        CancelButtonColor="{StaticResource GoldText}" />
-
-                    <Label
-                        Text="{Binding ImageLibraryMessage}"
-                        TextColor="{StaticResource GoldText}"
-                        FontSize="13"
-                        Opacity="0.85" />
-
-                    <ActivityIndicator
-                        IsRunning="{Binding IsImageLibraryLoading}"
-                        IsVisible="{Binding IsImageLibraryLoading}"
-                        Color="{StaticResource GoldText}" />
-
-                    <CollectionView
-                        ItemsSource="{Binding FilteredImageLibrary}"
-                        SelectionMode="Single"
-                        SelectedItem="{Binding SelectedLibraryImage}"
-                        HeightRequest="260">
+                            <CollectionView
+                                ItemsSource="{Binding Actualites}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedActualiteForEdit}"
+                                HeightRequest="240">
                                 <CollectionView.ItemsLayout>
-                                    <GridItemsLayout Orientation="Vertical" Span="3" />
+                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
                                 </CollectionView.ItemsLayout>
+                                <CollectionView.EmptyView>
+                                    <Label
+                                        Text="Aucune actualité n'a encore été chargée."
+                                        TextColor="{StaticResource GoldText}"
+                                        HorizontalTextAlignment="Center"
+                                        Opacity="0.6" />
+                                </CollectionView.EmptyView>
                                 <CollectionView.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="6" Margin="4">
-                                            <VerticalStackLayout Spacing="6">
-                                                <Image
-                                                    Source="{Binding FullUrl}"
-                                                    Aspect="AspectFill"
-                                                    HeightRequest="80"
-                                                    WidthRequest="100" />
+                                        <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="10" Margin="0,4">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="12" />
+                                            </Border.StrokeShape>
+                                            <VerticalStackLayout Spacing="4">
                                                 <Label
-                                                    Text="{Binding DisplayName}"
+                                                    Text="{Binding Id, StringFormat='Id : {0}'}"
                                                     TextColor="{StaticResource GoldText}"
-                                                    FontSize="11"
-                                                    LineBreakMode="TailTruncation"
-                                                    HorizontalTextAlignment="Center" />
+                                                    FontSize="13" />
+                                                <Label
+                                                    Text="{Binding Titre}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontAttributes="Bold"
+                                                    LineBreakMode="TailTruncation" />
                                             </VerticalStackLayout>
                                         </Border>
                                     </DataTemplate>
@@ -125,42 +109,221 @@
                             </CollectionView>
 
                             <Label
-                                Text="{Binding SelectedImageName}"
+                                Text="{Binding ActualitesStatusMessage}"
                                 TextColor="{StaticResource GoldText}"
                                 FontSize="13"
-                                Opacity="0.85" />
+                                Opacity="0.85"
+                                HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Frame>
 
-                            <VerticalStackLayout Spacing="6">
+                    <Frame
+                        IsVisible="{Binding IsDeleteMode}"
+                        BackgroundColor="#1E1E1E"
+                        Padding="14"
+                        HasShadow="False"
+                        CornerRadius="14"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="Sélectionnez une actualité pour la supprimer"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}" />
+
+                            <ActivityIndicator
+                                IsRunning="{Binding IsLoadingActualites}"
+                                IsVisible="{Binding IsLoadingActualites}"
+                                Color="{StaticResource GoldText}" />
+
+                            <CollectionView
+                                ItemsSource="{Binding Actualites}"
+                                SelectionMode="None"
+                                HeightRequest="240">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.EmptyView>
+                                    <Label
+                                        Text="Aucune actualité n'a encore été chargée."
+                                        TextColor="{StaticResource GoldText}"
+                                        HorizontalTextAlignment="Center"
+                                        Opacity="0.6" />
+                                </CollectionView.EmptyView>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="10" Margin="0,4">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="12" />
+                                            </Border.StrokeShape>
+                                            <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                                                <VerticalStackLayout Spacing="2" HorizontalOptions="StartAndExpand">
+                                                    <Label
+                                                        Text="{Binding Id, StringFormat='Id : {0}'}"
+                                                        TextColor="{StaticResource GoldText}"
+                                                        FontSize="12" />
+                                                    <Label
+                                                        Text="{Binding Titre}"
+                                                        TextColor="{StaticResource GoldText}"
+                                                        FontAttributes="Bold"
+                                                        LineBreakMode="TailTruncation" />
+                                                </VerticalStackLayout>
+                                                <Button
+                                                    Text="Supprimer"
+                                                    BackgroundColor="#8B0000"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    Command="{Binding Source={x:Reference ActualitePageRoot}, Path=BindingContext.DeleteActualiteCommand}"
+                                                    CommandParameter="{Binding .}" />
+                                            </HorizontalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+
+                            <Label
+                                Text="{Binding ActualitesStatusMessage}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.85"
+                                HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <Frame
+                        IsVisible="{Binding IsFormSectionVisible}"
+                        BackgroundColor="#1E1E1E"
+                        Padding="14"
+                        HasShadow="False"
+                        CornerRadius="14"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="{Binding FormHeader}"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="20" />
+
+                            <Label
+                                Text="{Binding FormHelperMessage}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.8" />
+
+                            <VerticalStackLayout Spacing="12" IsEnabled="{Binding IsFormInputEnabled}">
                                 <Label
-                                    Text="Renommer la photo sélectionnée"
+                                    Text="Titre"
                                     FontAttributes="Bold"
                                     TextColor="{StaticResource GoldText}" />
                                 <Entry
-                                    Placeholder="Nom personnalisé pour la photo"
-                                    Text="{Binding SelectedImageCustomName}"
-                                    IsEnabled="{Binding HasSelectedImage}"
+                                    Placeholder="Titre de l'actualité"
+                                    Text="{Binding ActualiteTitle}"
                                     TextColor="{StaticResource GoldText}"
                                     PlaceholderColor="#777"
                                     BackgroundColor="#121212" />
+
+                                <Label
+                                    Text="Contenu"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource GoldText}" />
+                                <Editor
+                                    HeightRequest="140"
+                                    Text="{Binding ActualiteContent}"
+                                    Placeholder="Décrivez brièvement l'actualité"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    BackgroundColor="#121212" />
+
+                                <Label
+                                    Text="Bibliothèque d'images (admin)"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource GoldText}" />
+
+                                <SearchBar
+                                    Placeholder="Rechercher une image"
+                                    Text="{Binding ImageSearchTerm}"
+                                    BackgroundColor="#121212"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    CancelButtonColor="{StaticResource GoldText}" />
+
+                                <Label
+                                    Text="{Binding ImageLibraryMessage}"
+                                    TextColor="{StaticResource GoldText}"
+                                    FontSize="13"
+                                    Opacity="0.85" />
+
+                                <ActivityIndicator
+                                    IsRunning="{Binding IsImageLibraryLoading}"
+                                    IsVisible="{Binding IsImageLibraryLoading}"
+                                    Color="{StaticResource GoldText}" />
+
+                                <CollectionView
+                                    ItemsSource="{Binding FilteredImageLibrary}"
+                                    SelectionMode="Single"
+                                    SelectedItem="{Binding SelectedLibraryImage}"
+                                    HeightRequest="240">
+                                    <CollectionView.ItemsLayout>
+                                        <GridItemsLayout Orientation="Vertical" Span="3" />
+                                    </CollectionView.ItemsLayout>
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="6" Margin="4">
+                                                <VerticalStackLayout Spacing="6">
+                                                    <Image
+                                                        Source="{Binding FullUrl}"
+                                                        Aspect="AspectFill"
+                                                        HeightRequest="80"
+                                                        WidthRequest="100" />
+                                                    <Label
+                                                        Text="{Binding DisplayName}"
+                                                        TextColor="{StaticResource GoldText}"
+                                                        FontSize="11"
+                                                        LineBreakMode="TailTruncation"
+                                                        HorizontalTextAlignment="Center" />
+                                                </VerticalStackLayout>
+                                            </Border>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+
+                                <Label
+                                    Text="{Binding SelectedImageName}"
+                                    TextColor="{StaticResource GoldText}"
+                                    FontSize="13"
+                                    Opacity="0.85" />
+
+                                <VerticalStackLayout Spacing="6">
+                                    <Label
+                                        Text="Renommer la photo sélectionnée"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource GoldText}" />
+                                    <Entry
+                                        Placeholder="Nom personnalisé pour la photo"
+                                        Text="{Binding SelectedImageCustomName}"
+                                        IsEnabled="{Binding HasSelectedImage}"
+                                        TextColor="{StaticResource GoldText}"
+                                        PlaceholderColor="#777"
+                                        BackgroundColor="#121212" />
+                                </VerticalStackLayout>
+
+                                <Border Background="#111" Padding="10" Stroke="#2D2D2D" StrokeThickness="1" IsVisible="{Binding HasSelectedImage}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Image
+                                        Source="{Binding SelectedImage}"
+                                        Aspect="AspectFit"
+                                        HeightRequest="220"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center" />
+                                </Border>
                             </VerticalStackLayout>
 
-                            <Border Background="#111" Padding="10" Stroke="#2D2D2D" StrokeThickness="1" IsVisible="{Binding HasSelectedImage}">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="12" />
-                                </Border.StrokeShape>
-                                <Image
-                                    Source="{Binding SelectedImage}"
-                                    Aspect="AspectFit"
-                                    HeightRequest="220"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center" />
-                            </Border>
-
                             <Button
-                                Text="Ajouter une actualité"
-                                Command="{Binding SubmitCommand}"
+                                Text="{Binding FormActionButtonText}"
+                                Command="{Binding FormActionCommand}"
                                 BackgroundColor="#C18F1A"
-                                TextColor="{StaticResource GoldText}" />
+                                TextColor="{StaticResource GoldText}"
+                                IsEnabled="{Binding IsFormInputEnabled}" />
                         </VerticalStackLayout>
                     </Frame>
 
@@ -170,82 +333,6 @@
                         FontSize="14"
                         HorizontalTextAlignment="Center"
                         LineBreakMode="WordWrap" />
-                </VerticalStackLayout>
-            </Border>
-
-            <Border
-                Background="{StaticResource CardBackground}"
-                Stroke="#000000"
-                StrokeThickness="1.5"
-                Padding="20">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="18" />
-                </Border.StrokeShape>
-
-                <VerticalStackLayout Spacing="14">
-                    <Label
-                        Text="Actualités publiées"
-                        FontSize="22"
-                        FontAttributes="Bold"
-                        HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}" />
-
-                    <Label
-                        Text="{Binding ActualitesStatusMessage}"
-                        FontSize="14"
-                        HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}"
-                        Opacity="0.85" />
-
-                    <ActivityIndicator
-                        IsRunning="{Binding IsLoadingActualites}"
-                        IsVisible="{Binding IsLoadingActualites}"
-                        Color="{StaticResource GoldText}" />
-
-                    <CollectionView
-                        ItemsSource="{Binding Actualites}"
-                        SelectionMode="None">
-                        <CollectionView.ItemsLayout>
-                            <VerticalLinearItemsLayout ItemSpacing="12" />
-                        </CollectionView.ItemsLayout>
-                        <CollectionView.EmptyView>
-                            <Label
-                                Text="Aucune actualité à afficher."
-                                TextColor="{StaticResource GoldText}"
-                                HorizontalTextAlignment="Center"
-                                Opacity="0.6" />
-                        </CollectionView.EmptyView>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="12" Margin="0,4">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="14" />
-                                    </Border.StrokeShape>
-                                    <VerticalStackLayout Spacing="10">
-                                        <Image
-                                            Source="{Binding FullImageUrl}"
-                                            HeightRequest="160"
-                                            Aspect="AspectFill"
-                                            SemanticProperties.Description="Image de l'actualité"
-                                            HorizontalOptions="Fill"
-                                            VerticalOptions="Center" />
-                                        <Label
-                                            Text="{Binding Titre}"
-                                            TextColor="{StaticResource GoldText}"
-                                            FontSize="18"
-                                            FontAttributes="Bold"
-                                            LineBreakMode="WordWrap" />
-                                        <Label
-                                            Text="{Binding Description}"
-                                            TextColor="{StaticResource GoldText}"
-                                            FontSize="14"
-                                            Opacity="0.9"
-                                            LineBreakMode="WordWrap" />
-                                    </VerticalStackLayout>
-                                </Border>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
                 </VerticalStackLayout>
             </Border>
         </VerticalStackLayout>
