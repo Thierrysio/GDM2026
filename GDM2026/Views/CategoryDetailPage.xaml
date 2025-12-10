@@ -387,6 +387,169 @@
                     </CollectionView.ItemTemplate>
                 </CollectionView>
             </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="12" IsVisible="{Binding IsHistoryPage}">
+                <Border
+                    Background="{StaticResource CardBackground}"
+                    Stroke="#000000"
+                    StrokeThickness="1.5"
+                    Padding="18">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="10">
+                        <Label
+                            Text="Créer une histoire"
+                            FontSize="20"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource GoldText}" />
+
+                        <Entry
+                            Placeholder="Titre de l'histoire"
+                            Text="{Binding NewHistoryTitle}"
+                            TextColor="{StaticResource GoldText}"
+                            PlaceholderColor="#7E7030" />
+
+                        <Editor
+                            Placeholder="Description de l'histoire"
+                            HeightRequest="120"
+                            Text="{Binding NewHistoryDescription}"
+                            TextColor="{StaticResource GoldText}"
+                            PlaceholderColor="#7E7030" />
+
+                        <Label
+                            Text="Date de l'histoire"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource GoldText}" />
+                        <DatePicker Date="{Binding HistoryDate}" />
+
+                        <Label
+                            Text="{Binding SelectedHistoryImageName}"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource GoldText}" />
+
+                        <Border
+                            BackgroundColor="#111"
+                            Stroke="#2D2D2D"
+                            StrokeThickness="1.5"
+                            Padding="12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="8">
+                                <SearchBar
+                                    Placeholder="Rechercher une image"
+                                    Text="{Binding HistoryImageSearchTerm}"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#7E7030"
+                                    CancelButtonColor="{StaticResource GoldText}"
+                                    BackgroundColor="#101010" />
+
+                                <Label
+                                    Text="{Binding HistoryImageLibraryMessage}"
+                                    FontSize="12"
+                                    TextColor="{StaticResource GoldText}"
+                                    Opacity="0.8" />
+
+                                <ActivityIndicator
+                                    IsRunning="{Binding IsHistoryImageLibraryLoading}"
+                                    IsVisible="{Binding IsHistoryImageLibraryLoading}"
+                                    Color="{StaticResource GoldText}" />
+
+                                <CollectionView
+                                    ItemsSource="{Binding FilteredHistoryImages}"
+                                    SelectionMode="Single"
+                                    SelectedItem="{Binding SelectedHistoryImage}"
+                                    HeightRequest="200">
+                                    <CollectionView.ItemsLayout>
+                                        <GridItemsLayout Orientation="Vertical" Span="3" />
+                                    </CollectionView.ItemsLayout>
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Padding="4" Margin="4" BackgroundColor="#1B1B1B" Stroke="#333">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="10" />
+                                                </Border.StrokeShape>
+                                                <VerticalStackLayout Spacing="4">
+                                                    <Image Source="{Binding FullUrl}" HeightRequest="70" Aspect="AspectFill" />
+                                                    <Label Text="{Binding DisplayName}" FontSize="11" TextColor="{StaticResource GoldText}" HorizontalTextAlignment="Center" />
+                                                </VerticalStackLayout>
+                                            </Border>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Button
+                            Text="Ajouter l'histoire"
+                            Command="{Binding CreateHistoryCommand}"
+                            BackgroundColor="#D4AF37"
+                            TextColor="#0B0B0B"
+                            CornerRadius="12"
+                            Padding="14,10"
+                            FontAttributes="Bold" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label
+                    Text="{Binding HistoryFormStatusMessage}"
+                    FontSize="14"
+                    TextColor="{StaticResource GoldText}"
+                    LineBreakMode="WordWrap" />
+
+                <Label
+                    Text="Histoires existantes"
+                    FontSize="22"
+                    FontAttributes="Bold"
+                    TextColor="{StaticResource GoldText}" />
+
+                <Label
+                    Text="{Binding HistoryStatusMessage}"
+                    FontSize="14"
+                    TextColor="{StaticResource GoldText}"
+                    Opacity="0.85" />
+
+                <ActivityIndicator
+                    IsRunning="{Binding IsHistoryLoading}"
+                    IsVisible="{Binding IsHistoryLoading}"
+                    Color="{StaticResource GoldText}" />
+
+                <RefreshView Command="{Binding RefreshHistoriesCommand}" IsRefreshing="{Binding IsHistoryLoading}">
+                    <CollectionView ItemsSource="{Binding Histories}" SelectionMode="None">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.EmptyView>
+                            <Label Text="Aucune histoire à afficher." HorizontalTextAlignment="Center" TextColor="{StaticResource GoldText}" Opacity="0.6" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Margin="0,6"
+                                    Padding="16"
+                                    Background="{StaticResource CardBackground}"
+                                    Stroke="#000000"
+                                    StrokeThickness="1.5">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                        <Border WidthRequest="80" HeightRequest="80" BackgroundColor="#111" Stroke="#333">
+                                            <Image Source="{Binding FullImageUrl}" Aspect="AspectFill" WidthRequest="80" HeightRequest="80" />
+                                        </Border>
+                                        <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                            <Label Text="{Binding DisplayTitle}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
+                                            <Label Text="{Binding DisplayDate}" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.75" />
+                                            <Label Text="{Binding DisplayDescription}" FontSize="14" TextColor="{StaticResource GoldText}" LineBreakMode="WordWrap" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </RefreshView>
+            </VerticalStackLayout>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

@@ -18,12 +18,13 @@ public class ReservationsViewModel : BaseViewModel
     private bool _sessionPrepared;
     private bool _isLoading;
     private bool _isSubmitting;
-    private string _statusMessage = "Chargement des réservations…";
+    private string _statusMessage = "Chargement des plannings…";
     private Color _statusColor = Colors.Gold;
     private bool _isFormVisible;
 
-    private string _customerName = string.Empty;
-    private DateTime _reservationDate = DateTime.Today;
+    private DateTime _planningDay = DateTime.Today;
+    private TimeSpan _startTime = new(9, 0, 0);
+    private TimeSpan _endTime = new(17, 0, 0);
 
     public ReservationsViewModel()
     {
@@ -76,22 +77,40 @@ public class ReservationsViewModel : BaseViewModel
         set => SetProperty(ref _statusColor, value);
     }
 
-    public string CustomerName
+    public DateTime PlanningDay
     {
-        get => _customerName;
+        get => _planningDay;
         set
         {
-            if (SetProperty(ref _customerName, value))
+            if (SetProperty(ref _planningDay, value))
             {
                 (CreateCommand as Command)?.ChangeCanExecute();
             }
         }
     }
 
-    public DateTime ReservationDate
+    public TimeSpan StartTime
     {
-        get => _reservationDate;
-        set => SetProperty(ref _reservationDate, value);
+        get => _startTime;
+        set
+        {
+            if (SetProperty(ref _startTime, value))
+            {
+                (CreateCommand as Command)?.ChangeCanExecute();
+            }
+        }
+    }
+
+    public TimeSpan EndTime
+    {
+        get => _endTime;
+        set
+        {
+            if (SetProperty(ref _endTime, value))
+            {
+                (CreateCommand as Command)?.ChangeCanExecute();
+            }
+        }
     }
 
     public async Task InitializeAsync()
@@ -129,10 +148,10 @@ public class ReservationsViewModel : BaseViewModel
         try
         {
             IsLoading = true;
-            StatusMessage = "Chargement des réservations…";
+            StatusMessage = "Chargement des plannings…";
             StatusColor = Colors.Gold;
 
-            var items = await _apis.GetListAsync<ReservationEntry>("/api/crud/reservations/list");
+            var items = await _apis.GetListAsync<ReservationEntry>("/api/crud/planning/list");
 
             Reservations.Clear();
             foreach (var item in items)
@@ -141,8 +160,8 @@ public class ReservationsViewModel : BaseViewModel
             }
 
             StatusMessage = Reservations.Count == 0
-                ? "Aucune réservation pour le moment."
-                : $"{Reservations.Count} réservation(s) chargée(s).";
+                ? "Aucun planning pour le moment."
+                : $"{Reservations.Count} planning(s) chargé(s).";
             StatusColor = Colors.LightGreen;
         }
         catch (TaskCanceledException)
@@ -153,13 +172,13 @@ public class ReservationsViewModel : BaseViewModel
         catch (HttpRequestException ex)
         {
             Debug.WriteLine($"[RESERVATIONS] HTTP error: {ex}");
-            StatusMessage = "Impossible de charger les réservations.";
+            StatusMessage = "Impossible de charger les plannings.";
             StatusColor = Colors.OrangeRed;
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[RESERVATIONS] Erreur: {ex}");
-            StatusMessage = "Erreur lors du chargement des réservations.";
+            StatusMessage = "Erreur lors du chargement des plannings.";
             StatusColor = Colors.OrangeRed;
         }
         finally
@@ -170,7 +189,7 @@ public class ReservationsViewModel : BaseViewModel
 
     private bool CanCreate()
     {
-        return !IsSubmitting && !string.IsNullOrWhiteSpace(CustomerName);
+        return !IsSubmitting && EndTime > StartTime;
     }
 
     private async Task CreateReservationAsync()
@@ -180,9 +199,9 @@ public class ReservationsViewModel : BaseViewModel
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(CustomerName))
+        if (EndTime <= StartTime)
         {
-            StatusMessage = "Renseignez le nom du client.";
+            StatusMessage = "L'heure de fin doit être supérieure à l'heure de début.";
             StatusColor = Colors.OrangeRed;
             return;
         }
@@ -190,7 +209,7 @@ public class ReservationsViewModel : BaseViewModel
         try
         {
             IsSubmitting = true;
-            StatusMessage = "Création de la réservation…";
+            StatusMessage = "Création du planning…";
             StatusColor = Colors.Gold;
 
             if (!_sessionPrepared)
@@ -200,18 +219,20 @@ public class ReservationsViewModel : BaseViewModel
 
             var payload = new
             {
-                nom_client = CustomerName.Trim(),
-                date = ReservationDate.ToString("yyyy-MM-dd")
+                jour = PlanningDay.ToString("yyyy-MM-dd"),
+                heure_debut = StartTime.ToString(@"hh\:mm"),
+                heure_fin = EndTime.ToString(@"hh\:mm")
             };
 
-            var created = await _apis.PostBoolAsync("/api/crud/reservations/create", payload);
+            var created = await _apis.PostBoolAsync("/api/crud/planning/create", payload);
 
             if (created)
             {
-                StatusMessage = "Réservation créée avec succès.";
+                StatusMessage = "Planning créé avec succès.";
                 StatusColor = Colors.LightGreen;
-                CustomerName = string.Empty;
-                ReservationDate = DateTime.Today;
+                PlanningDay = DateTime.Today;
+                StartTime = new TimeSpan(9, 0, 0);
+                EndTime = new TimeSpan(17, 0, 0);
                 IsFormVisible = false;
                 await LoadReservationsAsync();
             }
@@ -229,13 +250,13 @@ public class ReservationsViewModel : BaseViewModel
         catch (HttpRequestException ex)
         {
             Debug.WriteLine($"[RESERVATIONS] HTTP error: {ex}");
-            StatusMessage = "Impossible de créer la réservation.";
+            StatusMessage = "Impossible de créer le planning.";
             StatusColor = Colors.OrangeRed;
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[RESERVATIONS] Erreur: {ex}");
-            StatusMessage = "Une erreur est survenue lors de la création.";
+            StatusMessage = "Une erreur est survenue lors de la création du planning.";
             StatusColor = Colors.OrangeRed;
         }
         finally
@@ -248,9 +269,26 @@ public class ReservationsViewModel : BaseViewModel
 public class ReservationEntry
 {
     public int Id { get; set; }
-    public string? NomClient { get; set; }
+    public string? Jour { get; set; }
+    public string? HeureDebut { get; set; }
+    public string? HeureFin { get; set; }
     public DateTime? Date { get; set; }
-    public string DisplayTitle => $"Réservation #{Id}";
-    public string DisplayClient => string.IsNullOrWhiteSpace(NomClient) ? "Client inconnu" : NomClient!;
-    public string DisplayDate => Date?.ToString("dd/MM/yyyy") ?? "Date non renseignée";
+
+    public string DisplayTitle => string.IsNullOrWhiteSpace(Jour) ? $"Planning #{Id}" : $"Planning {Jour}";
+    public string DisplayDay => string.IsNullOrWhiteSpace(Jour)
+        ? Date?.ToString("dddd dd MMMM") ?? "Jour non défini"
+        : Jour;
+
+    public string DisplayTimeRange
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(HeureDebut) && !string.IsNullOrWhiteSpace(HeureFin))
+            {
+                return $"{HeureDebut} - {HeureFin}";
+            }
+
+            return "Horaires non renseignés";
+        }
+    }
 }

@@ -165,6 +165,27 @@ public partial class HomePageViewModel : BaseViewModel
             return Shell.Current.GoToAsync(nameof(PartnersPage), animate: false);
         }
 
+        if (string.Equals(card.Title, "Reservations", StringComparison.OrdinalIgnoreCase))
+        {
+            return Shell.Current.GoToAsync(nameof(ReservationsPage), animate: false);
+        }
+
+        if (string.Equals(card.Title, "Produits", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(card.Title, "Catalogue", StringComparison.OrdinalIgnoreCase))
+        {
+            return Shell.Current.GoToAsync(nameof(ProductsPage), animate: false);
+        }
+
+        if (string.Equals(card.Title, "Utilisateurs", StringComparison.OrdinalIgnoreCase))
+        {
+            return Shell.Current.GoToAsync(nameof(UsersPage), animate: false);
+        }
+
+        if (string.Equals(card.Title, "Commentaires", StringComparison.OrdinalIgnoreCase))
+        {
+            return Shell.Current.GoToAsync(nameof(CommentsPage), animate: false);
+        }
+
         return Shell.Current.GoToAsync(nameof(CategoryDetailPage), animate: false, new Dictionary<string, object>
         {
             { "card", card }

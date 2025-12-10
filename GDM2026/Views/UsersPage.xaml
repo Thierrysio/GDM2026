@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.UsersPage"
+             BackgroundColor="#0B0B0B">
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+        <Color x:Key="CardBackground">#151515</Color>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="18">
+            <Label Text="Utilisateurs"
+                   FontSize="32"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{StaticResource GoldText}" />
+
+            <Label Text="Consultez la liste des comptes enregistrés sur Dantec Market."
+                   FontSize="15"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{StaticResource GoldText}"
+                   Opacity="0.85" />
+
+            <SearchBar Placeholder="Rechercher un utilisateur"
+                       Text="{Binding SearchText}"
+                       TextColor="{StaticResource GoldText}"
+                       PlaceholderColor="#7E7030"
+                       CancelButtonColor="{StaticResource GoldText}"
+                       BackgroundColor="#101010" />
+
+            <Label Text="{Binding StatusMessage}"
+                   FontSize="14"
+                   TextColor="{StaticResource GoldText}"
+                   Opacity="0.85" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="{StaticResource GoldText}" />
+
+            <RefreshView Command="{Binding RefreshCommand}"
+                         IsRefreshing="{Binding IsRefreshing}">
+                <CollectionView ItemsSource="{Binding FilteredUsers}"
+                                SelectionMode="None">
+                    <CollectionView.ItemsLayout>
+                        <VerticalLinearItemsLayout ItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.EmptyView>
+                        <Label Text="Aucun utilisateur à afficher."
+                               HorizontalTextAlignment="Center"
+                               TextColor="{StaticResource GoldText}"
+                               Opacity="0.6" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="16"
+                                    Background="{StaticResource CardBackground}"
+                                    Stroke="#000000"
+                                    StrokeThickness="1.5">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="16" />
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                    <Border HeightRequest="48"
+                                            WidthRequest="48"
+                                            Stroke="#2D2D2D"
+                                            BackgroundColor="#202020"
+                                            StrokeThickness="1">
+                                        <Border.StrokeShape>
+                                            <Ellipse />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding Initials}"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource GoldText}" />
+                                    </Border>
+
+                                    <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                        <Label Text="{Binding DisplayName}"
+                                               FontSize="18"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource GoldText}" />
+                                        <Label Text="{Binding EmailLabel}"
+                                               FontSize="13"
+                                               TextColor="{StaticResource GoldText}"
+                                               Opacity="0.8" />
+                                        <Label Text="{Binding RolesSummary, StringFormat='Rôles : {0}'}"
+                                               FontSize="13"
+                                               TextColor="{StaticResource GoldText}"
+                                               Opacity="0.8" />
+                                        <Label Text="{Binding StatusLabel}"
+                                               FontSize="13"
+                                               TextColor="{StaticResource GoldText}"
+                                               Opacity="0.8" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

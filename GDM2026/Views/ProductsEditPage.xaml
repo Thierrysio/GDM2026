@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.ProductsEditPage"
+             BackgroundColor="#0B0B0B">
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+        <Color x:Key="CardBackground">#151515</Color>
+    </ContentPage.Resources>
+
+    <VerticalStackLayout Padding="24" Spacing="16">
+        <Label Text="Modifier un produit"
+               FontSize="28"
+               FontAttributes="Bold"
+               HorizontalTextAlignment="Center"
+               TextColor="{StaticResource GoldText}" />
+
+        <SearchBar Placeholder="Rechercher un produit"
+                   Text="{Binding SearchText}"
+                   CancelButtonColor="{StaticResource GoldText}"
+                   TextColor="{StaticResource GoldText}"
+                   PlaceholderColor="#7E7030"
+                   BackgroundColor="#111" />
+
+        <Label Text="{Binding StatusMessage}"
+               TextColor="{StaticResource GoldText}"
+               FontSize="13"
+               Opacity="0.85" />
+
+        <CollectionView ItemsSource="{Binding VisibleProducts}"
+                        SelectionMode="None"
+                        RemainingItemsThreshold="3"
+                        RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}"
+                        VerticalOptions="FillAndExpand">
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.EmptyView>
+                <Label Text="Aucun produit à afficher."
+                       TextColor="{StaticResource GoldText}"
+                       HorizontalTextAlignment="Center" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Frame Padding="14"
+                           BackgroundColor="{StaticResource CardBackground}"
+                           CornerRadius="16"
+                           HasShadow="False"
+                           BorderColor="#000">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Border WidthRequest="90"
+                                    HeightRequest="90"
+                                    BackgroundColor="#111"
+                                    Stroke="#333">
+                                <Image Source="{Binding PrimaryImageFullUrl}"
+                                       Aspect="AspectFill"
+                                       WidthRequest="90"
+                                       HeightRequest="90" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                <Label Text="{Binding DisplayName}"
+                                       FontAttributes="Bold"
+                                       FontSize="16"
+                                       TextColor="{StaticResource GoldText}" />
+                                <Label Text="{Binding Description}"
+                                       TextColor="{StaticResource GoldText}"
+                                       FontSize="13"
+                                       Opacity="0.8"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding DisplayPrice}"
+                                       FontAttributes="Bold"
+                                       FontSize="14"
+                                       TextColor="{StaticResource GoldText}" />
+                                <Label Text="{Binding StockLabel}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource GoldText}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </VerticalStackLayout>
+</ContentPage>

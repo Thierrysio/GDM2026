@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.CommentsPage"
+             BackgroundColor="#0B0B0B">
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+        <Color x:Key="CardBackground">#151515</Color>
+        <Style TargetType="Entry">
+            <Setter Property="TextColor" Value="{StaticResource GoldText}" />
+            <Setter Property="PlaceholderColor" Value="#7E7030" />
+            <Setter Property="BackgroundColor" Value="#111111" />
+        </Style>
+        <Style TargetType="Editor">
+            <Setter Property="TextColor" Value="{StaticResource GoldText}" />
+            <Setter Property="PlaceholderColor" Value="#7E7030" />
+            <Setter Property="BackgroundColor" Value="#111111" />
+        </Style>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="18">
+            <Label Text="Commentaires"
+                   FontSize="32"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{StaticResource GoldText}" />
+
+            <Border Background="{StaticResource CardBackground}"
+                    Stroke="#000000"
+                    StrokeThickness="1.5"
+                    Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="Contenu du commentaire"
+                           TextColor="{StaticResource GoldText}"
+                           FontAttributes="Bold" />
+                    <Editor HeightRequest="140"
+                            Placeholder="Rédigez votre commentaire"
+                            Text="{Binding CommentText}" />
+
+                    <Label Text="Note"
+                           TextColor="{StaticResource GoldText}"
+                           FontAttributes="Bold" />
+                    <Entry Placeholder="Entrez une note (ex: 4.5)"
+                           Keyboard="Numeric"
+                           Text="{Binding RatingText}" />
+
+                    <Label Text="Date du commentaire"
+                           TextColor="{StaticResource GoldText}"
+                           FontAttributes="Bold" />
+                    <DatePicker Date="{Binding SelectedDate}" />
+
+                    <Label Text="Nom de l'utilisateur"
+                           TextColor="{StaticResource GoldText}"
+                           FontAttributes="Bold" />
+                    <Entry Placeholder="Nom et prénom"
+                           Text="{Binding UserName}" />
+
+                    <Label Text="Produit concerné"
+                           TextColor="{StaticResource GoldText}"
+                           FontAttributes="Bold" />
+                    <Entry Placeholder="Nom du produit"
+                           Text="{Binding ProductName}" />
+
+                    <Button Text="Préparer le commentaire"
+                            Command="{Binding SubmitCommand}"
+                            BackgroundColor="#C18F1A"
+                            TextColor="{StaticResource GoldText}" />
+
+                    <Label Text="{Binding StatusMessage}"
+                           TextColor="{Binding StatusColor}"
+                           FontSize="14"
+                           HorizontalTextAlignment="Center"
+                           LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="Commentaires existants"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource GoldText}" />
+
+             <Label Text="{Binding CommentsStatusMessage}"
+                    FontSize="14"
+                    TextColor="{StaticResource GoldText}"
+                    Opacity="0.85" />
+
+             <ActivityIndicator IsRunning="{Binding IsCommentsLoading}"
+                                IsVisible="{Binding IsCommentsLoading}"
+                                Color="{StaticResource GoldText}" />
+
+             <RefreshView Command="{Binding RefreshCommentsCommand}"
+                          IsRefreshing="{Binding IsRefreshing}">
+                <VerticalStackLayout Spacing="12">
+                    <CarouselView ItemsSource="{Binding Comments}"
+                                  HeightRequest="220"
+                                  IsBounceEnabled="False"
+                                  Loop="False"
+                                  IsSwipeEnabled="True"
+                                  IndicatorView="CommentsIndicator">
+                        <CarouselView.EmptyView>
+                            <Label Text="Aucun commentaire à afficher."
+                                   HorizontalTextAlignment="Center"
+                                   TextColor="{StaticResource GoldText}"
+                                   Opacity="0.6" />
+                        </CarouselView.EmptyView>
+                        <CarouselView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="16"
+                                        Background="{StaticResource CardBackground}"
+                                        Stroke="#000000"
+                                        StrokeThickness="1.5">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="16" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding DisplayComment}"
+                                               FontSize="15"
+                                               TextColor="{StaticResource GoldText}"
+                                               LineBreakMode="WordWrap" />
+                                        <Label Text="{Binding DisplayNote}"
+                                               FontSize="13"
+                                               TextColor="{StaticResource GoldText}"
+                                               Opacity="0.85" />
+                                        <Label Text="{Binding DisplayDate}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource GoldText}"
+                                               Opacity="0.75" />
+                                        <Label Text="{Binding DisplayUser, StringFormat='Par : {0}'}"
+                                               FontSize="13"
+                                               TextColor="{StaticResource GoldText}"
+                                               Opacity="0.85" />
+                                        <Label Text="{Binding DisplayProduct, StringFormat='Produit : {0}'}"
+                                               FontSize="13"
+                                               TextColor="{StaticResource GoldText}"
+                                               Opacity="0.85" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CarouselView.ItemTemplate>
+                    </CarouselView>
+
+                    <IndicatorView x:Name="CommentsIndicator"
+                                   HorizontalOptions="Center"
+                                   IndicatorColor="#555"
+                                   SelectedIndicatorColor="{StaticResource GoldText}" />
+                </VerticalStackLayout>
+             </RefreshView>
+         </VerticalStackLayout>
+     </ScrollView>
+ </ContentPage>

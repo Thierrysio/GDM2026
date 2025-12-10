@@ -71,7 +71,19 @@
         </ItemGroup>
 
         <ItemGroup>
+          <MauiXaml Update="Views\CommentsPage.xaml">
+            <Generator>MSBuild:Compile</Generator>
+          </MauiXaml>
+          <MauiXaml Update="Views\ProductsEditPage.xaml">
+            <Generator>MSBuild:Compile</Generator>
+          </MauiXaml>
+          <MauiXaml Update="Views\ProductsPage.xaml">
+            <Generator>MSBuild:Compile</Generator>
+          </MauiXaml>
           <MauiXaml Update="Views\ReservationsPage.xaml">
+            <Generator>MSBuild:Compile</Generator>
+          </MauiXaml>
+          <MauiXaml Update="Views\UsersPage.xaml">
             <Generator>MSBuild:Compile</Generator>
           </MauiXaml>
         </ItemGroup>
