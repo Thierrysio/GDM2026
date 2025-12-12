@@ -204,7 +204,7 @@ public class PartnersViewModel : BaseViewModel
             if (!_sessionPrepared)
                 await PrepareSessionAsync();
 
-            var partners = await _apis.GetListAsync<Partner>("/api/crud/partenaires/list").ConfigureAwait(false);
+            var partners = await _apis.GetListAsync<Partner>("/api/crud/partenaires/list");
             partners ??= new List<Partner>();
 
             Partners.Clear();
@@ -264,15 +264,9 @@ public class PartnersViewModel : BaseViewModel
                 logo = DefaultPartnerLogo
             };
 
-            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/create", payload).ConfigureAwait(false);
-            if (!ok)
-            {
-                StatusMessage = "Création échouée.";
-                return;
-            }
-
-            StatusMessage = "Partenaire créé.";
-            await ShowInfoAsync("Création", "Partenaire créé avec succès.");
+            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/create", payload);
+            // pas de ConfigureAwait(false)
+            StatusMessage = ok ? "Partenaire créé." : "Création échouée.";
 
             NewPartnerName = string.Empty;
             NewPartnerWebsite = string.Empty;
@@ -418,37 +412,41 @@ public class PartnersViewModel : BaseViewModel
         }
     }
 
+    private async Task OpenWebsiteAsync(string? url)
+    {
+        var trimmed = url?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            StatusMessage = "Aucun site web n'est renseigné pour ce partenaire.";
+            return;
+        }
+
+        if (!trimmed.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            trimmed = $"https://{trimmed}";
+
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+        {
+            StatusMessage = "URL de partenaire invalide.";
+            return;
+        }
+
+        try
+        {
+            await Launcher.OpenAsync(uri);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Impossible d'ouvrir le site du partenaire.";
+            Debug.WriteLine($"[PARTNERS] open website error : {ex}");
+        }
+    }
+
     private void RefreshCommands()
     {
         (ToggleEditModeCommand as Command)?.ChangeCanExecute();
         (CreateCommand as Command)?.ChangeCanExecute();
         (UpdateCommand as Command)?.ChangeCanExecute();
         (DeleteCommand as Command)?.ChangeCanExecute();
-        OnPropertyChanged(nameof(SelectedPartnerLabel));
-    }
-
-    private static async Task OpenWebsiteAsync(string? url)
-    {
-        if (string.IsNullOrWhiteSpace(url))
-            return;
-
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
-        {
-            if (Uri.TryCreate($"https://{url.TrimStart('/')}", UriKind.Absolute, out var httpsUri))
-                uri = httpsUri;
-        }
-
-        if (uri is null)
-            return;
-
-        try
-        {
-            await Launcher.Default.TryOpenAsync(uri);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[PARTNERS] Impossible d'ouvrir {url} : {ex}");
-        }
     }
 
     private Task<bool> ConfirmAsync(string title, string message)
@@ -456,7 +454,9 @@ public class PartnersViewModel : BaseViewModel
         return MainThread.InvokeOnMainThreadAsync(async () =>
         {
             var page = Application.Current?.Windows?.FirstOrDefault()?.Page;
-            if (page is null) return true;
+            if (page is null)
+                return true;
+
             return await page.DisplayAlert(title, message, "Oui", "Non");
         });
     }
@@ -466,7 +466,9 @@ public class PartnersViewModel : BaseViewModel
         return MainThread.InvokeOnMainThreadAsync(async () =>
         {
             var page = Application.Current?.Windows?.FirstOrDefault()?.Page;
-            if (page is null) return;
+            if (page is null)
+                return;
+
             await page.DisplayAlert(title, message, "OK");
         });
     }
