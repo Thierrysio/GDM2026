@@ -19,6 +19,8 @@ public class PartnersViewModel : BaseViewModel
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
 
+    private const string DefaultPartnerLogo = "12ca34b82310d78aa6c989b705fe92dda310b8a4.jpg";
+
     private bool _sessionPrepared;
     private bool _hasLoaded;
 
@@ -258,8 +260,8 @@ public class PartnersViewModel : BaseViewModel
             var payload = new
             {
                 nom = NewPartnerName.Trim(),
-                url = string.IsNullOrWhiteSpace(NewPartnerWebsite) ? null : NewPartnerWebsite.Trim()
-                // logo optionnel : à gérer plus tard (upload)
+                url = string.IsNullOrWhiteSpace(NewPartnerWebsite) ? null : NewPartnerWebsite.Trim(),
+                logo = DefaultPartnerLogo
             };
 
             var ok = await _apis.PostBoolAsync("/api/crud/partenaires/create", payload).ConfigureAwait(false);
@@ -328,7 +330,8 @@ public class PartnersViewModel : BaseViewModel
                 id = partner.Id,
                 nom = name,
                 url = website,
-                site_web = website
+                site_web = website,
+                logo = string.IsNullOrWhiteSpace(partner.ImagePath) ? DefaultPartnerLogo : partner.ImagePath
             };
 
             var ok = await _apis.PostBoolAsync("/api/crud/partenaires/update", payload).ConfigureAwait(false);
