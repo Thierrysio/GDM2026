@@ -31,6 +31,16 @@ public class PartnersViewModel : BaseViewModel
 
     private Partner? _selectedPartner;
 
+    private bool _imageLibraryLoaded;
+    private bool _isImageLibraryLoading;
+    private string _imageLibraryMessage = "Sélectionnez un logo ou utilisez la recherche.";
+    private string _imageSearchTerm = string.Empty;
+    private AdminImage? _selectedLibraryImage;
+    private bool _hasSelectedImage;
+    private string _selectedImageName = "Aucun logo sélectionné.";
+    private ImageSource? _selectedImagePreview;
+    private string? _selectedImageUrl;
+
     private string _editPartnerName = string.Empty;
     private string _editPartnerWebsite = string.Empty;
 
@@ -46,15 +56,19 @@ public class PartnersViewModel : BaseViewModel
         DeleteCommand = new Command(async () => await DeleteAsync(), CanDelete);
 
         OpenWebsiteCommand = new Command<string?>(async url => await OpenWebsiteAsync(url));
+        ClearLogoCommand = new Command(ClearSelectedLogo);
     }
 
     public ObservableCollection<Partner> Partners { get; } = new();
+    public ObservableCollection<AdminImage> ImageLibrary { get; } = new();
+    public ObservableCollection<AdminImage> FilteredImageLibrary { get; } = new();
 
     public ICommand ToggleEditModeCommand { get; }
     public ICommand CreateCommand { get; }
     public ICommand UpdateCommand { get; }
     public ICommand DeleteCommand { get; }
     public ICommand OpenWebsiteCommand { get; }
+    public ICommand ClearLogoCommand { get; }
 
     public bool IsLoading
     {
@@ -96,6 +110,7 @@ public class PartnersViewModel : BaseViewModel
             {
                 EditPartnerName = value?.DisplayName ?? string.Empty;
                 EditPartnerWebsite = value?.Website ?? string.Empty;
+                ApplyExistingLogo(value);
                 OnPropertyChanged(nameof(SelectedPartnerLabel));
                 RefreshCommands();
             }
@@ -105,6 +120,56 @@ public class PartnersViewModel : BaseViewModel
     public string SelectedPartnerLabel => SelectedPartner is null
         ? "Aucun partenaire sélectionné."
         : $"#{SelectedPartner.Id} — {SelectedPartner.DisplayName}";
+
+    public bool IsImageLibraryLoading
+    {
+        get => _isImageLibraryLoading;
+        set => SetProperty(ref _isImageLibraryLoading, value);
+    }
+
+    public string ImageLibraryMessage
+    {
+        get => _imageLibraryMessage;
+        set => SetProperty(ref _imageLibraryMessage, value);
+    }
+
+    public string ImageSearchTerm
+    {
+        get => _imageSearchTerm;
+        set
+        {
+            if (SetProperty(ref _imageSearchTerm, value))
+                RefreshImageLibraryFilter();
+        }
+    }
+
+    public AdminImage? SelectedLibraryImage
+    {
+        get => _selectedLibraryImage;
+        set
+        {
+            if (SetProperty(ref _selectedLibraryImage, value))
+                ApplyImageSelection(value);
+        }
+    }
+
+    public bool HasSelectedImage
+    {
+        get => _hasSelectedImage;
+        set => SetProperty(ref _hasSelectedImage, value);
+    }
+
+    public string SelectedImageName
+    {
+        get => _selectedImageName;
+        set => SetProperty(ref _selectedImageName, value);
+    }
+
+    public ImageSource? SelectedImagePreview
+    {
+        get => _selectedImagePreview;
+        set => SetProperty(ref _selectedImagePreview, value);
+    }
 
     public string EditPartnerName
     {
@@ -153,6 +218,7 @@ public class PartnersViewModel : BaseViewModel
             await PrepareSessionAsync();
 
         StatusMessage = "Cliquez sur « Modifier / Supprimer » pour charger les partenaires.";
+        _ = EnsureImageLibraryLoadedAsync();
     }
 
     private async Task PrepareSessionAsync()
@@ -176,6 +242,7 @@ public class PartnersViewModel : BaseViewModel
 
         if (IsSelectionVisible)
         {
+            await EnsureImageLibraryLoadedAsync();
             await LoadPartnersAsync(forceReload: true);
         }
         else
@@ -261,7 +328,7 @@ public class PartnersViewModel : BaseViewModel
             {
                 nom = NewPartnerName.Trim(),
                 url = string.IsNullOrWhiteSpace(NewPartnerWebsite) ? null : NewPartnerWebsite.Trim(),
-                logo = DefaultPartnerLogo
+                logo = ResolveLogoPath(_selectedImageUrl)
             };
 
             var ok = await _apis.PostBoolAsync("/api/crud/partenaires/create", payload);
@@ -270,6 +337,7 @@ public class PartnersViewModel : BaseViewModel
 
             NewPartnerName = string.Empty;
             NewPartnerWebsite = string.Empty;
+            ClearSelectedLogo();
 
             // si on est en mode édition, recharge la liste
             if (IsSelectionVisible)
@@ -325,7 +393,7 @@ public class PartnersViewModel : BaseViewModel
                 nom = name,
                 url = website,
                 site_web = website,
-                logo = string.IsNullOrWhiteSpace(partner.ImagePath) ? DefaultPartnerLogo : partner.ImagePath
+                logo = ResolveLogoPath(_selectedImageUrl ?? partner.ImagePath)
             };
 
             // Rester sur le thread UI pour éviter les exceptions lors des mises à jour liées à la CollectionView
@@ -352,6 +420,147 @@ public class PartnersViewModel : BaseViewModel
             IsLoading = false;
             RefreshCommands();
         }
+    }
+
+    private async Task EnsureImageLibraryLoadedAsync()
+    {
+        if (_imageLibraryLoaded || IsImageLibraryLoading)
+            return;
+
+        await LoadImageLibraryAsync();
+    }
+
+    private async Task LoadImageLibraryAsync()
+    {
+        if (IsImageLibraryLoading)
+            return;
+
+        try
+        {
+            IsImageLibraryLoading = true;
+            ImageLibraryMessage = "Chargement de la bibliothèque d'images…";
+
+            if (!_sessionPrepared)
+                await PrepareSessionAsync();
+
+            var images = await _apis.GetListAsync<AdminImage>("/api/crud/images/list");
+
+            ImageLibrary.Clear();
+            foreach (var image in images ?? Enumerable.Empty<AdminImage>())
+                ImageLibrary.Add(image);
+
+            _imageLibraryLoaded = true;
+
+            ImageLibraryMessage = ImageLibrary.Count == 0
+                ? "Aucune image trouvée dans la bibliothèque."
+                : "Sélectionnez un logo ou utilisez la recherche.";
+
+            RefreshImageLibraryFilter();
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            ImageLibraryMessage = "Accès refusé. Reconnectez-vous pour charger les logos.";
+            Debug.WriteLine($"[PARTNERS] images 401 : {ex}");
+        }
+        catch (Exception ex)
+        {
+            ImageLibraryMessage = "Impossible de charger la bibliothèque d'images.";
+            Debug.WriteLine($"[PARTNERS] image load error : {ex}");
+        }
+        finally
+        {
+            IsImageLibraryLoading = false;
+        }
+    }
+
+    private void RefreshImageLibraryFilter()
+    {
+        if (IsImageLibraryLoading)
+            return;
+
+        IEnumerable<AdminImage> source = ImageLibrary;
+
+        if (!string.IsNullOrWhiteSpace(ImageSearchTerm))
+        {
+            var query = ImageSearchTerm.Trim().ToLowerInvariant();
+            source = source.Where(img => img.DisplayName.ToLowerInvariant().Contains(query));
+        }
+
+        FilteredImageLibrary.Clear();
+        foreach (var image in source)
+            FilteredImageLibrary.Add(image);
+
+        if (FilteredImageLibrary.Count == 0)
+        {
+            ImageLibraryMessage = string.IsNullOrWhiteSpace(ImageSearchTerm)
+                ? "Aucune image disponible."
+                : $"Aucun résultat pour \"{ImageSearchTerm}\".";
+        }
+        else
+        {
+            ImageLibraryMessage = string.IsNullOrWhiteSpace(ImageSearchTerm)
+                ? "Sélectionnez un logo ou utilisez la recherche."
+                : $"{FilteredImageLibrary.Count} résultat(s) pour \"{ImageSearchTerm}\".";
+        }
+    }
+
+    private void ApplyImageSelection(AdminImage? image)
+    {
+        if (image is null)
+        {
+            ClearSelectedLogo();
+            RefreshCommands();
+            return;
+        }
+
+        _selectedImageUrl = image.Url;
+        HasSelectedImage = true;
+        SelectedImageName = $"Logo sélectionné : {image.DisplayName}";
+        SelectedImagePreview = ImageSource.FromUri(new Uri(image.FullUrl));
+        StatusMessage = "Logo sélectionné depuis la bibliothèque.";
+        RefreshCommands();
+    }
+
+    private void ApplyExistingLogo(Partner? partner)
+    {
+        if (partner is null)
+        {
+            ClearSelectedLogo();
+            return;
+        }
+
+        _selectedImageUrl = partner.ImagePath;
+        HasSelectedImage = !string.IsNullOrWhiteSpace(partner.ImagePath);
+        SelectedImageName = HasSelectedImage
+            ? $"Logo actuel : {partner.ImagePath}"
+            : "Aucun logo sélectionné.";
+        SelectedImagePreview = string.IsNullOrWhiteSpace(partner.FullImageUrl)
+            ? null
+            : ImageSource.FromUri(new Uri(partner.FullImageUrl));
+    }
+
+    private void ClearSelectedLogo()
+    {
+        _selectedImageUrl = null;
+        HasSelectedImage = false;
+        SelectedImageName = "Aucun logo sélectionné.";
+        SelectedImagePreview = null;
+        _selectedLibraryImage = null;
+        OnPropertyChanged(nameof(SelectedLibraryImage));
+    }
+
+    private static string ResolveLogoPath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return $"images/{DefaultPartnerLogo}";
+
+        var sanitized = path.Replace("\\", "/").Trim();
+        sanitized = sanitized.TrimStart('/');
+
+        if (!sanitized.Contains('/'))
+            sanitized = $"images/{sanitized}";
+
+        return sanitized;
     }
 
     private bool CanDelete()

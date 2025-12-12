@@ -73,6 +73,9 @@ public class Partner
 
         // Relatif => base images
         var trimmedPath = sanitized.TrimStart('/');
+
+        if (!trimmedPath.Contains("/"))
+            trimmedPath = $"images/{trimmedPath}";
         var baseAddress = Constantes.BaseImagesAddress.TrimEnd('/');
 
         return $"{baseAddress}/{trimmedPath}";
