@@ -51,9 +51,6 @@ public class EvenementPageViewModel : BaseViewModel
         DeleteCommand = new Command(async () => await DeleteCategoryAsync(), CanDeleteCategory);
 
         ShowSelectionCommand = new Command(async () => await ToggleSelectionAsync());
-
-        // IMPORTANT : sécurise la sélection et déclenche bien le VisualState "Selected"
-        SelectionChangedCommand = new Command<PromoCategory?>(OnSelectionChanged);
     }
 
     public ObservableCollection<PromoCategory> PromoCategories { get; }
@@ -63,9 +60,6 @@ public class EvenementPageViewModel : BaseViewModel
     public ICommand UpdateCommand { get; }
     public ICommand DeleteCommand { get; }
     public ICommand ShowSelectionCommand { get; }
-
-    // À binder dans le CollectionView : SelectionChangedCommand="{Binding SelectionChangedCommand}"
-    public ICommand SelectionChangedCommand { get; }
 
     public string StatusMessage
     {
@@ -79,9 +73,7 @@ public class EvenementPageViewModel : BaseViewModel
         set
         {
             if (SetProperty(ref _newCategoryName, value))
-            {
                 RefreshCommandStates();
-            }
         }
     }
 
@@ -91,9 +83,7 @@ public class EvenementPageViewModel : BaseViewModel
         set
         {
             if (SetProperty(ref _editCategoryName, value))
-            {
                 RefreshCommandStates();
-            }
         }
     }
 
@@ -130,9 +120,7 @@ public class EvenementPageViewModel : BaseViewModel
         set
         {
             if (SetProperty(ref _isSelectionVisible, value))
-            {
                 OnPropertyChanged(nameof(SelectionButtonText));
-            }
         }
     }
 
@@ -144,21 +132,6 @@ public class EvenementPageViewModel : BaseViewModel
     {
         StatusMessage = "Cliquez sur \"Modifier\" pour charger les données.";
         return Task.CompletedTask;
-    }
-
-    private void OnSelectionChanged(PromoCategory? selected)
-    {
-        SelectedCategory = selected;
-
-        if (selected is null)
-        {
-            StatusMessage = "Aucun événement sélectionné.";
-            return;
-        }
-
-        // UX : on préremplit et on annonce clairement
-        EditCategoryName = selected.Name ?? string.Empty;
-        StatusMessage = $"Sélection : #{selected.Id} — {selected.DisplayName}";
     }
 
     private async Task LoadCategoriesAsync(bool forceReload = false)
@@ -187,9 +160,7 @@ public class EvenementPageViewModel : BaseViewModel
 
             PromoCategories.Clear();
             foreach (var category in items.OrderBy(c => c.Name))
-            {
                 PromoCategories.Add(category);
-            }
 
             _categoriesLoaded = true;
 
@@ -200,8 +171,6 @@ public class EvenementPageViewModel : BaseViewModel
                 return;
             }
 
-            // IMPORTANT : après reload, l'instance SelectedCategory n'existe plus
-            // => on re-sélectionne par Id pour conserver la surbrillance / editpanel
             if (keepSelectedId.HasValue)
             {
                 var match = PromoCategories.FirstOrDefault(c => c.Id == keepSelectedId.Value);
@@ -255,7 +224,7 @@ public class EvenementPageViewModel : BaseViewModel
             if (created)
             {
                 NewCategoryName = string.Empty;
-                await ShowConfirmationAsync("Événement créé avec succès.");
+                await ShowSuccessAsync("Création", "Événement créé avec succès.");
                 await LoadCategoriesAsync(forceReload: true);
             }
         }
@@ -295,19 +264,35 @@ public class EvenementPageViewModel : BaseViewModel
                 return;
             }
 
+            var newName = EditCategoryName.Trim();
+
             var payload = new
             {
                 id = SelectedCategory!.Id,
-                nom = EditCategoryName.Trim()
+                nom = newName
             };
 
             var updated = await _apis.PostBoolAsync("/categorie/promo/update", payload);
-            StatusMessage = updated ? "Événement mis à jour." : "La mise à jour a échoué.";
 
-            if (updated)
+            if (!updated)
             {
-                await LoadCategoriesAsync(forceReload: true);
+                StatusMessage = "La mise à jour a échoué.";
+                return;
             }
+
+            // ✅ Mise à jour immédiate dans la liste (sans reload obligatoire)
+            var item = PromoCategories.FirstOrDefault(c => c.Id == SelectedCategory!.Id);
+            if (item is not null)
+            {
+                item.Name = newName;
+                item.DisplayName = newName;
+            }
+
+            StatusMessage = "Événement mis à jour.";
+            await ShowSuccessAsync("Mise à jour", "Événement mis à jour avec succès.");
+
+            // Optionnel : reload si tu veux refléter exactement ce que renvoie l'API
+            await LoadCategoriesAsync(forceReload: true);
         }
         catch (HttpRequestException ex)
         {
@@ -334,6 +319,14 @@ public class EvenementPageViewModel : BaseViewModel
             return;
         }
 
+        var target = SelectedCategory!;
+        var confirm = await ShowConfirmAsync(
+            "Suppression",
+            $"Supprimer l'événement \"{target.DisplayName}\" ?");
+
+        if (!confirm)
+            return;
+
         try
         {
             IsBusy = true;
@@ -345,17 +338,29 @@ public class EvenementPageViewModel : BaseViewModel
                 return;
             }
 
-            var payload = new { id = SelectedCategory!.Id };
+            var payload = new { id = target.Id };
             var deleted = await _apis.PostBoolAsync("/categorie/promo/delete", payload);
 
-            StatusMessage = deleted ? "Événement supprimé." : "La suppression a échoué.";
-
-            if (deleted)
+            if (!deleted)
             {
-                SelectedCategory = null;
-                EditCategoryName = string.Empty;
-                await LoadCategoriesAsync(forceReload: true);
+                StatusMessage = "La suppression a échoué.";
+                return;
             }
+
+            // ✅ Disparition immédiate dans l'affichage
+            var toRemove = PromoCategories.FirstOrDefault(c => c.Id == target.Id);
+            if (toRemove is not null)
+                PromoCategories.Remove(toRemove);
+
+            SelectedCategory = null;
+            EditCategoryName = string.Empty;
+
+            StatusMessage = "Événement supprimé.";
+            await ShowSuccessAsync("Suppression", "Événement supprimé avec succès.");
+
+            // Si tu veux remettre un message quand la liste devient vide
+            if (PromoCategories.Count == 0)
+                StatusMessage = "Aucun événement pour le moment.";
         }
         catch (HttpRequestException ex)
         {
@@ -411,14 +416,18 @@ public class EvenementPageViewModel : BaseViewModel
         IsSelectionVisible = !IsSelectionVisible;
 
         if (IsSelectionVisible)
-        {
             await LoadCategoriesAsync();
-        }
     }
 
-    private Task ShowConfirmationAsync(string message)
+    private Task ShowSuccessAsync(string title, string message)
     {
         return MainThread.InvokeOnMainThreadAsync(async () =>
-            await DialogService.DisplayAlertAsync("Confirmation", message, "OK"));
+            await DialogService.DisplayAlertAsync(title, message, "OK"));
+    }
+
+    private Task<bool> ShowConfirmAsync(string title, string message)
+    {
+        return MainThread.InvokeOnMainThreadAsync(async () =>
+            await DialogService.DisplayConfirmAsync(title, message, "Oui", "Non"));
     }
 }
