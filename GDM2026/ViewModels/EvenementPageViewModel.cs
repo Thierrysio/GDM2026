@@ -430,16 +430,26 @@ public class EvenementPageViewModel : BaseViewModel
     private Task ShowInfoAsync(string title, string message)
     {
         return MainThread.InvokeOnMainThreadAsync(async () =>
-            await DialogService.DisplayAlertAsync(title, message, "OK"));
+        {
+            var page = Application.Current?.Windows?.FirstOrDefault()?.Page;
+            if (page is null)
+            {
+                return;
+            }
+
+            await page.DisplayAlert(title, message, "OK");
+        });
     }
 
     private Task<bool> ConfirmAsync(string title, string message)
     {
         return MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            var page = Application.Current?.MainPage;
+            var page = Application.Current?.Windows?.FirstOrDefault()?.Page;
             if (page is null)
+            {
                 return true;
+            }
 
             return await page.DisplayAlert(title, message, "Oui", "Non");
         });
