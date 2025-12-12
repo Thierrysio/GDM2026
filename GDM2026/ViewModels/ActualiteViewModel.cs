@@ -63,6 +63,7 @@ public class ActualiteViewModel : BaseViewModel
 
         CreateActualiteCommand = new Command(async () => await CreateActualiteAsync(), CanCreateActualite);
         UpdateActualiteCommand = new Command(async () => await UpdateActualiteAsync(), CanUpdateActualite);
+        DeleteActualiteCommand = new Command(async () => await DeleteActualiteAsync(), CanDeleteActualite);
     }
 
     public ICommand ShowCreatePanelCommand { get; }
@@ -72,6 +73,8 @@ public class ActualiteViewModel : BaseViewModel
     public ICommand CreateActualiteCommand { get; }
 
     public ICommand UpdateActualiteCommand { get; }
+
+    public ICommand DeleteActualiteCommand { get; }
 
     public bool IsCreateMode => _currentMode == ActualiteFormMode.Create;
 
@@ -260,10 +263,18 @@ public class ActualiteViewModel : BaseViewModel
             && !string.IsNullOrWhiteSpace(_selectedImageUrl);
     }
 
+    private bool CanDeleteActualite()
+    {
+        return !IsBusy
+            && _currentMode == ActualiteFormMode.Update
+            && _selectedActualiteForEdit is not null;
+    }
+
     private void RefreshFormCommands()
     {
         (CreateActualiteCommand as Command)?.ChangeCanExecute();
         (UpdateActualiteCommand as Command)?.ChangeCanExecute();
+        (DeleteActualiteCommand as Command)?.ChangeCanExecute();
     }
 
     private async Task SetModeAsync(ActualiteFormMode mode)
@@ -692,6 +703,88 @@ public class ActualiteViewModel : BaseViewModel
         {
             Debug.WriteLine($"Mise à jour actualité échouée: {ex}");
             StatusMessage = $"Une erreur est survenue : {ex.Message}";
+            StatusColor = Colors.OrangeRed;
+        }
+        finally
+        {
+            IsBusy = false;
+            RefreshFormCommands();
+        }
+    }
+
+    private async Task DeleteActualiteAsync()
+    {
+        if (IsBusy || _selectedActualiteForEdit is null)
+        {
+            return;
+        }
+
+        var shell = Shell.Current;
+        if (shell is not null)
+        {
+            var confirmed = await shell.DisplayAlert(
+                "Suppression",
+                $"Supprimer définitivement l'actualité #{_selectedActualiteForEdit.Id} ?",
+                "Supprimer",
+                "Annuler");
+
+            if (!confirmed)
+            {
+                return;
+            }
+        }
+
+        try
+        {
+            IsBusy = true;
+            RefreshFormCommands();
+
+            StatusMessage = "Suppression en cours…";
+            StatusColor = Colors.Gold;
+
+            if (!await EnsureAuthenticationAsync())
+            {
+                return;
+            }
+
+            var deleted = await _apis.PostBoolAsync("/actualite/delete", new { id = _selectedActualiteForEdit.Id });
+            StatusMessage = deleted
+                ? "Actualité supprimée."
+                : "La suppression a échoué.";
+            StatusColor = deleted ? Colors.LightGreen : Colors.OrangeRed;
+
+            if (deleted)
+            {
+                SelectedActualiteForEdit = null;
+                PrepareUpdateForm();
+                await LoadActualitesAsync(forceReload: true);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "Suppression annulée.";
+            StatusColor = Colors.Gold;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            StatusMessage = "Authentification requise pour supprimer.";
+            StatusColor = Colors.OrangeRed;
+
+            if (await PromptInlineLoginAsync())
+            {
+                ApplyAuthToken();
+                StatusMessage = "Connexion rétablie. Relancez la suppression.";
+                StatusColor = Colors.LightGreen;
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            StatusMessage = $"Impossible de contacter le serveur dantecmarket.com. ({ex.Message})";
+            StatusColor = Colors.OrangeRed;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Suppression impossible : {ex.Message}";
             StatusColor = Colors.OrangeRed;
         }
         finally

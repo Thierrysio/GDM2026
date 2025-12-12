@@ -109,6 +109,13 @@
                                 FontSize="13"
                                 Opacity="0.85"
                                 HorizontalTextAlignment="Center" />
+
+                            <Button
+                                Text="Supprimer l'actualité sélectionnée"
+                                Command="{Binding DeleteActualiteCommand}"
+                                BackgroundColor="#4A1010"
+                                TextColor="{StaticResource GoldText}"
+                                IsEnabled="{Binding HasActualiteSelection}" />
                         </VerticalStackLayout>
                     </Frame>
 
