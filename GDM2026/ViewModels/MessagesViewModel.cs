@@ -18,8 +18,10 @@ namespace GDM2026.ViewModels;
 public class MessagesViewModel : BaseViewModel
 {
     private const int PageSize = 10;
-    private const string EtatATraiter = "A traiter";
-    private const string EtatTraite = "Traité";
+
+    // ✅ Mets ici EXACTEMENT ce que ton backend utilise
+    private const string EtatATraiter = "a traiter";
+    private const string EtatTraite = "traité";
 
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
@@ -117,7 +119,6 @@ public class MessagesViewModel : BaseViewModel
         if (!_sessionPrepared)
             await PrepareSessionAsync();
 
-        // ✅ Ne charge rien au démarrage
         FeedbackMessage = "Cliquez sur « Charger les 10 derniers » pour afficher les messages à traiter.";
         FeedbackColor = Colors.Gold;
         RefreshCommands();
@@ -154,7 +155,7 @@ public class MessagesViewModel : BaseViewModel
             var items = await _apis.GetListAsync<MessageEntry>("/api/crud/messages/list");
 
             _pendingCache = (items ?? new List<MessageEntry>())
-                .Where(m => string.Equals((m.Etat ?? "").Trim(), EtatATraiter, StringComparison.OrdinalIgnoreCase))
+                .Where(m => IsEtatATraiter(m.Etat))
                 .OrderByDescending(GetMessageDate)
                 .ToList();
 
@@ -257,18 +258,19 @@ public class MessagesViewModel : BaseViewModel
             if (!_sessionPrepared)
                 await PrepareSessionAsync();
 
-            // ✅ Règle métier : Etat = Traité, Date = aujourd’hui
-            var today = DateTime.Today;
+            // ✅ Date = maintenant (pas Today)
+            var now = DateTime.Now;
 
+            // ✅ Ton API renvoie "dateMessage" => on envoie "dateMessage"
+            // Format ISO compatible
             var payload = new
             {
                 id = target.Id,
-                date_message = today.ToString("yyyy-MM-dd"),
+                dateMessage = now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"),
                 reponse = reply,
                 etat = EtatTraite
             };
 
-            // ⚠️ adapte si ta route d'update est différente
             var ok = await _apis.PostBoolAsync("/api/crud/messages/update", payload);
 
             if (!ok)
@@ -277,6 +279,11 @@ public class MessagesViewModel : BaseViewModel
                 FeedbackColor = Colors.OrangeRed;
                 return;
             }
+
+            // ✅ MAJ locale (utile si tu affiches un historique plus tard)
+            target.Reponse = reply;
+            target.Etat = EtatTraite;
+            target.DateMessage = now;
 
             // ✅ retrait immédiat (on n’affiche que “A traiter”)
             RemoveFromLists(target);
@@ -327,8 +334,17 @@ public class MessagesViewModel : BaseViewModel
     }
 
     private static DateTime GetMessageDate(MessageEntry m)
-    => m.DateMessage?.ToLocalTime() ?? DateTime.MinValue;
+        => m.DateMessage?.ToLocalTime() ?? DateTime.MinValue;
 
+    private static bool IsEtatATraiter(string? etat)
+    {
+        var e = (etat ?? string.Empty).Trim();
+
+        // ✅ robuste sur casse + accents éventuels
+        // (si ton backend renvoie toujours exactement "A traiter", tu peux simplifier)
+        return string.Equals(e, EtatATraiter, StringComparison.OrdinalIgnoreCase)
+               || string.Equals(e, "A traiter", StringComparison.OrdinalIgnoreCase);
+    }
 
     private void RefreshCommands()
     {
