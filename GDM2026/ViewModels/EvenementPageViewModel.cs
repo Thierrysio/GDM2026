@@ -21,7 +21,7 @@ public class EvenementPageViewModel : BaseViewModel
 
     private bool _sessionLoaded;
     private bool _categoriesLoaded;
-    private string _statusMessage = "Chargez les catégories promo pour commencer.";
+    private string _statusMessage = "Chargez les Ã©vÃ©nements pour commencer.";
     private string _newCategoryName = string.Empty;
     private string _editCategoryName = string.Empty;
     private bool _isRefreshing;
@@ -106,8 +106,8 @@ public class EvenementPageViewModel : BaseViewModel
     }
 
     public string SelectedCategoryName => SelectedCategory is null
-        ? "Aucune catégorie sélectionnée."
-        : $"#{SelectedCategory.Id} — {SelectedCategory.DisplayName}";
+        ? "Aucun Ã©vÃ©nement sÃ©lectionnÃ©."
+        : $"#{SelectedCategory.Id} Â— {SelectedCategory.DisplayName}";
 
     public bool HasCategorySelection => SelectedCategory is not null;
 
@@ -132,12 +132,12 @@ public class EvenementPageViewModel : BaseViewModel
     }
 
     public string SelectionButtonText => IsSelectionVisible
-        ? "Masquer la sélection"
-        : "Choisir une catégorie";
+        ? "Masquer les Ã©vÃ©nements"
+        : "Modifier";
 
     public Task InitializeAsync()
     {
-        StatusMessage = "Cliquez sur \"Choisir une catégorie\" pour charger les données.";
+        StatusMessage = "Cliquez sur \"Modifier\" pour charger les donnÃ©es.";
         return Task.CompletedTask;
     }
 
@@ -156,11 +156,11 @@ public class EvenementPageViewModel : BaseViewModel
         try
         {
             IsBusy = true;
-            StatusMessage = "Chargement des catégories promo…";
+            StatusMessage = "Chargement des Ã©vÃ©nementsÂ…";
 
             if (!await EnsureSessionAsync())
             {
-                StatusMessage = "Session expirée. Reconnectez-vous pour gérer les catégories.";
+                StatusMessage = "Session expirÃ©e. Reconnectez-vous pour gÃ©rer les Ã©vÃ©nements.";
                 return;
             }
 
@@ -175,18 +175,18 @@ public class EvenementPageViewModel : BaseViewModel
 
             if (PromoCategories.Count == 0)
             {
-                StatusMessage = "Aucune catégorie promo pour le moment.";
+                StatusMessage = "Aucun Ã©vÃ©nement pour le moment.";
             }
             else
             {
-                StatusMessage = $"{PromoCategories.Count} catégorie(s) promo chargée(s).";
+                StatusMessage = $"{PromoCategories.Count} Ã©vÃ©nement(s) chargÃ©(s).";
             }
             _categoriesLoaded = true;
         }
         catch (HttpRequestException ex)
         {
             Debug.WriteLine($"[EVENEMENT] HTTP error: {ex}");
-            StatusMessage = "Impossible de contacter l'API des catégories promo.";
+            StatusMessage = "Impossible de contacter l'API des Ã©vÃ©nements.";
         }
         catch (Exception ex)
         {
@@ -204,7 +204,7 @@ public class EvenementPageViewModel : BaseViewModel
     {
         if (!CanCreateCategory())
         {
-            StatusMessage = "Renseignez le nom de la catégorie à créer.";
+            StatusMessage = "Renseignez le nom de l'Ã©vÃ©nement Ã  crÃ©er.";
             return;
         }
 
@@ -215,7 +215,7 @@ public class EvenementPageViewModel : BaseViewModel
 
             if (!await EnsureSessionAsync())
             {
-                StatusMessage = "Session expirée. Reconnectez-vous pour créer.";
+                StatusMessage = "Session expirÃ©e. Reconnectez-vous pour crÃ©er.";
                 return;
             }
 
@@ -223,25 +223,25 @@ public class EvenementPageViewModel : BaseViewModel
             var created = await _apis.PostBoolAsync("/categorie/promo/create", payload);
 
             StatusMessage = created
-                ? "Catégorie promo créée avec succès."
-                : "La création a échoué.";
+                ? "Ã‰vÃ©nement crÃ©Ã© avec succÃ¨s."
+                : "La crÃ©ation a Ã©chouÃ©.";
 
             if (created)
             {
                 NewCategoryName = string.Empty;
-                await ShowConfirmationAsync("Catégorie promo créée avec succès.");
+                await ShowConfirmationAsync("Ã‰vÃ©nement crÃ©Ã© avec succÃ¨s.");
                 await LoadCategoriesAsync(forceReload: true);
             }
         }
         catch (HttpRequestException ex)
         {
             Debug.WriteLine($"[EVENEMENT] create error: {ex}");
-            StatusMessage = "Impossible de créer la catégorie.";
+            StatusMessage = "Impossible de crÃ©er l'Ã©vÃ©nement.";
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[EVENEMENT] unexpected create error: {ex}");
-            StatusMessage = "Erreur inattendue lors de la création.";
+            StatusMessage = "Erreur inattendue lors de la crÃ©ation.";
         }
         finally
         {
@@ -254,7 +254,7 @@ public class EvenementPageViewModel : BaseViewModel
     {
         if (!CanUpdateCategory())
         {
-            StatusMessage = "Sélectionnez une catégorie et renseignez son nouveau nom.";
+            StatusMessage = "SÃ©lectionnez un Ã©vÃ©nement et renseignez son nouveau nom.";
             return;
         }
 
@@ -265,7 +265,7 @@ public class EvenementPageViewModel : BaseViewModel
 
             if (!await EnsureSessionAsync())
             {
-                StatusMessage = "Session expirée. Reconnectez-vous pour modifier.";
+                StatusMessage = "Session expirÃ©e. Reconnectez-vous pour modifier.";
                 return;
             }
 
@@ -277,8 +277,8 @@ public class EvenementPageViewModel : BaseViewModel
 
             var updated = await _apis.PostBoolAsync("/categorie/promo/update", payload);
             StatusMessage = updated
-                ? "Catégorie promo mise à jour."
-                : "La mise à jour a échoué.";
+                ? "Ã‰vÃ©nement mis Ã  jour."
+                : "La mise Ã  jour a Ã©chouÃ©.";
 
             if (updated)
             {
@@ -288,12 +288,12 @@ public class EvenementPageViewModel : BaseViewModel
         catch (HttpRequestException ex)
         {
             Debug.WriteLine($"[EVENEMENT] update error: {ex}");
-            StatusMessage = "Impossible de mettre à jour la catégorie.";
+            StatusMessage = "Impossible de mettre Ã  jour l'Ã©vÃ©nement.";
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[EVENEMENT] unexpected update error: {ex}");
-            StatusMessage = "Erreur inattendue lors de la mise à jour.";
+            StatusMessage = "Erreur inattendue lors de la mise Ã  jour.";
         }
         finally
         {
@@ -306,7 +306,7 @@ public class EvenementPageViewModel : BaseViewModel
     {
         if (!CanDeleteCategory())
         {
-            StatusMessage = "Sélectionnez une catégorie à supprimer.";
+            StatusMessage = "SÃ©lectionnez un Ã©vÃ©nement Ã  supprimer.";
             return;
         }
 
@@ -317,7 +317,7 @@ public class EvenementPageViewModel : BaseViewModel
 
             if (!await EnsureSessionAsync())
             {
-                StatusMessage = "Session expirée. Reconnectez-vous pour supprimer.";
+                StatusMessage = "Session expirÃ©e. Reconnectez-vous pour supprimer.";
                 return;
             }
 
@@ -325,8 +325,8 @@ public class EvenementPageViewModel : BaseViewModel
             var deleted = await _apis.PostBoolAsync("/categorie/promo/delete", payload);
 
             StatusMessage = deleted
-                ? "Catégorie promo supprimée."
-                : "La suppression a échoué.";
+                ? "Ã‰vÃ©nement supprimÃ©."
+                : "La suppression a Ã©chouÃ©.";
 
             if (deleted)
             {
@@ -338,7 +338,7 @@ public class EvenementPageViewModel : BaseViewModel
         catch (HttpRequestException ex)
         {
             Debug.WriteLine($"[EVENEMENT] delete error: {ex}");
-            StatusMessage = "Impossible de supprimer la catégorie.";
+            StatusMessage = "Impossible de supprimer l'Ã©vÃ©nement.";
         }
         catch (Exception ex)
         {
