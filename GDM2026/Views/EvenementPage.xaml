@@ -75,28 +75,6 @@
                            TextColor="{StaticResource GoldText}"
                            LineBreakMode="WordWrap"
                            Opacity="0.85" />
-                    <Button Text="{Binding SelectionButtonText}"
-                            Command="{Binding ShowSelectionCommand}"
-                            Style="{StaticResource PrimaryButtonStyle}" />
-                </VerticalStackLayout>
-            </Border>
-
-            <Border Background="{StaticResource CardBackground}" Stroke="#000000" StrokeThickness="1.5" Padding="24">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="18" />
-                </Border.StrokeShape>
-                <VerticalStackLayout Spacing="12">
-                    <Label Text="Créer une catégorie" Style="{StaticResource SectionTitleStyle}" />
-                    <Label Text="Renseignez le nom complet de la catégorie événementielle."
-                           FontSize="13"
-                           TextColor="{StaticResource GoldText}"
-                           Opacity="0.75" />
-                    <Entry Placeholder="Nom de la catégorie"
-                           Text="{Binding NewCategoryName}"
-                           Style="{StaticResource DarkEntryStyle}" />
-                    <Button Text="Créer la catégorie"
-                            Command="{Binding CreateCommand}"
-                            Style="{StaticResource PrimaryButtonStyle}" />
                 </VerticalStackLayout>
             </Border>
 
@@ -106,23 +84,14 @@
                 </Border.StrokeShape>
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Mettre à jour ou supprimer" Style="{StaticResource SectionTitleStyle}" />
+                    <Button Text="{Binding SelectionButtonText}"
+                            Command="{Binding ShowSelectionCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}" />
                     <Label Text="{Binding SelectedCategoryName}"
                            FontSize="13"
                            TextColor="{StaticResource GoldText}"
                            Opacity="0.85"
                            LineBreakMode="WordWrap" />
-                    <Entry Placeholder="Nouveau nom"
-                           Text="{Binding EditCategoryName}"
-                           Style="{StaticResource DarkEntryStyle}" />
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                        <Button Text="Mettre à jour"
-                                Command="{Binding UpdateCommand}"
-                                Style="{StaticResource SecondaryButtonStyle}" />
-                        <Button Grid.Column="1"
-                                Text="Supprimer"
-                                Command="{Binding DeleteCommand}"
-                                Style="{StaticResource DangerButtonStyle}" />
-                    </Grid>
                 </VerticalStackLayout>
             </Border>
 
@@ -206,6 +175,31 @@
                             </CollectionView.ItemTemplate>
                         </CollectionView>
                     </RefreshView>
+
+                    <VerticalStackLayout Spacing="10"
+                                          IsVisible="{Binding HasCategorySelection}">
+                        <Label Text="Modifier la catégorie sélectionnée"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource GoldText}" />
+                        <Label Text="{Binding SelectedCategoryName}"
+                               FontSize="13"
+                               TextColor="{StaticResource GoldText}"
+                               Opacity="0.85"
+                               LineBreakMode="WordWrap" />
+                        <Entry Placeholder="Nouveau nom"
+                               Text="{Binding EditCategoryName}"
+                               Style="{StaticResource DarkEntryStyle}" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <Button Text="Mettre à jour"
+                                    Command="{Binding UpdateCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}" />
+                            <Button Grid.Column="1"
+                                    Text="Supprimer"
+                                    Command="{Binding DeleteCommand}"
+                                    Style="{StaticResource DangerButtonStyle}" />
+                        </Grid>
+                    </VerticalStackLayout>
                 </VerticalStackLayout>
             </Border>
         </VerticalStackLayout>

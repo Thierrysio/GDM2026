@@ -99,6 +99,7 @@ public class EvenementPageViewModel : BaseViewModel
             {
                 EditCategoryName = value?.Name ?? string.Empty;
                 OnPropertyChanged(nameof(SelectedCategoryName));
+                OnPropertyChanged(nameof(HasCategorySelection));
                 RefreshCommandStates();
             }
         }
@@ -107,6 +108,8 @@ public class EvenementPageViewModel : BaseViewModel
     public string SelectedCategoryName => SelectedCategory is null
         ? "Aucune catégorie sélectionnée."
         : $"#{SelectedCategory.Id} — {SelectedCategory.DisplayName}";
+
+    public bool HasCategorySelection => SelectedCategory is not null;
 
     public bool IsRefreshing
     {
