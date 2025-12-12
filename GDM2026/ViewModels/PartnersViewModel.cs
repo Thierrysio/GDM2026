@@ -32,9 +32,14 @@ public class PartnersViewModel : BaseViewModel
     private string _editPartnerName = string.Empty;
     private string _editPartnerWebsite = string.Empty;
 
+    private string _newPartnerName = string.Empty;
+    private string _newPartnerWebsite = string.Empty;
+
     public PartnersViewModel()
     {
         ToggleEditModeCommand = new Command(async () => await ToggleEditModeAsync(), () => !IsLoading && !IsBusy);
+
+        CreateCommand = new Command(async () => await CreateAsync(), CanCreate);
         UpdateCommand = new Command(async () => await UpdateAsync(), CanUpdate);
         DeleteCommand = new Command(async () => await DeleteAsync(), CanDelete);
 
@@ -44,6 +49,7 @@ public class PartnersViewModel : BaseViewModel
     public ObservableCollection<Partner> Partners { get; } = new();
 
     public ICommand ToggleEditModeCommand { get; }
+    public ICommand CreateCommand { get; }
     public ICommand UpdateCommand { get; }
     public ICommand DeleteCommand { get; }
     public ICommand OpenWebsiteCommand { get; }
@@ -88,10 +94,15 @@ public class PartnersViewModel : BaseViewModel
             {
                 EditPartnerName = value?.DisplayName ?? string.Empty;
                 EditPartnerWebsite = value?.Website ?? string.Empty;
+                OnPropertyChanged(nameof(SelectedPartnerLabel));
                 RefreshCommands();
             }
         }
     }
+
+    public string SelectedPartnerLabel => SelectedPartner is null
+        ? "Aucun partenaire sélectionné."
+        : $"#{SelectedPartner.Id} — {SelectedPartner.DisplayName}";
 
     public string EditPartnerName
     {
@@ -113,7 +124,27 @@ public class PartnersViewModel : BaseViewModel
         }
     }
 
-    // ✅ Appelé par la page : ne charge rien
+    public string NewPartnerName
+    {
+        get => _newPartnerName;
+        set
+        {
+            if (SetProperty(ref _newPartnerName, value))
+                RefreshCommands();
+        }
+    }
+
+    public string NewPartnerWebsite
+    {
+        get => _newPartnerWebsite;
+        set
+        {
+            if (SetProperty(ref _newPartnerWebsite, value))
+                RefreshCommands();
+        }
+    }
+
+    // appelé par la page : NE charge rien
     public async Task OnPageAppearingAsync()
     {
         if (!_sessionPrepared)
@@ -143,7 +174,6 @@ public class PartnersViewModel : BaseViewModel
 
         if (IsSelectionVisible)
         {
-            // ✅ Chargement seulement au clic
             await LoadPartnersAsync(forceReload: true);
         }
         else
@@ -167,12 +197,11 @@ public class PartnersViewModel : BaseViewModel
             IsLoading = true;
             IsBusy = true;
 
-            StatusMessage = forceReload ? "Actualisation des partenaires…" : "Chargement des partenaires…";
+            StatusMessage = "Chargement des partenaires…";
 
             if (!_sessionPrepared)
                 await PrepareSessionAsync();
 
-            // ✅ Endpoint stable (celui qu'on a ajouté dans ton controller)
             var partners = await _apis.GetListAsync<Partner>("/api/crud/partenaires/list").ConfigureAwait(false);
             partners ??= new List<Partner>();
 
@@ -186,24 +215,74 @@ public class PartnersViewModel : BaseViewModel
                 ? "Aucun partenaire à afficher."
                 : $"{Partners.Count} partenaire(s) chargé(s).";
         }
-        catch (OperationCanceledException)
-        {
-            StatusMessage = "Chargement annulé.";
-        }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
         {
             StatusMessage = "Accès refusé. Veuillez vous reconnecter.";
             Debug.WriteLine($"[PARTNERS] 401 : {ex}");
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex)
         {
             StatusMessage = "Impossible de récupérer les partenaires.";
-            Debug.WriteLine($"[PARTNERS] Erreur HTTP : {ex}");
+            Debug.WriteLine($"[PARTNERS] load error : {ex}");
+        }
+        finally
+        {
+            IsBusy = false;
+            IsLoading = false;
+            RefreshCommands();
+        }
+    }
+
+    private bool CanCreate()
+        => !IsBusy
+           && !IsLoading
+           && !string.IsNullOrWhiteSpace(NewPartnerName);
+
+    private async Task CreateAsync()
+    {
+        if (!CanCreate())
+        {
+            StatusMessage = "Renseignez le nom du partenaire.";
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            IsLoading = true;
+            RefreshCommands();
+
+            if (!_sessionPrepared)
+                await PrepareSessionAsync();
+
+            var payload = new
+            {
+                nom = NewPartnerName.Trim(),
+                url = string.IsNullOrWhiteSpace(NewPartnerWebsite) ? null : NewPartnerWebsite.Trim()
+                // logo optionnel : à gérer plus tard (upload)
+            };
+
+            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/create", payload).ConfigureAwait(false);
+            if (!ok)
+            {
+                StatusMessage = "Création échouée.";
+                return;
+            }
+
+            StatusMessage = "Partenaire créé.";
+            await ShowInfoAsync("Création", "Partenaire créé avec succès.");
+
+            NewPartnerName = string.Empty;
+            NewPartnerWebsite = string.Empty;
+
+            // si on est en mode édition, recharge la liste
+            if (IsSelectionVisible)
+                await LoadPartnersAsync(forceReload: true);
         }
         catch (Exception ex)
         {
-            StatusMessage = "Une erreur est survenue lors du chargement.";
-            Debug.WriteLine($"[PARTNERS] Erreur inattendue : {ex}");
+            StatusMessage = "Impossible de créer le partenaire.";
+            Debug.WriteLine($"[PARTNERS] create error : {ex}");
         }
         finally
         {
@@ -244,7 +323,6 @@ public class PartnersViewModel : BaseViewModel
             if (!_sessionPrepared)
                 await PrepareSessionAsync();
 
-            // ✅ Payload compatible avec ton entity (nom/url)
             var payload = new
             {
                 id = partner.Id,
@@ -263,13 +341,7 @@ public class PartnersViewModel : BaseViewModel
             StatusMessage = "Partenaire mis à jour.";
             await ShowInfoAsync("Mise à jour", "Partenaire mis à jour avec succès.");
 
-            // ✅ Recharge pour avoir exactement les valeurs serveur
             await LoadPartnersAsync(forceReload: true);
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            StatusMessage = "Session expirée. Veuillez vous reconnecter.";
-            Debug.WriteLine($"[PARTNERS] 401 update : {ex}");
         }
         catch (Exception ex)
         {
@@ -321,7 +393,6 @@ public class PartnersViewModel : BaseViewModel
                 return;
             }
 
-            // ✅ Disparition immédiate
             Partners.Remove(partner);
 
             SelectedPartner = null;
@@ -330,14 +401,6 @@ public class PartnersViewModel : BaseViewModel
 
             StatusMessage = "Partenaire supprimé.";
             await ShowInfoAsync("Suppression", "Partenaire supprimé avec succès.");
-
-            if (Partners.Count == 0)
-                StatusMessage = "Aucun partenaire à afficher.";
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            StatusMessage = "Session expirée. Veuillez vous reconnecter.";
-            Debug.WriteLine($"[PARTNERS] 401 delete : {ex}");
         }
         catch (Exception ex)
         {
@@ -355,8 +418,10 @@ public class PartnersViewModel : BaseViewModel
     private void RefreshCommands()
     {
         (ToggleEditModeCommand as Command)?.ChangeCanExecute();
+        (CreateCommand as Command)?.ChangeCanExecute();
         (UpdateCommand as Command)?.ChangeCanExecute();
         (DeleteCommand as Command)?.ChangeCanExecute();
+        OnPropertyChanged(nameof(SelectedPartnerLabel));
     }
 
     private static async Task OpenWebsiteAsync(string? url)
@@ -389,7 +454,6 @@ public class PartnersViewModel : BaseViewModel
         {
             var page = Application.Current?.Windows?.FirstOrDefault()?.Page;
             if (page is null) return true;
-
             return await page.DisplayAlert(title, message, "Oui", "Non");
         });
     }
@@ -400,7 +464,6 @@ public class PartnersViewModel : BaseViewModel
         {
             var page = Application.Current?.Windows?.FirstOrDefault()?.Page;
             if (page is null) return;
-
             await page.DisplayAlert(title, message, "OK");
         });
     }

@@ -12,7 +12,7 @@
         <Color x:Key="CardBackground">#151515</Color>
     </ContentPage.Resources>
 
-    <!-- ✅ Comme Evenement : pas de RefreshView/ScrollView pour éviter superpositions et clics bloqués -->
+    <!-- ✅ Scrolling géré par CollectionView (pas de ScrollView) -->
     <CollectionView x:Name="PartnersCollection"
                     ItemsSource="{Binding Partners}"
                     SelectionMode="Single"
@@ -22,16 +22,15 @@
 
         <!-- ✅ Anti-troncation du dernier item -->
         <CollectionView.Footer>
-            <BoxView HeightRequest="110" InputTransparent="True" />
+            <BoxView HeightRequest="120" InputTransparent="True" />
         </CollectionView.Footer>
 
-        <!-- ✅ HEADER toujours visible -->
         <CollectionView.Header>
             <VerticalStackLayout Padding="20" Spacing="16">
 
-                <!-- Carte header -->
+                <!-- Titre + statut -->
                 <Border Background="{StaticResource CardBackground}"
-                        Stroke="#000000"
+                        Stroke="#000"
                         StrokeThickness="1.5"
                         Padding="18">
                     <Border.StrokeShape>
@@ -39,7 +38,7 @@
                     </Border.StrokeShape>
 
                     <VerticalStackLayout Spacing="10">
-                        <Label Text="Nos partenaires"
+                        <Label Text="Partenaires"
                                FontSize="28"
                                FontAttributes="Bold"
                                TextColor="{StaticResource GoldText}"
@@ -58,47 +57,76 @@
                                                Color="{StaticResource GoldText}"
                                                InputTransparent="True" />
                         </Grid>
+                    </VerticalStackLayout>
+                </Border>
 
-                        <!-- ✅ Bouton qui déclenche le chargement (pas de chargement au démarrage) -->
+                <!-- ✅ CRÉER UN PARTENAIRE -->
+                <Border Background="{StaticResource CardBackground}"
+                        Stroke="#000"
+                        StrokeThickness="1.5"
+                        Padding="18">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Créer un partenaire"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource GoldText}" />
+
+                        <Entry Placeholder="Nom du partenaire"
+                               Text="{Binding NewPartnerName}"
+                               BackgroundColor="#121212"
+                               TextColor="{StaticResource GoldText}"
+                               PlaceholderColor="#777" />
+
+                        <Entry Placeholder="Site web (optionnel)"
+                               Text="{Binding NewPartnerWebsite}"
+                               BackgroundColor="#121212"
+                               TextColor="{StaticResource GoldText}"
+                               PlaceholderColor="#777" />
+
+                        <Button Text="Créer"
+                                Command="{Binding CreateCommand}"
+                                BackgroundColor="#C18F1A"
+                                TextColor="{StaticResource GoldText}"
+                                ZIndex="10" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ✅ MODE ÉDITION (charge la liste au clic) -->
+                <Border Background="{StaticResource CardBackground}"
+                        Stroke="#000"
+                        StrokeThickness="1.5"
+                        Padding="18">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Modifier / Supprimer"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource GoldText}" />
+
                         <Button Text="{Binding EditModeButtonText}"
                                 Command="{Binding ToggleEditModeCommand}"
                                 BackgroundColor="#C18F1A"
                                 TextColor="{StaticResource GoldText}"
                                 ZIndex="10" />
 
-                        <Label Text="Touchez un partenaire pour le mettre en surbrillance et afficher le panneau d’édition."
+                        <Label Text="{Binding SelectedPartnerLabel}"
                                FontSize="12"
                                TextColor="{StaticResource GoldText}"
-                               Opacity="0.6">
-                            <Label.Triggers>
-                                <DataTrigger TargetType="Label"
-                                             Binding="{Binding IsSelectionVisible}"
-                                             Value="False">
-                                    <Setter Property="IsVisible" Value="False" />
-                                </DataTrigger>
-                            </Label.Triggers>
-                        </Label>
+                               Opacity="0.75"
+                               LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
-                </Border>
-
-                <!-- Petit titre section liste -->
-                <Border Background="{StaticResource CardBackground}"
-                        Stroke="#000000"
-                        StrokeThickness="1.5"
-                        Padding="12">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="16" />
-                    </Border.StrokeShape>
-                    <Label Text="Liste"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource GoldText}" />
                 </Border>
 
             </VerticalStackLayout>
         </CollectionView.Header>
 
-        <!-- EmptyView -->
         <CollectionView.EmptyView>
             <VerticalStackLayout Padding="20" Spacing="8">
                 <Label Text="Aucun partenaire à afficher."
@@ -115,7 +143,6 @@
         <CollectionView.ItemTemplate>
             <DataTemplate>
 
-                <!-- Item (fond noir, surbrillance stroke or en Selected) -->
                 <Border x:Name="ItemBorder"
                         Margin="20,4"
                         BackgroundColor="#0B0B0B"
@@ -123,7 +150,7 @@
                         StrokeThickness="1.5"
                         Padding="12">
 
-                    <!-- Masque items tant que l'utilisateur n'a pas activé le mode édition -->
+                    <!-- Masque la liste tant que le mode édition n'est pas activé -->
                     <Border.Triggers>
                         <DataTrigger TargetType="Border"
                                      Binding="{Binding BindingContext.IsSelectionVisible, Source={x:Reference PartnersCollection}}"
@@ -152,16 +179,22 @@
                             </Image.Source>
                         </Image>
 
-                        <!-- Fallback -->
-                        <Label Grid.Column="0"
+                        <!-- Fallback SANS converter (évite crash si ressource manquante) -->
+                        <Label x:Name="NoImageLabel"
+                               Grid.Column="0"
                                Text="Pas d'image"
                                FontSize="10"
                                TextColor="#AAAAAA"
                                HorizontalTextAlignment="Center"
                                VerticalTextAlignment="Center"
-                               IsVisible="{Binding HasImage, Converter={StaticResource InverseBoolConverter}}" />
+                               IsVisible="False">
+                            <Label.Triggers>
+                                <DataTrigger TargetType="Label" Binding="{Binding HasImage}" Value="False">
+                                    <Setter Property="IsVisible" Value="True" />
+                                </DataTrigger>
+                            </Label.Triggers>
+                        </Label>
 
-                        <!-- Texte + EditPanel -->
                         <VerticalStackLayout Grid.Column="1" Spacing="6">
 
                             <Label Text="{Binding DisplayName}"
@@ -179,7 +212,7 @@
                                 </Label.GestureRecognizers>
                             </Label>
 
-                            <!-- Panel édition : visible uniquement quand item sélectionné -->
+                            <!-- Panel édition sur item sélectionné -->
                             <VerticalStackLayout x:Name="EditPanel"
                                                  IsVisible="False"
                                                  Spacing="8">
@@ -225,10 +258,8 @@
                         </VerticalStackLayout>
                     </Grid>
 
-                    <!-- Visual states -->
                     <VisualStateManager.VisualStateGroups>
                         <VisualStateGroup x:Name="SelectionStates">
-
                             <VisualState x:Name="Normal">
                                 <VisualState.Setters>
                                     <Setter TargetName="ItemBorder" Property="Stroke" Value="#2D2D2D" />
@@ -244,7 +275,6 @@
                                     <Setter TargetName="EditPanel" Property="IsVisible" Value="True" />
                                 </VisualState.Setters>
                             </VisualState>
-
                         </VisualStateGroup>
                     </VisualStateManager.VisualStateGroups>
 
