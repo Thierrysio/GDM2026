@@ -21,9 +21,11 @@ public class EvenementPageViewModel : BaseViewModel
 
     private bool _sessionLoaded;
     private bool _categoriesLoaded;
+
     private string _statusMessage = "Chargez les événements pour commencer.";
     private string _newCategoryName = string.Empty;
     private string _editCategoryName = string.Empty;
+
     private bool _isRefreshing;
     private PromoCategory? _selectedCategory;
     private bool _isSelectionVisible;
@@ -47,18 +49,23 @@ public class EvenementPageViewModel : BaseViewModel
         CreateCommand = new Command(async () => await CreateCategoryAsync(), CanCreateCategory);
         UpdateCommand = new Command(async () => await UpdateCategoryAsync(), CanUpdateCategory);
         DeleteCommand = new Command(async () => await DeleteCategoryAsync(), CanDeleteCategory);
+
         ShowSelectionCommand = new Command(async () => await ToggleSelectionAsync());
+
+        // IMPORTANT : sécurise la sélection et déclenche bien le VisualState "Selected"
+        SelectionChangedCommand = new Command<PromoCategory?>(OnSelectionChanged);
     }
 
     public ObservableCollection<PromoCategory> PromoCategories { get; }
 
     public ICommand RefreshCommand { get; }
-
     public ICommand CreateCommand { get; }
-
     public ICommand UpdateCommand { get; }
-
     public ICommand DeleteCommand { get; }
+    public ICommand ShowSelectionCommand { get; }
+
+    // À binder dans le CollectionView : SelectionChangedCommand="{Binding SelectionChangedCommand}"
+    public ICommand SelectionChangedCommand { get; }
 
     public string StatusMessage
     {
@@ -107,7 +114,7 @@ public class EvenementPageViewModel : BaseViewModel
 
     public string SelectedCategoryName => SelectedCategory is null
         ? "Aucun événement sélectionné."
-        : $"#{SelectedCategory.Id}  {SelectedCategory.DisplayName}";
+        : $"#{SelectedCategory.Id} — {SelectedCategory.DisplayName}";
 
     public bool HasCategorySelection => SelectedCategory is not null;
 
@@ -116,8 +123,6 @@ public class EvenementPageViewModel : BaseViewModel
         get => _isRefreshing;
         set => SetProperty(ref _isRefreshing, value);
     }
-
-    public ICommand ShowSelectionCommand { get; }
 
     public bool IsSelectionVisible
     {
@@ -141,22 +146,35 @@ public class EvenementPageViewModel : BaseViewModel
         return Task.CompletedTask;
     }
 
-    private async Task LoadCategoriesAsync(bool forceReload = false)
+    private void OnSelectionChanged(PromoCategory? selected)
     {
-        if (IsBusy)
+        SelectedCategory = selected;
+
+        if (selected is null)
         {
+            StatusMessage = "Aucun événement sélectionné.";
             return;
         }
 
-        if (!forceReload && _categoriesLoaded)
-        {
+        // UX : on préremplit et on annonce clairement
+        EditCategoryName = selected.Name ?? string.Empty;
+        StatusMessage = $"Sélection : #{selected.Id} — {selected.DisplayName}";
+    }
+
+    private async Task LoadCategoriesAsync(bool forceReload = false)
+    {
+        if (IsBusy)
             return;
-        }
+
+        if (!forceReload && _categoriesLoaded)
+            return;
+
+        int? keepSelectedId = SelectedCategory?.Id;
 
         try
         {
             IsBusy = true;
-            StatusMessage = "Chargement des événements";
+            StatusMessage = "Chargement des événements…";
 
             if (!await EnsureSessionAsync())
             {
@@ -173,15 +191,24 @@ public class EvenementPageViewModel : BaseViewModel
                 PromoCategories.Add(category);
             }
 
+            _categoriesLoaded = true;
+
             if (PromoCategories.Count == 0)
             {
                 StatusMessage = "Aucun événement pour le moment.";
+                SelectedCategory = null;
+                return;
             }
-            else
+
+            // IMPORTANT : après reload, l'instance SelectedCategory n'existe plus
+            // => on re-sélectionne par Id pour conserver la surbrillance / editpanel
+            if (keepSelectedId.HasValue)
             {
-                StatusMessage = $"{PromoCategories.Count} événement(s) chargé(s).";
+                var match = PromoCategories.FirstOrDefault(c => c.Id == keepSelectedId.Value);
+                SelectedCategory = match;
             }
-            _categoriesLoaded = true;
+
+            StatusMessage = $"{PromoCategories.Count} événement(s) chargé(s).";
         }
         catch (HttpRequestException ex)
         {
@@ -197,6 +224,7 @@ public class EvenementPageViewModel : BaseViewModel
         {
             IsBusy = false;
             IsRefreshing = false;
+            RefreshCommandStates();
         }
     }
 
@@ -222,9 +250,7 @@ public class EvenementPageViewModel : BaseViewModel
             var payload = new { nom = NewCategoryName.Trim() };
             var created = await _apis.PostBoolAsync("/categorie/promo/create", payload);
 
-            StatusMessage = created
-                ? "Événement créé avec succès."
-                : "La création a échoué.";
+            StatusMessage = created ? "Événement créé avec succès." : "La création a échoué.";
 
             if (created)
             {
@@ -276,9 +302,7 @@ public class EvenementPageViewModel : BaseViewModel
             };
 
             var updated = await _apis.PostBoolAsync("/categorie/promo/update", payload);
-            StatusMessage = updated
-                ? "Événement mis à jour."
-                : "La mise à jour a échoué.";
+            StatusMessage = updated ? "Événement mis à jour." : "La mise à jour a échoué.";
 
             if (updated)
             {
@@ -324,9 +348,7 @@ public class EvenementPageViewModel : BaseViewModel
             var payload = new { id = SelectedCategory!.Id };
             var deleted = await _apis.PostBoolAsync("/categorie/promo/delete", payload);
 
-            StatusMessage = deleted
-                ? "Événement supprimé."
-                : "La suppression a échoué.";
+            StatusMessage = deleted ? "Événement supprimé." : "La suppression a échoué.";
 
             if (deleted)
             {
