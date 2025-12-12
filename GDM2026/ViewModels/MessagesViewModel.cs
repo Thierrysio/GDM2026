@@ -1,10 +1,13 @@
 using GDM2026.Models;
 using GDM2026.Services;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -14,35 +17,50 @@ namespace GDM2026.ViewModels;
 
 public class MessagesViewModel : BaseViewModel
 {
+    private const int PageSize = 10;
+    private const string EtatATraiter = "A traiter";
+    private const string EtatTraite = "Traité";
+
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
 
     private bool _sessionPrepared;
     private bool _isLoading;
     private bool _isSubmitting;
-    private DateTime _messageDate = DateTime.Today;
-    private string _messageText = string.Empty;
-    private string _responseText = string.Empty;
-    private string _statusText = string.Empty;
-    private string _feedbackMessage = "Consultez et créez des messages.";
+
+    private int _pageIndex;
+    private bool _hasLoadedOnce;
+
+    private string _feedbackMessage = "Cliquez sur « Charger les 10 derniers » pour afficher les messages à traiter.";
     private Color _feedbackColor = Colors.Gold;
 
-    public ObservableCollection<MessageEntry> Messages { get; } = new();
+    private MessageEntry? _selectedMessage;
+    private string _replyText = string.Empty;
 
-    public ICommand RefreshCommand { get; }
+    // Cache local : uniquement “A traiter” triés par date desc.
+    private List<MessageEntry> _pendingCache = new();
 
-    public ICommand SubmitCommand { get; }
+    public ObservableCollection<MessageEntry> PendingMessages { get; } = new();
+
+    public ICommand LoadLatestCommand { get; }
+    public ICommand LoadMoreCommand { get; }
+    public ICommand SendReplyCommand { get; }
 
     public MessagesViewModel()
     {
-        RefreshCommand = new Command(async () => await LoadMessagesAsync());
-        SubmitCommand = new Command(async () => await SubmitAsync(), CanSubmit);
+        LoadLatestCommand = new Command(async () => await LoadLatestAsync(), () => !IsLoading && !IsSubmitting);
+        LoadMoreCommand = new Command(async () => await LoadMoreAsync(), () => !IsLoading && !IsSubmitting && HasMore);
+        SendReplyCommand = new Command(async () => await SendReplyAsync(), CanSendReply);
     }
 
     public bool IsLoading
     {
         get => _isLoading;
-        set => SetProperty(ref _isLoading, value);
+        set
+        {
+            if (SetProperty(ref _isLoading, value))
+                RefreshCommands();
+        }
     }
 
     public bool IsSubmitting
@@ -51,40 +69,8 @@ public class MessagesViewModel : BaseViewModel
         set
         {
             if (SetProperty(ref _isSubmitting, value))
-            {
-                (SubmitCommand as Command)?.ChangeCanExecute();
-            }
+                RefreshCommands();
         }
-    }
-
-    public DateTime MessageDate
-    {
-        get => _messageDate;
-        set => SetProperty(ref _messageDate, value);
-    }
-
-    public string MessageText
-    {
-        get => _messageText;
-        set
-        {
-            if (SetProperty(ref _messageText, value))
-            {
-                (SubmitCommand as Command)?.ChangeCanExecute();
-            }
-        }
-    }
-
-    public string ResponseText
-    {
-        get => _responseText;
-        set => SetProperty(ref _responseText, value);
-    }
-
-    public string StatusText
-    {
-        get => _statusText;
-        set => SetProperty(ref _statusText, value);
     }
 
     public string FeedbackMessage
@@ -99,22 +85,42 @@ public class MessagesViewModel : BaseViewModel
         set => SetProperty(ref _feedbackColor, value);
     }
 
-    public async Task InitializeAsync()
+    public MessageEntry? SelectedMessage
     {
-        if (!_sessionPrepared)
+        get => _selectedMessage;
+        set
         {
-            await PrepareSessionAsync();
-        }
-
-        if (Messages.Count == 0)
-        {
-            await LoadMessagesAsync();
+            if (SetProperty(ref _selectedMessage, value))
+            {
+                ReplyText = value?.Reponse ?? string.Empty;
+                RefreshCommands();
+            }
         }
     }
 
-    private bool CanSubmit()
+    public string ReplyText
     {
-        return !IsSubmitting && !string.IsNullOrWhiteSpace(_messageText);
+        get => _replyText;
+        set
+        {
+            if (SetProperty(ref _replyText, value))
+                RefreshCommands();
+        }
+    }
+
+    public bool HasMore => _pendingCache.Count > PendingMessages.Count;
+
+    public string LoadMoreText => HasMore ? "Voir plus (10)" : "Aucun autre message";
+
+    public async Task InitializeAsync()
+    {
+        if (!_sessionPrepared)
+            await PrepareSessionAsync();
+
+        // ✅ Ne charge rien au démarrage
+        FeedbackMessage = "Cliquez sur « Charger les 10 derniers » pour afficher les messages à traiter.";
+        FeedbackColor = Colors.Gold;
+        RefreshCommands();
     }
 
     private async Task PrepareSessionAsync()
@@ -132,31 +138,39 @@ public class MessagesViewModel : BaseViewModel
         }
     }
 
-    private async Task LoadMessagesAsync()
+    private async Task LoadLatestAsync()
     {
-        if (IsLoading)
-        {
-            return;
-        }
+        if (IsLoading || IsSubmitting) return;
 
         try
         {
             IsLoading = true;
-            FeedbackMessage = "Chargement des messages…";
+            FeedbackMessage = "Chargement des messages à traiter…";
             FeedbackColor = Colors.Gold;
+
+            if (!_sessionPrepared)
+                await PrepareSessionAsync();
 
             var items = await _apis.GetListAsync<MessageEntry>("/api/crud/messages/list");
 
-            Messages.Clear();
-            foreach (var item in items)
-            {
-                Messages.Add(item);
-            }
+            _pendingCache = (items ?? new List<MessageEntry>())
+                .Where(m => string.Equals((m.Etat ?? "").Trim(), EtatATraiter, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(GetMessageDate)
+                .ToList();
 
-            FeedbackMessage = Messages.Count == 0
-                ? "Aucun message à afficher pour le moment."
-                : $"{Messages.Count} message(s) chargé(s).";
+            _pageIndex = 0;
+            PendingMessages.Clear();
+
+            AppendNextPage();
+
+            _hasLoadedOnce = true;
+
+            FeedbackMessage = PendingMessages.Count == 0
+                ? "Aucun message à traiter."
+                : $"{PendingMessages.Count} message(s) à traiter affiché(s).";
             FeedbackColor = Colors.LightGreen;
+
+            RefreshCommands();
         }
         catch (OperationCanceledException)
         {
@@ -178,82 +192,156 @@ public class MessagesViewModel : BaseViewModel
         finally
         {
             IsLoading = false;
+            RefreshCommands();
         }
     }
 
-    private async Task SubmitAsync()
+    private async Task LoadMoreAsync()
     {
-        if (IsSubmitting)
-        {
-            return;
-        }
+        if (IsLoading || IsSubmitting) return;
 
-        if (string.IsNullOrWhiteSpace(_messageText))
+        if (!_hasLoadedOnce)
         {
-            FeedbackMessage = "Ajoutez le contenu du message avant d'enregistrer.";
-            FeedbackColor = Colors.OrangeRed;
+            await LoadLatestAsync();
             return;
         }
 
         try
         {
+            IsLoading = true;
+            AppendNextPage();
+            FeedbackMessage = $"{PendingMessages.Count} message(s) à traiter affiché(s).";
+            FeedbackColor = Colors.LightGreen;
+        }
+        finally
+        {
+            IsLoading = false;
+            RefreshCommands();
+        }
+    }
+
+    private void AppendNextPage()
+    {
+        var skip = _pageIndex * PageSize;
+
+        var chunk = _pendingCache.Skip(skip).Take(PageSize).ToList();
+        foreach (var msg in chunk)
+            PendingMessages.Add(msg);
+
+        _pageIndex++;
+
+        OnPropertyChanged(nameof(HasMore));
+        OnPropertyChanged(nameof(LoadMoreText));
+    }
+
+    private bool CanSendReply()
+    {
+        return !IsSubmitting
+               && SelectedMessage is not null
+               && !string.IsNullOrWhiteSpace(ReplyText);
+    }
+
+    private async Task SendReplyAsync()
+    {
+        if (!CanSendReply()) return;
+
+        var target = SelectedMessage!;
+        var reply = ReplyText.Trim();
+
+        try
+        {
             IsSubmitting = true;
-            FeedbackMessage = "Enregistrement en cours…";
+            FeedbackMessage = "Envoi de la réponse…";
             FeedbackColor = Colors.Gold;
 
             if (!_sessionPrepared)
-            {
                 await PrepareSessionAsync();
-            }
+
+            // ✅ Règle métier : Etat = Traité, Date = aujourd’hui
+            var today = DateTime.Today;
 
             var payload = new
             {
-                date_message = _messageDate.ToString("yyyy-MM-dd"),
-                message = _messageText.Trim(),
-                reponse = string.IsNullOrWhiteSpace(_responseText) ? null : _responseText.Trim(),
-                etat = string.IsNullOrWhiteSpace(_statusText) ? null : _statusText.Trim()
+                id = target.Id,
+                date_message = today.ToString("yyyy-MM-dd"),
+                reponse = reply,
+                etat = EtatTraite
             };
 
-            var created = await _apis.PostBoolAsync("/api/crud/messages/create", payload);
+            // ⚠️ adapte si ta route d'update est différente
+            var ok = await _apis.PostBoolAsync("/api/crud/messages/update", payload);
 
-            if (created)
+            if (!ok)
             {
-                FeedbackMessage = "Message créé avec succès.";
-                FeedbackColor = Colors.LightGreen;
-
-                MessageText = string.Empty;
-                ResponseText = string.Empty;
-                StatusText = string.Empty;
-                MessageDate = DateTime.Today;
-
-                await LoadMessagesAsync();
-            }
-            else
-            {
-                FeedbackMessage = "La création du message a échoué.";
+                FeedbackMessage = "L'envoi a échoué.";
                 FeedbackColor = Colors.OrangeRed;
+                return;
             }
-        }
-        catch (OperationCanceledException)
-        {
-            FeedbackMessage = "Création annulée.";
-            FeedbackColor = Colors.Orange;
+
+            // ✅ retrait immédiat (on n’affiche que “A traiter”)
+            RemoveFromLists(target);
+
+            SelectedMessage = null;
+            ReplyText = string.Empty;
+
+            FeedbackMessage = "Réponse envoyée. Message marqué comme traité.";
+            FeedbackColor = Colors.LightGreen;
+
+            await ShowInfoAsync("Envoi", "Réponse envoyée. Le message est maintenant traité.");
+
+            if (PendingMessages.Count == 0)
+            {
+                FeedbackMessage = "Aucun message à traiter.";
+                FeedbackColor = Colors.LightGreen;
+            }
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
         {
             FeedbackMessage = "Session expirée. Veuillez vous reconnecter.";
             FeedbackColor = Colors.OrangeRed;
-            Debug.WriteLine($"[MESSAGES] 401 lors de la création : {ex}");
+            Debug.WriteLine($"[MESSAGES] 401 lors de l'envoi : {ex}");
         }
         catch (Exception ex)
         {
-            FeedbackMessage = "Impossible de créer le message.";
+            FeedbackMessage = "Impossible d'envoyer la réponse.";
             FeedbackColor = Colors.OrangeRed;
-            Debug.WriteLine($"[MESSAGES] Erreur de création : {ex}");
+            Debug.WriteLine($"[MESSAGES] Erreur envoi : {ex}");
         }
         finally
         {
             IsSubmitting = false;
+            RefreshCommands();
         }
+    }
+
+    private void RemoveFromLists(MessageEntry target)
+    {
+        _pendingCache.RemoveAll(m => m.Id == target.Id);
+
+        var item = PendingMessages.FirstOrDefault(m => m.Id == target.Id);
+        if (item is not null)
+            PendingMessages.Remove(item);
+
+        OnPropertyChanged(nameof(HasMore));
+        OnPropertyChanged(nameof(LoadMoreText));
+    }
+
+    private static DateTime GetMessageDate(MessageEntry m)
+        => m.DateMessage?.ToLocalTime() ?? DateTime.MinValue;
+
+    private void RefreshCommands()
+    {
+        (LoadLatestCommand as Command)?.ChangeCanExecute();
+        (LoadMoreCommand as Command)?.ChangeCanExecute();
+        (SendReplyCommand as Command)?.ChangeCanExecute();
+
+        OnPropertyChanged(nameof(HasMore));
+        OnPropertyChanged(nameof(LoadMoreText));
+    }
+
+    private Task ShowInfoAsync(string title, string message)
+    {
+        return MainThread.InvokeOnMainThreadAsync(async () =>
+            await DialogService.DisplayAlertAsync(title, message, "OK"));
     }
 }
