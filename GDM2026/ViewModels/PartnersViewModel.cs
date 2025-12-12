@@ -328,7 +328,8 @@ public class PartnersViewModel : BaseViewModel
                 logo = string.IsNullOrWhiteSpace(partner.ImagePath) ? DefaultPartnerLogo : partner.ImagePath
             };
 
-            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/update", payload).ConfigureAwait(false);
+            // Rester sur le thread UI pour éviter les exceptions lors des mises à jour liées à la CollectionView
+            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/update", payload);
             if (!ok)
             {
                 StatusMessage = "La mise à jour a échoué.";
@@ -383,7 +384,8 @@ public class PartnersViewModel : BaseViewModel
 
             var payload = new { id = partner.Id };
 
-            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/delete", payload).ConfigureAwait(false);
+            // Rester sur le thread UI pour éviter les exceptions lors des mises à jour liées à la CollectionView
+            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/delete", payload);
             if (!ok)
             {
                 StatusMessage = "La suppression a échoué.";
