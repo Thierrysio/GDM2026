@@ -116,11 +116,106 @@
                                 TextColor="{StaticResource GoldText}"
                                 ZIndex="10" />
 
-                        <Label Text="{Binding SelectedPartnerLabel}"
+                                <Label Text="{Binding SelectedPartnerLabel}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource GoldText}"
+                                       Opacity="0.75"
+                                       LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ✅ BIBLIOTHÈQUE DE LOGOS -->
+                <Border Background="{StaticResource CardBackground}"
+                        Stroke="#000"
+                        StrokeThickness="1.5"
+                        Padding="18">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Logo du partenaire"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource GoldText}" />
+
+                        <Label Text="{Binding ImageLibraryMessage}"
                                FontSize="12"
                                TextColor="{StaticResource GoldText}"
-                               Opacity="0.75"
+                               Opacity="0.8"
                                LineBreakMode="WordWrap" />
+
+                        <SearchBar Placeholder="Rechercher un logo"
+                                   Text="{Binding ImageSearchTerm}"
+                                   BackgroundColor="#121212"
+                                   TextColor="{StaticResource GoldText}"
+                                   PlaceholderColor="#777"
+                                   CancelButtonColor="{StaticResource GoldText}" />
+
+                        <ActivityIndicator IsRunning="{Binding IsImageLibraryLoading}"
+                                           IsVisible="{Binding IsImageLibraryLoading}"
+                                           Color="{StaticResource GoldText}" />
+
+                        <CollectionView ItemsSource="{Binding FilteredImageLibrary}"
+                                        SelectionMode="Single"
+                                        SelectedItem="{Binding SelectedLibraryImage}"
+                                        HeightRequest="240">
+                            <CollectionView.ItemsLayout>
+                                <GridItemsLayout Orientation="Vertical" Span="3" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="6" Margin="4">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <VerticalStackLayout Spacing="6">
+                                            <Image Source="{Binding FullUrl}"
+                                                   Aspect="AspectFill"
+                                                   HeightRequest="80"
+                                                   WidthRequest="100" />
+                                            <Label Text="{Binding DisplayName}"
+                                                   TextColor="{StaticResource GoldText}"
+                                                   FontSize="11"
+                                                   LineBreakMode="TailTruncation"
+                                                   HorizontalTextAlignment="Center" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                        <Label Text="{Binding SelectedImageName}"
+                               FontSize="13"
+                               TextColor="{StaticResource GoldText}"
+                               Opacity="0.85" />
+
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Button Text="Effacer le logo"
+                                    Command="{Binding ClearLogoCommand}"
+                                    BackgroundColor="#303030"
+                                    TextColor="{StaticResource GoldText}" />
+                            <BoxView Grid.Column="1"
+                                     WidthRequest="1"
+                                     HeightRequest="1"
+                                     BackgroundColor="Transparent"
+                                     IsVisible="False" />
+                        </Grid>
+
+                        <Border Background="#111"
+                                Padding="10"
+                                Stroke="#2D2D2D"
+                                StrokeThickness="1"
+                                IsVisible="{Binding HasSelectedImage}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Image Source="{Binding SelectedImagePreview}"
+                                   Aspect="AspectFit"
+                                   HeightRequest="220"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
                     </VerticalStackLayout>
                 </Border>
 
