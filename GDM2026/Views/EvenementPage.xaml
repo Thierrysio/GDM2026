@@ -121,7 +121,7 @@
                     StrokeThickness="1.5"
                     Padding="24"
                     IsVisible="{Binding IsSelectionVisible}"
-                    HeightRequest="620">
+                    MinimumHeightRequest="680">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="18" />
                 </Border.StrokeShape>
@@ -139,13 +139,14 @@
 
                     <RefreshView Command="{Binding RefreshCommand}"
                                  IsRefreshing="{Binding IsRefreshing}"
-                                 HeightRequest="540"
+                                 HeightRequest="600"
                                  VerticalOptions="FillAndExpand">
                         <CollectionView x:Name="EventsCollection"
                                         ItemsSource="{Binding PromoCategories}"
                                         SelectionMode="Single"
                                         SelectedItem="{Binding SelectedCategory}"
                                         VerticalOptions="FillAndExpand"
+                                        Margin="0,0,0,12"
                                         ItemSizingStrategy="MeasureAllItems">
                             <CollectionView.ItemsLayout>
                                 <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
