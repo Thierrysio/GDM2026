@@ -327,7 +327,8 @@ public class MessagesViewModel : BaseViewModel
     }
 
     private static DateTime GetMessageDate(MessageEntry m)
-        => m.DateMessage?.ToLocalTime() ?? DateTime.MinValue;
+    => m.DateMessage?.ToLocalTime() ?? DateTime.MinValue;
+
 
     private void RefreshCommands()
     {

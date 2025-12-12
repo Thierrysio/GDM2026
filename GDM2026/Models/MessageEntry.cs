@@ -8,19 +8,16 @@ public class MessageEntry
     [JsonProperty("id")]
     public int Id { get; set; }
 
-    // ✅ Compat API (camelCase)
+    // ✅ correspond à ton JSON : "dateMessage"
     [JsonProperty("dateMessage")]
-    public DateTimeOffset? DateMessage { get; set; }
+    public DateTime? DateMessage { get; set; }
 
-    // ✅ Optionnel : compat ancienne API (snake_case) si tu en as
-    // (Newtonsoft ne peut pas mapper 2 JsonProperty sur la même prop,
-    //  donc on ajoute une propriété proxy)
+    // (optionnel) compat ancienne clé
     [JsonProperty("date_message")]
-    private DateTimeOffset? DateMessageSnake
+    private DateTime? DateMessageSnake
     {
         set
         {
-            // Si dateMessage n'est pas présent mais date_message l'est
             if (DateMessage is null)
                 DateMessage = value;
         }
@@ -35,10 +32,8 @@ public class MessageEntry
     [JsonProperty("etat")]
     public string? Etat { get; set; }
 
-    // Optionnel, mais utile si tu l’affiches plus tard
     [JsonProperty("leUser")]
     public int? LeUser { get; set; }
 
-    public string DisplayDate =>
-        DateMessage?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "Date inconnue";
+    public string DisplayDate => DateMessage?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "Date inconnue";
 }

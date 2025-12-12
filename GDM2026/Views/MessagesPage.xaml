@@ -95,7 +95,7 @@
         </CollectionView.EmptyView>
 
         <CollectionView.ItemsLayout>
-            <VerticalLinearItemsLayout ItemSpacing="10" />
+            <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
         </CollectionView.ItemsLayout>
 
         <CollectionView.ItemTemplate>
