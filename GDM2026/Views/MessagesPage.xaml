@@ -10,154 +10,179 @@
         <Color x:Key="CardBackground">#151515</Color>
     </ContentPage.Resources>
 
-    <RefreshView IsEnabled="False">
-        <CollectionView x:Name="MessagesCollection"
-                        ItemsSource="{Binding PendingMessages}"
-                        SelectionMode="Single"
-                        SelectedItem="{Binding SelectedMessage}"
-                        ItemSizingStrategy="MeasureAllItems"
-                        Margin="0,0,0,12">
+    <!-- ✅ PAS de ScrollView, PAS de RefreshView -->
+    <CollectionView x:Name="MessagesCollection"
+                    ItemsSource="{Binding PendingMessages}"
+                    SelectionMode="Single"
+                    SelectedItem="{Binding SelectedMessage}"
+                    ItemSizingStrategy="MeasureAllItems"
+                    Margin="0,0,0,12">
 
-            <CollectionView.Footer>
-                <BoxView HeightRequest="80" />
-            </CollectionView.Footer>
+        <!-- ✅ Anti-troncation, mais ne doit JAMAIS capter les clics -->
+        <CollectionView.Footer>
+            <BoxView HeightRequest="90" InputTransparent="True" />
+        </CollectionView.Footer>
 
-            <CollectionView.Header>
-                <VerticalStackLayout Padding="20" Spacing="16">
+        <CollectionView.Header>
+            <VerticalStackLayout Padding="20" Spacing="16">
 
-                    <Border Background="{StaticResource CardBackground}" Stroke="#000" StrokeThickness="1.5" Padding="18">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="16" />
-                        </Border.StrokeShape>
+                <Border Background="{StaticResource CardBackground}"
+                        Stroke="#000"
+                        StrokeThickness="1.5"
+                        Padding="18">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
 
-                        <VerticalStackLayout Spacing="12">
-                            <Label Text="Messages à traiter"
-                                   FontSize="28"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource GoldText}"
-                                   HorizontalTextAlignment="Center" />
+                    <VerticalStackLayout Spacing="12">
 
-                            <Label Text="{Binding FeedbackMessage}"
-                                   TextColor="{Binding FeedbackColor}"
-                                   FontSize="14"
-                                   HorizontalTextAlignment="Center"
-                                   LineBreakMode="WordWrap" />
+                        <Label Text="Messages à traiter"
+                               FontSize="28"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource GoldText}"
+                               HorizontalTextAlignment="Center" />
 
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                                <Button Text="Charger les 10 derniers"
-                                        Command="{Binding LoadLatestCommand}"
-                                        BackgroundColor="#C18F1A"
-                                        TextColor="{StaticResource GoldText}" />
+                        <Label Text="{Binding FeedbackMessage}"
+                               TextColor="{Binding FeedbackColor}"
+                               FontSize="14"
+                               HorizontalTextAlignment="Center"
+                               LineBreakMode="WordWrap" />
 
-                                <Button Grid.Column="1"
-                                        Text="{Binding LoadMoreText}"
-                                        Command="{Binding LoadMoreCommand}"
-                                        BackgroundColor="#303030"
-                                        TextColor="{StaticResource GoldText}" />
-                            </Grid>
+                        <!-- ✅ GRID : pas de superposition -->
+                        <Grid ColumnDefinitions="*,Auto"
+                              ColumnSpacing="12"
+                              RowDefinitions="Auto,Auto">
 
-                            <ActivityIndicator IsRunning="{Binding IsLoading}"
+                            <Button Text="Charger les 10 derniers"
+                                    Command="{Binding LoadLatestCommand}"
+                                    BackgroundColor="#C18F1A"
+                                    TextColor="{StaticResource GoldText}"
+                                    Grid.Row="0"
+                                    Grid.Column="0"
+                                    ZIndex="10" />
+
+                            <Button Text="{Binding LoadMoreText}"
+                                    Command="{Binding LoadMoreCommand}"
+                                    BackgroundColor="#303030"
+                                    TextColor="{StaticResource GoldText}"
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    ZIndex="10" />
+
+                            <!-- ✅ L'indicateur ne doit jamais bloquer les taps -->
+                            <ActivityIndicator Grid.Row="1"
+                                               Grid.ColumnSpan="2"
+                                               IsRunning="{Binding IsLoading}"
                                                IsVisible="{Binding IsLoading}"
-                                               Color="{StaticResource GoldText}" />
-                        </VerticalStackLayout>
-                    </Border>
+                                               Color="{StaticResource GoldText}"
+                                               HorizontalOptions="Center"
+                                               InputTransparent="True" />
+                        </Grid>
 
-                </VerticalStackLayout>
-            </CollectionView.Header>
+                    </VerticalStackLayout>
+                </Border>
 
-            <CollectionView.EmptyView>
-                <VerticalStackLayout Padding="20" Spacing="8">
-                    <Label Text="Aucun message à traiter."
-                           TextColor="{StaticResource GoldText}"
-                           HorizontalTextAlignment="Center"
-                           Opacity="0.7" />
-                </VerticalStackLayout>
-            </CollectionView.EmptyView>
+            </VerticalStackLayout>
+        </CollectionView.Header>
 
-            <CollectionView.ItemsLayout>
-                <VerticalLinearItemsLayout ItemSpacing="10" />
-            </CollectionView.ItemsLayout>
+        <CollectionView.EmptyView>
+            <VerticalStackLayout Padding="20" Spacing="8">
+                <Label Text="Aucun message à traiter."
+                       TextColor="{StaticResource GoldText}"
+                       HorizontalTextAlignment="Center"
+                       Opacity="0.7" />
+            </VerticalStackLayout>
+        </CollectionView.EmptyView>
 
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
+        <CollectionView.ItemsLayout>
+            <VerticalLinearItemsLayout ItemSpacing="10" />
+        </CollectionView.ItemsLayout>
 
-                    <Border x:Name="ItemBorder"
-                            Background="#111"
-                            Stroke="#2D2D2D"
-                            StrokeThickness="1"
-                            Padding="12"
-                            Margin="20,4">
+        <CollectionView.ItemTemplate>
+            <DataTemplate>
 
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="14" />
-                        </Border.StrokeShape>
+                <Border x:Name="ItemBorder"
+                        Background="#111"
+                        Stroke="#2D2D2D"
+                        StrokeThickness="1"
+                        Padding="12"
+                        Margin="20,4">
 
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="{Binding DisplayDate}"
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14" />
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="{Binding DisplayDate}"
+                               TextColor="{StaticResource GoldText}"
+                               FontAttributes="Bold" />
+
+                        <Label Text="{Binding Message}"
+                               TextColor="{StaticResource GoldText}"
+                               FontSize="14"
+                               LineBreakMode="WordWrap" />
+
+                        <Label Text="{Binding Etat}"
+                               TextColor="{StaticResource GoldText}"
+                               FontSize="12"
+                               Opacity="0.8" />
+
+                        <!-- panneau réponse : visible sur Selected -->
+                        <VerticalStackLayout x:Name="ReplyPanel"
+                                             IsVisible="False"
+                                             Spacing="8">
+
+                            <BoxView HeightRequest="1"
+                                     BackgroundColor="#2D2D2D"
+                                     Margin="0,8"
+                                     InputTransparent="True" />
+
+                            <Label Text="Répondre"
                                    TextColor="{StaticResource GoldText}"
                                    FontAttributes="Bold" />
 
-                            <Label Text="{Binding Message}"
-                                   TextColor="{StaticResource GoldText}"
-                                   FontSize="14"
-                                   LineBreakMode="WordWrap" />
+                            <Editor Text="{Binding BindingContext.ReplyText, Source={x:Reference MessagesCollection}}"
+                                    HeightRequest="90"
+                                    TextColor="{StaticResource GoldText}"
+                                    BackgroundColor="#121212"
+                                    Placeholder="Votre réponse..." />
 
-                            <Label Text="{Binding Etat}"
-                                   TextColor="{StaticResource GoldText}"
-                                   FontSize="12"
-                                   Opacity="0.8" />
+                            <Button Text="Envoyer"
+                                    Command="{Binding BindingContext.SendReplyCommand, Source={x:Reference MessagesCollection}}"
+                                    BackgroundColor="#C18F1A"
+                                    TextColor="{StaticResource GoldText}" />
 
-                            <!-- panneau réponse : visible sur Selected -->
-                            <VerticalStackLayout x:Name="ReplyPanel" IsVisible="False" Spacing="8">
+                            <ActivityIndicator IsRunning="{Binding BindingContext.IsSubmitting, Source={x:Reference MessagesCollection}}"
+                                               IsVisible="{Binding BindingContext.IsSubmitting, Source={x:Reference MessagesCollection}}"
+                                               Color="{StaticResource GoldText}"
+                                               InputTransparent="True" />
 
-                                <BoxView HeightRequest="1" BackgroundColor="#2D2D2D" Margin="0,8" />
-
-                                <Label Text="Répondre"
-                                       TextColor="{StaticResource GoldText}"
-                                       FontAttributes="Bold" />
-
-                                <Editor Text="{Binding BindingContext.ReplyText, Source={x:Reference MessagesCollection}}"
-                                        HeightRequest="90"
-                                        TextColor="{StaticResource GoldText}"
-                                        BackgroundColor="#121212"
-                                        Placeholder="Votre réponse..." />
-
-                                <Button Text="Envoyer"
-                                        Command="{Binding BindingContext.SendReplyCommand, Source={x:Reference MessagesCollection}}"
-                                        BackgroundColor="#C18F1A"
-                                        TextColor="{StaticResource GoldText}" />
-
-                                <ActivityIndicator IsRunning="{Binding BindingContext.IsSubmitting, Source={x:Reference MessagesCollection}}"
-                                                   IsVisible="{Binding BindingContext.IsSubmitting, Source={x:Reference MessagesCollection}}"
-                                                   Color="{StaticResource GoldText}" />
-
-                            </VerticalStackLayout>
                         </VerticalStackLayout>
+                    </VerticalStackLayout>
 
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup x:Name="SelectionStates">
-                                <VisualState x:Name="Normal">
-                                    <VisualState.Setters>
-                                        <Setter TargetName="ItemBorder" Property="Stroke" Value="#2D2D2D" />
-                                        <Setter TargetName="ItemBorder" Property="StrokeThickness" Value="1" />
-                                        <Setter TargetName="ReplyPanel" Property="IsVisible" Value="False" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                                <VisualState x:Name="Selected">
-                                    <VisualState.Setters>
-                                        <Setter TargetName="ItemBorder" Property="Stroke" Value="{StaticResource GoldText}" />
-                                        <Setter TargetName="ItemBorder" Property="StrokeThickness" Value="3" />
-                                        <Setter TargetName="ReplyPanel" Property="IsVisible" Value="True" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup x:Name="SelectionStates">
+                            <VisualState x:Name="Normal">
+                                <VisualState.Setters>
+                                    <Setter TargetName="ItemBorder" Property="Stroke" Value="#2D2D2D" />
+                                    <Setter TargetName="ItemBorder" Property="StrokeThickness" Value="1" />
+                                    <Setter TargetName="ReplyPanel" Property="IsVisible" Value="False" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Selected">
+                                <VisualState.Setters>
+                                    <Setter TargetName="ItemBorder" Property="Stroke" Value="{StaticResource GoldText}" />
+                                    <Setter TargetName="ItemBorder" Property="StrokeThickness" Value="3" />
+                                    <Setter TargetName="ReplyPanel" Property="IsVisible" Value="True" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
 
-                    </Border>
+                </Border>
 
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
+            </DataTemplate>
+        </CollectionView.ItemTemplate>
 
-        </CollectionView>
-    </RefreshView>
+    </CollectionView>
 </ContentPage>
