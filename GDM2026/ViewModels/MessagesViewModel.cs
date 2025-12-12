@@ -19,8 +19,8 @@ public class MessagesViewModel : BaseViewModel
 {
     private const int PageSize = 10;
 
-    // ✅ Mets ici EXACTEMENT ce que ton backend utilise
-    private const string EtatATraiter = "a traiter";
+    // ⚠️ Mets exactement les libellés backend si besoin
+    private const string EtatATraiter = "A traiter";
     private const string EtatTraite = "traité";
 
     private readonly Apis _apis = new();
@@ -30,28 +30,32 @@ public class MessagesViewModel : BaseViewModel
     private bool _isLoading;
     private bool _isSubmitting;
 
-    private int _pageIndex;
     private bool _hasLoadedOnce;
+    private bool _isShowingOthers;
 
-    private string _feedbackMessage = "Cliquez sur « Charger les 10 derniers » pour afficher les messages à traiter.";
+    private int _pendingPageIndex;
+    private int _otherPageIndex;
+
+    private string _feedbackMessage = "Cliquez sur « À traiter » pour charger les messages à traiter.";
     private Color _feedbackColor = Colors.Gold;
 
     private MessageEntry? _selectedMessage;
     private string _replyText = string.Empty;
 
-    // Cache local : uniquement “A traiter” triés par date desc.
-    private List<MessageEntry> _pendingCache = new();
+    private List<MessageEntry> _pendingCache = new(); // Etat == A traiter
+    private List<MessageEntry> _otherCache = new();   // Etat != A traiter
 
-    public ObservableCollection<MessageEntry> PendingMessages { get; } = new();
+    public ObservableCollection<MessageEntry> DisplayMessages { get; } = new();
 
-    public ICommand LoadLatestCommand { get; }
-    public ICommand LoadMoreCommand { get; }
+    public ICommand LoadPendingCommand { get; }
+    public ICommand LoadOtherCommand { get; }
     public ICommand SendReplyCommand { get; }
 
     public MessagesViewModel()
     {
-        LoadLatestCommand = new Command(async () => await LoadLatestAsync(), () => !IsLoading && !IsSubmitting);
-        LoadMoreCommand = new Command(async () => await LoadMoreAsync(), () => !IsLoading && !IsSubmitting && HasMore);
+        LoadPendingCommand = new Command(async () => await ShowPendingAsync(), () => !IsLoading && !IsSubmitting);
+        LoadOtherCommand = new Command(async () => await ShowOthersOrMoreAsync(), () => !IsLoading && !IsSubmitting && OtherButtonEnabled);
+
         SendReplyCommand = new Command(async () => await SendReplyAsync(), CanSendReply);
     }
 
@@ -74,6 +78,30 @@ public class MessagesViewModel : BaseViewModel
                 RefreshCommands();
         }
     }
+
+    public bool IsShowingOthers
+    {
+        get => _isShowingOthers;
+        set
+        {
+            if (SetProperty(ref _isShowingOthers, value))
+            {
+                OnPropertyChanged(nameof(SelectionMode));
+                OnPropertyChanged(nameof(OtherButtonText));
+                OnPropertyChanged(nameof(PendingButtonText));
+                RefreshCommands();
+
+                // en mode "autres", on ne doit rien modifier
+                if (_isShowingOthers)
+                {
+                    SelectedMessage = null;
+                    ReplyText = string.Empty;
+                }
+            }
+        }
+    }
+
+    public SelectionMode SelectionMode => IsShowingOthers ? SelectionMode.None : SelectionMode.Single;
 
     public string FeedbackMessage
     {
@@ -110,17 +138,33 @@ public class MessagesViewModel : BaseViewModel
         }
     }
 
-    public bool HasMore => _pendingCache.Count > PendingMessages.Count;
+    public string PendingButtonText => IsShowingOthers ? "À traiter" : "À traiter (10)";
+    public string OtherButtonText
+    {
+        get
+        {
+            if (!IsShowingOthers)
+                return "Autres";
 
-    public string LoadMoreText => HasMore ? "Voir plus (10)" : "Aucun autre message";
+            return HasMoreOthers ? "Voir plus (10)" : "Autres (fin)";
+        }
+    }
+
+    private bool HasMorePending => _pendingCache.Count > DisplayMessages.Count && !IsShowingOthers;
+    private bool HasMoreOthers => _otherCache.Count > DisplayMessages.Count && IsShowingOthers;
+
+    private bool OtherButtonEnabled
+        => !IsShowingOthers || HasMoreOthers; // si on n’est pas encore en "autres", le bouton sert à basculer
 
     public async Task InitializeAsync()
     {
         if (!_sessionPrepared)
             await PrepareSessionAsync();
 
-        FeedbackMessage = "Cliquez sur « Charger les 10 derniers » pour afficher les messages à traiter.";
+        // ✅ Ne charge rien
+        FeedbackMessage = "Cliquez sur « À traiter » pour charger les messages à traiter.";
         FeedbackColor = Colors.Gold;
+
         RefreshCommands();
     }
 
@@ -139,56 +183,67 @@ public class MessagesViewModel : BaseViewModel
         }
     }
 
-    private async Task LoadLatestAsync()
+    private async Task EnsureDataLoadedAsync()
+    {
+        if (_hasLoadedOnce)
+            return;
+
+        if (!_sessionPrepared)
+            await PrepareSessionAsync();
+
+        var items = await _apis.GetListAsync<MessageEntry>("/api/crud/messages/list");
+
+        var list = items ?? new List<MessageEntry>();
+
+        _pendingCache = list
+            .Where(m => IsEtatATraiter(m.Etat))
+            .OrderByDescending(GetMessageDate)
+            .ToList();
+
+        _otherCache = list
+            .Where(m => !IsEtatATraiter(m.Etat))
+            .OrderByDescending(GetMessageDate)
+            .ToList();
+
+        _hasLoadedOnce = true;
+    }
+
+    private async Task ShowPendingAsync()
     {
         if (IsLoading || IsSubmitting) return;
 
         try
         {
             IsLoading = true;
+            IsShowingOthers = false;
+
             FeedbackMessage = "Chargement des messages à traiter…";
             FeedbackColor = Colors.Gold;
 
-            if (!_sessionPrepared)
-                await PrepareSessionAsync();
+            _hasLoadedOnce = false; // on recharge la liste depuis l’API
+            await EnsureDataLoadedAsync();
 
-            var items = await _apis.GetListAsync<MessageEntry>("/api/crud/messages/list");
+            _pendingPageIndex = 0;
+            DisplayMessages.Clear();
 
-            _pendingCache = (items ?? new List<MessageEntry>())
-                .Where(m => IsEtatATraiter(m.Etat))
-                .OrderByDescending(GetMessageDate)
-                .ToList();
+            AppendPendingNextPage();
 
-            _pageIndex = 0;
-            PendingMessages.Clear();
-
-            AppendNextPage();
-
-            _hasLoadedOnce = true;
-
-            FeedbackMessage = PendingMessages.Count == 0
+            FeedbackMessage = DisplayMessages.Count == 0
                 ? "Aucun message à traiter."
-                : $"{PendingMessages.Count} message(s) à traiter affiché(s).";
+                : $"{DisplayMessages.Count} message(s) à traiter affiché(s).";
             FeedbackColor = Colors.LightGreen;
-
-            RefreshCommands();
-        }
-        catch (OperationCanceledException)
-        {
-            FeedbackMessage = "Chargement annulé.";
-            FeedbackColor = Colors.Orange;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
         {
             FeedbackMessage = "Accès refusé. Veuillez vous reconnecter.";
             FeedbackColor = Colors.OrangeRed;
-            Debug.WriteLine($"[MESSAGES] 401 lors du chargement : {ex}");
+            Debug.WriteLine($"[MESSAGES] 401 : {ex}");
         }
         catch (Exception ex)
         {
             FeedbackMessage = "Impossible de charger les messages.";
             FeedbackColor = Colors.OrangeRed;
-            Debug.WriteLine($"[MESSAGES] Erreur de chargement : {ex}");
+            Debug.WriteLine($"[MESSAGES] load error : {ex}");
         }
         finally
         {
@@ -197,21 +252,42 @@ public class MessagesViewModel : BaseViewModel
         }
     }
 
-    private async Task LoadMoreAsync()
+    private async Task ShowOthersOrMoreAsync()
     {
         if (IsLoading || IsSubmitting) return;
-
-        if (!_hasLoadedOnce)
-        {
-            await LoadLatestAsync();
-            return;
-        }
 
         try
         {
             IsLoading = true;
-            AppendNextPage();
-            FeedbackMessage = $"{PendingMessages.Count} message(s) à traiter affiché(s).";
+
+            // 1) si on n’est pas en mode "autres" => bascule + charge 10
+            if (!IsShowingOthers)
+            {
+                IsShowingOthers = true;
+
+                FeedbackMessage = "Chargement des autres messages…";
+                FeedbackColor = Colors.Gold;
+
+                _hasLoadedOnce = false; // on recharge depuis l’API
+                await EnsureDataLoadedAsync();
+
+                _otherPageIndex = 0;
+                DisplayMessages.Clear();
+
+                AppendOtherNextPage();
+
+                FeedbackMessage = DisplayMessages.Count == 0
+                    ? "Aucun autre message."
+                    : $"{DisplayMessages.Count} autre(s) message(s) affiché(s).";
+                FeedbackColor = Colors.LightGreen;
+
+                return;
+            }
+
+            // 2) si déjà en mode autres => voir plus (10)
+            AppendOtherNextPage();
+
+            FeedbackMessage = $"{DisplayMessages.Count} autre(s) message(s) affiché(s).";
             FeedbackColor = Colors.LightGreen;
         }
         finally
@@ -221,23 +297,38 @@ public class MessagesViewModel : BaseViewModel
         }
     }
 
-    private void AppendNextPage()
+    private void AppendPendingNextPage()
     {
-        var skip = _pageIndex * PageSize;
-
+        var skip = _pendingPageIndex * PageSize;
         var chunk = _pendingCache.Skip(skip).Take(PageSize).ToList();
+
         foreach (var msg in chunk)
-            PendingMessages.Add(msg);
+            DisplayMessages.Add(msg);
 
-        _pageIndex++;
+        _pendingPageIndex++;
 
-        OnPropertyChanged(nameof(HasMore));
-        OnPropertyChanged(nameof(LoadMoreText));
+        OnPropertyChanged(nameof(OtherButtonText));
+        OnPropertyChanged(nameof(PendingButtonText));
+    }
+
+    private void AppendOtherNextPage()
+    {
+        var skip = _otherPageIndex * PageSize;
+        var chunk = _otherCache.Skip(skip).Take(PageSize).ToList();
+
+        foreach (var msg in chunk)
+            DisplayMessages.Add(msg);
+
+        _otherPageIndex++;
+
+        OnPropertyChanged(nameof(OtherButtonText));
+        OnPropertyChanged(nameof(PendingButtonText));
     }
 
     private bool CanSendReply()
     {
         return !IsSubmitting
+               && !IsShowingOthers
                && SelectedMessage is not null
                && !string.IsNullOrWhiteSpace(ReplyText);
     }
@@ -258,11 +349,10 @@ public class MessagesViewModel : BaseViewModel
             if (!_sessionPrepared)
                 await PrepareSessionAsync();
 
-            // ✅ Date = maintenant (pas Today)
+            // ✅ date = maintenant
             var now = DateTime.Now;
 
-            // ✅ Ton API renvoie "dateMessage" => on envoie "dateMessage"
-            // Format ISO compatible
+            // ✅ API : elle renvoie dateMessage => on envoie dateMessage
             var payload = new
             {
                 id = target.Id,
@@ -280,23 +370,23 @@ public class MessagesViewModel : BaseViewModel
                 return;
             }
 
-            // ✅ MAJ locale (utile si tu affiches un historique plus tard)
+            // ✅ MAJ locale
             target.Reponse = reply;
             target.Etat = EtatTraite;
             target.DateMessage = now;
 
-            // ✅ retrait immédiat (on n’affiche que “A traiter”)
-            RemoveFromLists(target);
+            // ✅ disparaît : on n’affiche que "A traiter"
+            RemoveFromPending(target);
 
             SelectedMessage = null;
             ReplyText = string.Empty;
 
-            FeedbackMessage = "Réponse envoyée. Message marqué comme traité.";
+            FeedbackMessage = "Réponse envoyée. Message traité.";
             FeedbackColor = Colors.LightGreen;
 
             await ShowInfoAsync("Envoi", "Réponse envoyée. Le message est maintenant traité.");
 
-            if (PendingMessages.Count == 0)
+            if (DisplayMessages.Count == 0)
             {
                 FeedbackMessage = "Aucun message à traiter.";
                 FeedbackColor = Colors.LightGreen;
@@ -306,13 +396,13 @@ public class MessagesViewModel : BaseViewModel
         {
             FeedbackMessage = "Session expirée. Veuillez vous reconnecter.";
             FeedbackColor = Colors.OrangeRed;
-            Debug.WriteLine($"[MESSAGES] 401 lors de l'envoi : {ex}");
+            Debug.WriteLine($"[MESSAGES] 401 send : {ex}");
         }
         catch (Exception ex)
         {
             FeedbackMessage = "Impossible d'envoyer la réponse.";
             FeedbackColor = Colors.OrangeRed;
-            Debug.WriteLine($"[MESSAGES] Erreur envoi : {ex}");
+            Debug.WriteLine($"[MESSAGES] send error : {ex}");
         }
         finally
         {
@@ -321,39 +411,33 @@ public class MessagesViewModel : BaseViewModel
         }
     }
 
-    private void RemoveFromLists(MessageEntry target)
+    private void RemoveFromPending(MessageEntry target)
     {
         _pendingCache.RemoveAll(m => m.Id == target.Id);
 
-        var item = PendingMessages.FirstOrDefault(m => m.Id == target.Id);
+        var item = DisplayMessages.FirstOrDefault(m => m.Id == target.Id);
         if (item is not null)
-            PendingMessages.Remove(item);
+            DisplayMessages.Remove(item);
 
-        OnPropertyChanged(nameof(HasMore));
-        OnPropertyChanged(nameof(LoadMoreText));
+        OnPropertyChanged(nameof(OtherButtonText));
+        OnPropertyChanged(nameof(PendingButtonText));
     }
 
     private static DateTime GetMessageDate(MessageEntry m)
         => m.DateMessage?.ToLocalTime() ?? DateTime.MinValue;
 
     private static bool IsEtatATraiter(string? etat)
-    {
-        var e = (etat ?? string.Empty).Trim();
-
-        // ✅ robuste sur casse + accents éventuels
-        // (si ton backend renvoie toujours exactement "A traiter", tu peux simplifier)
-        return string.Equals(e, EtatATraiter, StringComparison.OrdinalIgnoreCase)
-               || string.Equals(e, "A traiter", StringComparison.OrdinalIgnoreCase);
-    }
+        => string.Equals((etat ?? "").Trim(), EtatATraiter, StringComparison.OrdinalIgnoreCase);
 
     private void RefreshCommands()
     {
-        (LoadLatestCommand as Command)?.ChangeCanExecute();
-        (LoadMoreCommand as Command)?.ChangeCanExecute();
+        (LoadPendingCommand as Command)?.ChangeCanExecute();
+        (LoadOtherCommand as Command)?.ChangeCanExecute();
         (SendReplyCommand as Command)?.ChangeCanExecute();
 
-        OnPropertyChanged(nameof(HasMore));
-        OnPropertyChanged(nameof(LoadMoreText));
+        OnPropertyChanged(nameof(SelectionMode));
+        OnPropertyChanged(nameof(OtherButtonText));
+        OnPropertyChanged(nameof(PendingButtonText));
     }
 
     private Task ShowInfoAsync(string title, string message)

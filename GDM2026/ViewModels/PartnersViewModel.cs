@@ -1,11 +1,14 @@
 using GDM2026.Models;
 using GDM2026.Services;
 using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
+using System.Net;
 using System.Net.Http;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
@@ -15,27 +18,44 @@ public class PartnersViewModel : BaseViewModel
 {
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
+
     private bool _sessionPrepared;
     private bool _hasLoaded;
-    private bool _isRefreshing;
-    private string _statusMessage = "Chargement des partenaires…";
+
+    private bool _isLoading;
+    private string _statusMessage = "Cliquez sur « Modifier / Supprimer » pour charger les partenaires.";
+
+    private bool _isSelectionVisible;
+
+    private Partner? _selectedPartner;
+
+    private string _editPartnerName = string.Empty;
+    private string _editPartnerWebsite = string.Empty;
 
     public PartnersViewModel()
     {
-        RefreshCommand = new Command(async () => await LoadPartnersAsync(true));
+        ToggleEditModeCommand = new Command(async () => await ToggleEditModeAsync(), () => !IsLoading && !IsBusy);
+        UpdateCommand = new Command(async () => await UpdateAsync(), CanUpdate);
+        DeleteCommand = new Command(async () => await DeleteAsync(), CanDelete);
+
         OpenWebsiteCommand = new Command<string?>(async url => await OpenWebsiteAsync(url));
     }
 
     public ObservableCollection<Partner> Partners { get; } = new();
 
-    public ICommand RefreshCommand { get; }
-
+    public ICommand ToggleEditModeCommand { get; }
+    public ICommand UpdateCommand { get; }
+    public ICommand DeleteCommand { get; }
     public ICommand OpenWebsiteCommand { get; }
 
-    public bool IsRefreshing
+    public bool IsLoading
     {
-        get => _isRefreshing;
-        set => SetProperty(ref _isRefreshing, value);
+        get => _isLoading;
+        set
+        {
+            if (SetProperty(ref _isLoading, value))
+                RefreshCommands();
+        }
     }
 
     public string StatusMessage
@@ -44,17 +64,62 @@ public class PartnersViewModel : BaseViewModel
         set => SetProperty(ref _statusMessage, value);
     }
 
-    public async Task InitializeAsync()
+    public bool IsSelectionVisible
+    {
+        get => _isSelectionVisible;
+        set
+        {
+            if (SetProperty(ref _isSelectionVisible, value))
+            {
+                OnPropertyChanged(nameof(EditModeButtonText));
+                RefreshCommands();
+            }
+        }
+    }
+
+    public string EditModeButtonText => IsSelectionVisible ? "Masquer" : "Modifier / Supprimer";
+
+    public Partner? SelectedPartner
+    {
+        get => _selectedPartner;
+        set
+        {
+            if (SetProperty(ref _selectedPartner, value))
+            {
+                EditPartnerName = value?.DisplayName ?? string.Empty;
+                EditPartnerWebsite = value?.Website ?? string.Empty;
+                RefreshCommands();
+            }
+        }
+    }
+
+    public string EditPartnerName
+    {
+        get => _editPartnerName;
+        set
+        {
+            if (SetProperty(ref _editPartnerName, value))
+                RefreshCommands();
+        }
+    }
+
+    public string EditPartnerWebsite
+    {
+        get => _editPartnerWebsite;
+        set
+        {
+            if (SetProperty(ref _editPartnerWebsite, value))
+                RefreshCommands();
+        }
+    }
+
+    // ✅ Appelé par la page : ne charge rien
+    public async Task OnPageAppearingAsync()
     {
         if (!_sessionPrepared)
-        {
             await PrepareSessionAsync();
-        }
 
-        if (!_hasLoaded)
-        {
-            await LoadPartnersAsync();
-        }
+        StatusMessage = "Cliquez sur « Modifier / Supprimer » pour charger les partenaires.";
     }
 
     private async Task PrepareSessionAsync()
@@ -72,36 +137,63 @@ public class PartnersViewModel : BaseViewModel
         }
     }
 
-    private async Task LoadPartnersAsync(bool forceRefresh = false)
+    private async Task ToggleEditModeAsync()
     {
-        if (IsBusy)
+        IsSelectionVisible = !IsSelectionVisible;
+
+        if (IsSelectionVisible)
         {
-            return;
+            // ✅ Chargement seulement au clic
+            await LoadPartnersAsync(forceReload: true);
         }
+        else
+        {
+            SelectedPartner = null;
+            EditPartnerName = string.Empty;
+            EditPartnerWebsite = string.Empty;
+        }
+    }
+
+    private async Task LoadPartnersAsync(bool forceReload = false)
+    {
+        if (IsBusy || IsLoading)
+            return;
+
+        if (!forceReload && _hasLoaded)
+            return;
 
         try
         {
+            IsLoading = true;
             IsBusy = true;
-            IsRefreshing = forceRefresh;
-            StatusMessage = forceRefresh ? "Actualisation des partenaires…" : "Chargement des partenaires…";
 
-            var partners = await FetchPartnersAsync();
+            StatusMessage = forceReload ? "Actualisation des partenaires…" : "Chargement des partenaires…";
+
+            if (!_sessionPrepared)
+                await PrepareSessionAsync();
+
+            // ✅ Endpoint stable (celui qu'on a ajouté dans ton controller)
+            var partners = await _apis.GetListAsync<Partner>("/api/crud/partenaires/list").ConfigureAwait(false);
+            partners ??= new List<Partner>();
 
             Partners.Clear();
             foreach (var partner in partners)
-            {
                 Partners.Add(partner);
-            }
 
             _hasLoaded = true;
 
             StatusMessage = Partners.Count == 0
-                ? "Aucun partenaire à afficher pour le moment."
+                ? "Aucun partenaire à afficher."
                 : $"{Partners.Count} partenaire(s) chargé(s).";
         }
         catch (OperationCanceledException)
         {
             StatusMessage = "Chargement annulé.";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            StatusMessage = "Accès refusé. Veuillez vous reconnecter.";
+            Debug.WriteLine($"[PARTNERS] 401 : {ex}");
         }
         catch (HttpRequestException ex)
         {
@@ -116,77 +208,200 @@ public class PartnersViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
-            IsRefreshing = false;
+            IsLoading = false;
+            RefreshCommands();
         }
     }
 
-    private async Task<List<Partner>> FetchPartnersAsync()
+    private bool CanUpdate()
+        => !IsBusy
+           && !IsLoading
+           && IsSelectionVisible
+           && SelectedPartner is not null
+           && !string.IsNullOrWhiteSpace(EditPartnerName);
+
+    private async Task UpdateAsync()
     {
-        List<Partner>? partners = null;
-        Exception? lastError = null;
-
-        var endpoints = new[]
+        if (!CanUpdate())
         {
-            "/api/mobile/partenaires",
-            "/api/crud/partenaire/list",
-            "/api/crud/partenaires/list"
-        };
+            StatusMessage = "Sélectionnez un partenaire et renseignez au moins son nom.";
+            return;
+        }
 
-        foreach (var endpoint in endpoints)
+        var partner = SelectedPartner!;
+        var name = EditPartnerName.Trim();
+        var website = string.IsNullOrWhiteSpace(EditPartnerWebsite) ? null : EditPartnerWebsite.Trim();
+
+        var confirm = await ConfirmAsync("Mise à jour", $"Mettre à jour « {partner.DisplayName} » ?");
+        if (!confirm) return;
+
+        try
         {
-            try
+            IsBusy = true;
+            IsLoading = true;
+            RefreshCommands();
+
+            if (!_sessionPrepared)
+                await PrepareSessionAsync();
+
+            // ✅ Payload compatible avec ton entity (nom/url)
+            var payload = new
             {
-                partners = await _apis.GetListAsync<Partner>(endpoint).ConfigureAwait(false);
-                if (partners.Count > 0)
-                {
-                    return partners;
-                }
-            }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+                id = partner.Id,
+                nom = name,
+                url = website,
+                site_web = website
+            };
+
+            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/update", payload).ConfigureAwait(false);
+            if (!ok)
             {
-                lastError = ex;
-                Debug.WriteLine($"[PARTNERS] Endpoint échoué '{endpoint}': {ex.Message}");
+                StatusMessage = "La mise à jour a échoué.";
+                return;
             }
-        }
 
-        if (partners != null)
+            StatusMessage = "Partenaire mis à jour.";
+            await ShowInfoAsync("Mise à jour", "Partenaire mis à jour avec succès.");
+
+            // ✅ Recharge pour avoir exactement les valeurs serveur
+            await LoadPartnersAsync(forceReload: true);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
         {
-            return partners;
+            StatusMessage = "Session expirée. Veuillez vous reconnecter.";
+            Debug.WriteLine($"[PARTNERS] 401 update : {ex}");
         }
-
-        if (lastError != null)
+        catch (Exception ex)
         {
-            throw lastError;
+            StatusMessage = "Impossible de mettre à jour le partenaire.";
+            Debug.WriteLine($"[PARTNERS] update error : {ex}");
+        }
+        finally
+        {
+            IsBusy = false;
+            IsLoading = false;
+            RefreshCommands();
+        }
+    }
+
+    private bool CanDelete()
+        => !IsBusy
+           && !IsLoading
+           && IsSelectionVisible
+           && SelectedPartner is not null;
+
+    private async Task DeleteAsync()
+    {
+        if (!CanDelete())
+        {
+            StatusMessage = "Sélectionnez un partenaire à supprimer.";
+            return;
         }
 
-        return new List<Partner>();
+        var partner = SelectedPartner!;
+
+        var confirm = await ConfirmAsync("Suppression", $"Supprimer « {partner.DisplayName} » ?");
+        if (!confirm) return;
+
+        try
+        {
+            IsBusy = true;
+            IsLoading = true;
+            RefreshCommands();
+
+            if (!_sessionPrepared)
+                await PrepareSessionAsync();
+
+            var payload = new { id = partner.Id };
+
+            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/delete", payload).ConfigureAwait(false);
+            if (!ok)
+            {
+                StatusMessage = "La suppression a échoué.";
+                return;
+            }
+
+            // ✅ Disparition immédiate
+            Partners.Remove(partner);
+
+            SelectedPartner = null;
+            EditPartnerName = string.Empty;
+            EditPartnerWebsite = string.Empty;
+
+            StatusMessage = "Partenaire supprimé.";
+            await ShowInfoAsync("Suppression", "Partenaire supprimé avec succès.");
+
+            if (Partners.Count == 0)
+                StatusMessage = "Aucun partenaire à afficher.";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            StatusMessage = "Session expirée. Veuillez vous reconnecter.";
+            Debug.WriteLine($"[PARTNERS] 401 delete : {ex}");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Impossible de supprimer le partenaire.";
+            Debug.WriteLine($"[PARTNERS] delete error : {ex}");
+        }
+        finally
+        {
+            IsBusy = false;
+            IsLoading = false;
+            RefreshCommands();
+        }
+    }
+
+    private void RefreshCommands()
+    {
+        (ToggleEditModeCommand as Command)?.ChangeCanExecute();
+        (UpdateCommand as Command)?.ChangeCanExecute();
+        (DeleteCommand as Command)?.ChangeCanExecute();
     }
 
     private static async Task OpenWebsiteAsync(string? url)
     {
         if (string.IsNullOrWhiteSpace(url))
-        {
             return;
-        }
 
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
         {
             if (Uri.TryCreate($"https://{url.TrimStart('/')}", UriKind.Absolute, out var httpsUri))
-            {
                 uri = httpsUri;
-            }
         }
 
-        if (uri != null)
+        if (uri is null)
+            return;
+
+        try
         {
-            try
-            {
-                await Launcher.Default.TryOpenAsync(uri);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[PARTNERS] Impossible d'ouvrir {url} : {ex}");
-            }
+            await Launcher.Default.TryOpenAsync(uri);
         }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PARTNERS] Impossible d'ouvrir {url} : {ex}");
+        }
+    }
+
+    private Task<bool> ConfirmAsync(string title, string message)
+    {
+        return MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            var page = Application.Current?.Windows?.FirstOrDefault()?.Page;
+            if (page is null) return true;
+
+            return await page.DisplayAlert(title, message, "Oui", "Non");
+        });
+    }
+
+    private Task ShowInfoAsync(string title, string message)
+    {
+        return MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            var page = Application.Current?.Windows?.FirstOrDefault()?.Page;
+            if (page is null) return;
+
+            await page.DisplayAlert(title, message, "OK");
+        });
     }
 }

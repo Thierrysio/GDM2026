@@ -10,15 +10,13 @@
         <Color x:Key="CardBackground">#151515</Color>
     </ContentPage.Resources>
 
-    <!-- ✅ PAS de ScrollView, PAS de RefreshView -->
     <CollectionView x:Name="MessagesCollection"
-                    ItemsSource="{Binding PendingMessages}"
-                    SelectionMode="Single"
+                    ItemsSource="{Binding DisplayMessages}"
+                    SelectionMode="{Binding SelectionMode}"
                     SelectedItem="{Binding SelectedMessage}"
                     ItemSizingStrategy="MeasureAllItems"
                     Margin="0,0,0,12">
 
-        <!-- ✅ Anti-troncation, mais ne doit JAMAIS capter les clics -->
         <CollectionView.Footer>
             <BoxView HeightRequest="90" InputTransparent="True" />
         </CollectionView.Footer>
@@ -36,7 +34,7 @@
 
                     <VerticalStackLayout Spacing="12">
 
-                        <Label Text="Messages à traiter"
+                        <Label Text="Messagerie"
                                FontSize="28"
                                FontAttributes="Bold"
                                TextColor="{StaticResource GoldText}"
@@ -48,28 +46,26 @@
                                HorizontalTextAlignment="Center"
                                LineBreakMode="WordWrap" />
 
-                        <!-- ✅ GRID : pas de superposition -->
                         <Grid ColumnDefinitions="*,Auto"
                               ColumnSpacing="12"
                               RowDefinitions="Auto,Auto">
 
-                            <Button Text="Charger les 10 derniers"
-                                    Command="{Binding LoadLatestCommand}"
+                            <Button Text="{Binding PendingButtonText}"
+                                    Command="{Binding LoadPendingCommand}"
                                     BackgroundColor="#C18F1A"
                                     TextColor="{StaticResource GoldText}"
                                     Grid.Row="0"
                                     Grid.Column="0"
                                     ZIndex="10" />
 
-                            <Button Text="{Binding LoadMoreText}"
-                                    Command="{Binding LoadMoreCommand}"
+                            <Button Text="{Binding OtherButtonText}"
+                                    Command="{Binding LoadOtherCommand}"
                                     BackgroundColor="#303030"
                                     TextColor="{StaticResource GoldText}"
                                     Grid.Row="0"
                                     Grid.Column="1"
                                     ZIndex="10" />
 
-                            <!-- ✅ L'indicateur ne doit jamais bloquer les taps -->
                             <ActivityIndicator Grid.Row="1"
                                                Grid.ColumnSpan="2"
                                                IsRunning="{Binding IsLoading}"
@@ -87,7 +83,7 @@
 
         <CollectionView.EmptyView>
             <VerticalStackLayout Padding="20" Spacing="8">
-                <Label Text="Aucun message à traiter."
+                <Label Text="Aucun message à afficher."
                        TextColor="{StaticResource GoldText}"
                        HorizontalTextAlignment="Center"
                        Opacity="0.7" />
@@ -102,7 +98,7 @@
             <DataTemplate>
 
                 <Border x:Name="ItemBorder"
-                        Background="#111"
+                        BackgroundColor="#111111"
                         Stroke="#2D2D2D"
                         StrokeThickness="1"
                         Padding="12"
@@ -113,6 +109,7 @@
                     </Border.StrokeShape>
 
                     <VerticalStackLayout Spacing="6">
+
                         <Label Text="{Binding DisplayDate}"
                                TextColor="{StaticResource GoldText}"
                                FontAttributes="Bold" />
@@ -122,12 +119,18 @@
                                FontSize="14"
                                LineBreakMode="WordWrap" />
 
+                        <Label Text="{Binding Reponse}"
+                               TextColor="{StaticResource GoldText}"
+                               FontSize="13"
+                               LineBreakMode="WordWrap"
+                               Opacity="0.85" />
+
                         <Label Text="{Binding Etat}"
                                TextColor="{StaticResource GoldText}"
                                FontSize="12"
                                Opacity="0.8" />
 
-                        <!-- panneau réponse : visible sur Selected -->
+                        <!-- Panneau réponse : uniquement en mode "À traiter" + item sélectionné -->
                         <VerticalStackLayout x:Name="ReplyPanel"
                                              IsVisible="False"
                                              Spacing="8">
@@ -145,7 +148,8 @@
                                     HeightRequest="90"
                                     TextColor="{StaticResource GoldText}"
                                     BackgroundColor="#121212"
-                                    Placeholder="Votre réponse..." />
+                                    Placeholder="Votre réponse..."
+                                    PlaceholderColor="#777" />
 
                             <Button Text="Envoyer"
                                     Command="{Binding BindingContext.SendReplyCommand, Source={x:Reference MessagesCollection}}"
@@ -156,12 +160,13 @@
                                                IsVisible="{Binding BindingContext.IsSubmitting, Source={x:Reference MessagesCollection}}"
                                                Color="{StaticResource GoldText}"
                                                InputTransparent="True" />
-
                         </VerticalStackLayout>
+
                     </VerticalStackLayout>
 
                     <VisualStateManager.VisualStateGroups>
                         <VisualStateGroup x:Name="SelectionStates">
+
                             <VisualState x:Name="Normal">
                                 <VisualState.Setters>
                                     <Setter TargetName="ItemBorder" Property="Stroke" Value="#2D2D2D" />
@@ -169,15 +174,31 @@
                                     <Setter TargetName="ReplyPanel" Property="IsVisible" Value="False" />
                                 </VisualState.Setters>
                             </VisualState>
+
                             <VisualState x:Name="Selected">
                                 <VisualState.Setters>
                                     <Setter TargetName="ItemBorder" Property="Stroke" Value="{StaticResource GoldText}" />
                                     <Setter TargetName="ItemBorder" Property="StrokeThickness" Value="3" />
                                     <Setter TargetName="ReplyPanel" Property="IsVisible" Value="True" />
                                 </VisualState.Setters>
+
+                                <!-- En mode "autres", même si sélection arrive, on force à cacher -->
+                                <VisualState.StateTriggers>
+                                    <StateTrigger IsActive="{Binding BindingContext.IsShowingOthers, Source={x:Reference MessagesCollection}}" />
+                                </VisualState.StateTriggers>
                             </VisualState>
+
                         </VisualStateGroup>
                     </VisualStateManager.VisualStateGroups>
+
+                    <!-- Masque ReplyPanel si on est en mode "Autres" -->
+                    <Border.Triggers>
+                        <DataTrigger TargetType="Border"
+                                     Binding="{Binding BindingContext.IsShowingOthers, Source={x:Reference MessagesCollection}}"
+                                     Value="True">
+                            <Setter TargetName="ReplyPanel" Property="IsVisible" Value="False" />
+                        </DataTrigger>
+                    </Border.Triggers>
 
                 </Border>
 
