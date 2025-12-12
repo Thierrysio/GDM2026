@@ -156,7 +156,7 @@ public class EvenementPageViewModel : BaseViewModel
         try
         {
             IsBusy = true;
-            StatusMessage = "Chargement des événements";
+            StatusMessage = "Chargement des événements";
 
             if (!await EnsureSessionAsync())
             {
