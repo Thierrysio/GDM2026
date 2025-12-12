@@ -48,12 +48,18 @@
     <RefreshView Command="{Binding RefreshCommand}"
                  IsRefreshing="{Binding IsRefreshing}">
 
-        <!-- IMPORTANT : le CollectionView reste TOUJOURS visible (sinon Header invisible => page noire) -->
+        <!-- + marge bas pour éviter que le dernier item touche le bord -->
         <CollectionView x:Name="EventsCollection"
                         ItemsSource="{Binding PromoCategories}"
                         SelectionMode="Single"
                         SelectedItem="{Binding SelectedCategory}"
-                        ItemSizingStrategy="MeasureAllItems">
+                        ItemSizingStrategy="MeasureAllItems"
+                        Margin="0,0,0,12">
+
+            <!-- ✅ Footer = espace garanti sous le dernier item (anti-troncation) -->
+            <CollectionView.Footer>
+                <BoxView HeightRequest="80" />
+            </CollectionView.Footer>
 
             <!-- HEADER = haut de page (toujours visible) -->
             <CollectionView.Header>
@@ -128,7 +134,7 @@
                                    LineBreakMode="WordWrap" />
 
                             <!-- Hint visible tant que la liste n'est pas "activée" -->
-                            <Label Text="Appuyez sur « Modifier » pour charger / afficher les événements."
+                            <Label Text="Appuyez sur « Modifier / Supprimer » pour charger / afficher les événements."
                                    FontSize="13"
                                    TextColor="{StaticResource GoldText}"
                                    Opacity="0.65">
@@ -158,7 +164,7 @@
             <CollectionView.EmptyView>
                 <VerticalStackLayout Padding="24" Spacing="10">
                     <Label x:Name="EmptyText"
-                           Text="Appuyez sur « Modifier » pour charger les événements."
+                           Text="Appuyez sur « Modifier / Supprimer » pour charger les événements."
                            HorizontalTextAlignment="Center"
                            TextColor="{StaticResource GoldText}"
                            Opacity="0.75" />
@@ -186,8 +192,6 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate>
 
-                    <!-- Si tu veux vraiment masquer la liste tant que IsSelectionVisible=false,
-                         on rend les items "inactifs" et invisibles sans cacher le Header -->
                     <Border x:Name="ItemBorder"
                             Margin="24,0,24,0"
                             BackgroundColor="#0B0B0B"

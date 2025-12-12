@@ -22,7 +22,7 @@ public class EvenementPageViewModel : BaseViewModel
     private bool _sessionLoaded;
     private bool _categoriesLoaded;
 
-    private string _statusMessage = "Chargez les événements pour commencer.";
+    private string _statusMessage = "Cliquez sur « Modifier / Supprimer » pour charger les événements.";
     private string _newCategoryName = string.Empty;
     private string _editCategoryName = string.Empty;
 
@@ -42,6 +42,13 @@ public class EvenementPageViewModel : BaseViewModel
 
         RefreshCommand = new Command(async () =>
         {
+            // On évite de charger si l’utilisateur n’a pas ouvert la section
+            if (!IsSelectionVisible)
+            {
+                IsRefreshing = false;
+                return;
+            }
+
             IsRefreshing = true;
             await LoadCategoriesAsync(forceReload: true);
         });
@@ -125,12 +132,13 @@ public class EvenementPageViewModel : BaseViewModel
     }
 
     public string SelectionButtonText => IsSelectionVisible
-        ? "Masquer les événements"
-        : "Modifier";
+        ? "Masquer"
+        : "Modifier / Supprimer";
 
     public Task InitializeAsync()
     {
-        StatusMessage = "Cliquez sur \"Modifier\" pour charger les données.";
+        // ✅ Pas de chargement ici
+        StatusMessage = "Cliquez sur « Modifier / Supprimer » pour charger les événements.";
         return Task.CompletedTask;
     }
 
@@ -219,14 +227,21 @@ public class EvenementPageViewModel : BaseViewModel
             var payload = new { nom = NewCategoryName.Trim() };
             var created = await _apis.PostBoolAsync("/categorie/promo/create", payload);
 
-            StatusMessage = created ? "Événement créé avec succès." : "La création a échoué.";
-
-            if (created)
+            if (!created)
             {
-                NewCategoryName = string.Empty;
-                await ShowSuccessAsync("Création", "Événement créé avec succès.");
-                await LoadCategoriesAsync(forceReload: true);
+                StatusMessage = "La création a échoué.";
+                return;
             }
+
+            NewCategoryName = string.Empty;
+            StatusMessage = "Événement créé avec succès.";
+            await ShowInfoAsync("Création", "Événement créé avec succès.");
+
+            // Recharge uniquement si la liste est ouverte
+            if (IsSelectionVisible)
+                await LoadCategoriesAsync(forceReload: true);
+            else
+                _categoriesLoaded = false; // pour forcer reload quand on ouvrira
         }
         catch (HttpRequestException ex)
         {
@@ -280,19 +295,13 @@ public class EvenementPageViewModel : BaseViewModel
                 return;
             }
 
-            // ✅ Mise à jour immédiate dans la liste (sans reload obligatoire)
-            var item = PromoCategories.FirstOrDefault(c => c.Id == SelectedCategory!.Id);
-            if (item is not null)
-            {
-                item.Name = newName;
-                item.DisplayName = newName;
-            }
-
             StatusMessage = "Événement mis à jour.";
-            await ShowSuccessAsync("Mise à jour", "Événement mis à jour avec succès.");
+            await ShowInfoAsync("Mise à jour", "Événement mis à jour avec succès.");
 
-            // Optionnel : reload si tu veux refléter exactement ce que renvoie l'API
-            await LoadCategoriesAsync(forceReload: true);
+            if (IsSelectionVisible)
+                await LoadCategoriesAsync(forceReload: true);
+            else
+                _categoriesLoaded = false;
         }
         catch (HttpRequestException ex)
         {
@@ -320,11 +329,8 @@ public class EvenementPageViewModel : BaseViewModel
         }
 
         var target = SelectedCategory!;
-        var confirm = await ShowConfirmAsync(
-            "Suppression",
-            $"Supprimer l'événement \"{target.DisplayName}\" ?");
-
-        if (!confirm)
+        var ok = await ConfirmAsync("Suppression", $"Supprimer l'événement \"{target.DisplayName}\" ?");
+        if (!ok)
             return;
 
         try
@@ -347,19 +353,25 @@ public class EvenementPageViewModel : BaseViewModel
                 return;
             }
 
-            // ✅ Disparition immédiate dans l'affichage
-            var toRemove = PromoCategories.FirstOrDefault(c => c.Id == target.Id);
-            if (toRemove is not null)
-                PromoCategories.Remove(toRemove);
+            // ✅ Disparition immédiate si la liste est ouverte
+            if (IsSelectionVisible)
+            {
+                var toRemove = PromoCategories.FirstOrDefault(c => c.Id == target.Id);
+                if (toRemove is not null)
+                    PromoCategories.Remove(toRemove);
+            }
+            else
+            {
+                _categoriesLoaded = false;
+            }
 
             SelectedCategory = null;
             EditCategoryName = string.Empty;
 
             StatusMessage = "Événement supprimé.";
-            await ShowSuccessAsync("Suppression", "Événement supprimé avec succès.");
+            await ShowInfoAsync("Suppression", "Événement supprimé avec succès.");
 
-            // Si tu veux remettre un message quand la liste devient vide
-            if (PromoCategories.Count == 0)
+            if (IsSelectionVisible && PromoCategories.Count == 0)
                 StatusMessage = "Aucun événement pour le moment.";
         }
         catch (HttpRequestException ex)
@@ -380,11 +392,7 @@ public class EvenementPageViewModel : BaseViewModel
     }
 
     private bool CanCreateCategory() => !IsBusy && !string.IsNullOrWhiteSpace(NewCategoryName);
-
-    private bool CanUpdateCategory() => !IsBusy
-        && SelectedCategory is not null
-        && !string.IsNullOrWhiteSpace(EditCategoryName);
-
+    private bool CanUpdateCategory() => !IsBusy && SelectedCategory is not null && !string.IsNullOrWhiteSpace(EditCategoryName);
     private bool CanDeleteCategory() => !IsBusy && SelectedCategory is not null;
 
     private void RefreshCommandStates()
@@ -416,18 +424,24 @@ public class EvenementPageViewModel : BaseViewModel
         IsSelectionVisible = !IsSelectionVisible;
 
         if (IsSelectionVisible)
-            await LoadCategoriesAsync();
+            await LoadCategoriesAsync(); // ✅ chargement uniquement au clic
     }
 
-    private Task ShowSuccessAsync(string title, string message)
+    private Task ShowInfoAsync(string title, string message)
     {
         return MainThread.InvokeOnMainThreadAsync(async () =>
             await DialogService.DisplayAlertAsync(title, message, "OK"));
     }
 
-    private Task<bool> ShowConfirmAsync(string title, string message)
+    private Task<bool> ConfirmAsync(string title, string message)
     {
         return MainThread.InvokeOnMainThreadAsync(async () =>
-            await DialogService.DisplayConfirmAsync(title, message, "Oui", "Non"));
+        {
+            var page = Application.Current?.MainPage;
+            if (page is null)
+                return true;
+
+            return await page.DisplayAlert(title, message, "Oui", "Non");
+        });
     }
 }
