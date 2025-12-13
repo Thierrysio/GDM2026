@@ -178,7 +178,6 @@
                                             Text="Supprimer"
                                             Command="{Binding BindingContext.DeleteReservationCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
                                             CommandParameter="{Binding .}"
-                                            IsVisible="{Binding BindingContext.IsReservationMode, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
                                             BackgroundColor="Transparent"
                                             BorderColor="Tomato"
                                             BorderWidth="1.5"
