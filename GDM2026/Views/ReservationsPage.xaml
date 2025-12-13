@@ -4,55 +4,373 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:vm="clr-namespace:GDM2026.ViewModels"
-    Title="Reservations">
+    BackgroundColor="#0B0B0B"
+    Title="Réservations">
 
-    <ContentPage.BindingContext>
-        <vm:ReservationsViewModel />
-    </ContentPage.BindingContext>
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+        <Color x:Key="CardBackground">#0B0B0B</Color>
+        <Color x:Key="CardBorder">#000000</Color>
+        <Style TargetType="Label">
+            <Setter Property="TextColor" Value="{StaticResource GoldText}" />
+        </Style>
+        <Style TargetType="Picker">
+            <Setter Property="TextColor" Value="{StaticResource GoldText}" />
+            <Setter Property="TitleColor" Value="{StaticResource GoldText}" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="TextColor" Value="{StaticResource GoldText}" />
+        </Style>
+        <Style TargetType="ActivityIndicator">
+            <Setter Property="Color" Value="{StaticResource GoldText}" />
+        </Style>
+    </ContentPage.Resources>
 
-    <ContentPage.Content>
-        <Grid RowDefinitions="Auto,*" Padding="16">
-            <VerticalStackLayout Grid.Row="0" Spacing="12">
-                <Label Text="Planning" FontSize="24" FontAttributes="Bold" />
-                <Label Text="{Binding StatusMessage}" FontSize="12" TextColor="Gray" />
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16">
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="{StaticResource CardBorder}"
+                StrokeThickness="1.5"
+                Padding="24">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label
+                        FontSize="22"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        Text="Réservations par état"
+                        TextColor="{StaticResource GoldText}" />
+                    <Label
+                        FontSize="14"
+                        HorizontalTextAlignment="Center"
+                        Opacity="0.85"
+                        Text="Sélectionnez un état puis la période à consulter."
+                        TextColor="{StaticResource GoldText}" />
+                </VerticalStackLayout>
+            </Border>
 
-                <Button Text="Ajouter un planning" Command="{Binding ToggleCreateFormCommand}" />
+            <CollectionView ItemsSource="{Binding ReservationStatuses}" SelectionMode="None">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical" Span="2" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Margin="6"
+                            Padding="12"
+                            Background="#1F1F1F"
+                            Stroke="{StaticResource GoldText}"
+                            StrokeThickness="1.2">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding BindingContext.SelectReservationStatusCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Border.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected}" TargetType="Border" Value="True">
+                                    <Setter Property="Background" Value="#2A2A2A" />
+                                    <Setter Property="StrokeThickness" Value="2" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <VerticalStackLayout Spacing="4">
+                                <Label
+                                    Text="{Binding Status}"
+                                    FontSize="16"
+                                    FontAttributes="Bold" />
+                                <Label
+                                    Text="{Binding DisplayCount}"
+                                    FontSize="13"
+                                    Opacity="0.8" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
 
-                <Frame Padding="12" BorderColor="LightGray" HasShadow="False" IsVisible="{Binding IsFormVisible}">
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="Jour" FontAttributes="Bold" />
-                        <DatePicker Date="{Binding PlanningDay}" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <VerticalStackLayout Spacing="6" Grid.Column="0">
+                    <Label Text="Date début" FontAttributes="Bold" />
+                    <DatePicker Date="{Binding StartDate}" TextColor="{StaticResource GoldText}" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Spacing="6" Grid.Column="1">
+                    <Label Text="Date fin" FontAttributes="Bold" />
+                    <DatePicker Date="{Binding EndDate}" TextColor="{StaticResource GoldText}" />
+                </VerticalStackLayout>
+            </Grid>
 
-                        <Label Text="Heure de début" FontAttributes="Bold" />
-                        <TimePicker Time="{Binding StartTime}" />
+            <Button
+                Text="Charger les réservations"
+                Command="{Binding ApplyReservationFiltersCommand}"
+                BackgroundColor="Transparent"
+                BorderColor="{StaticResource GoldText}"
+                BorderWidth="1.5"
+                CornerRadius="10"
+                TextColor="{StaticResource GoldText}" />
 
-                        <Label Text="Heure de fin" FontAttributes="Bold" />
-                        <TimePicker Time="{Binding EndTime}" />
+            <SearchBar
+                Placeholder="Rechercher une commande"
+                Text="{Binding SearchQuery}"
+                PlaceholderColor="{StaticResource GoldText}"
+                TextColor="{StaticResource GoldText}"
+                BackgroundColor="#121212"
+                CancelButtonColor="{StaticResource GoldText}"
+                SearchCommand="{x:Null}" />
 
-                        <Button Text="Créer le planning" Command="{Binding CreateCommand}" />
+            <CollectionView ItemsSource="{Binding Orders}" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="12" Spacing="6" HorizontalOptions="Center">
+                        <ActivityIndicator IsVisible="{Binding IsBusy}" IsRunning="{Binding IsBusy}" />
+                        <Label Text="Aucune réservation trouvée pour ces critères." TextColor="{StaticResource GoldText}" />
                     </VerticalStackLayout>
-                </Frame>
-            </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Margin="0,6"
+                            Padding="18"
+                            Stroke="{StaticResource GoldText}"
+                            StrokeThickness="1.5"
+                            BackgroundColor="{StaticResource CardBackground}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding BindingContext.ToggleOrderDetailsCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Border.Triggers>
+                                <DataTrigger Binding="{Binding IsExpanded}" TargetType="Border" Value="True">
+                                    <Setter Property="StrokeThickness" Value="2.5" />
+                                    <Setter Property="BackgroundColor" Value="#121212" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <VerticalStackLayout Spacing="10">
+                                <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto,auto" ColumnSpacing="8">
+                                    <Label
+                                        Grid.Row="0"
+                                        Grid.Column="0"
+                                        Text="{Binding OrderLabel}"
+                                        FontSize="16"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource GoldText}" />
+                                    <Label
+                                        Grid.Row="0"
+                                        Grid.Column="1"
+                                        Text="{Binding DisplayAmount}"
+                                        FontSize="15"
+                                        TextColor="{StaticResource GoldText}"
+                                        HorizontalOptions="End" />
+                                    <Label
+                                        Grid.Row="1"
+                                        Grid.Column="0"
+                                        Text="{Binding DisplayDate}"
+                                        FontSize="13"
+                                        Opacity="0.7"
+                                        TextColor="{StaticResource GoldText}" />
+                                    <Label
+                                        Grid.Row="2"
+                                        Grid.Column="0"
+                                        Grid.ColumnSpan="2"
+                                        Text="{Binding PickupDateDisplay}"
+                                        FontSize="13"
+                                        Opacity="0.7"
+                                        TextColor="{StaticResource GoldText}"
+                                        HorizontalOptions="Start"
+                                        IsVisible="{Binding HasPickupDate}" />
+                                    <Border
+                                        Grid.Row="1"
+                                        Grid.Column="1"
+                                        Stroke="{StaticResource GoldText}"
+                                        StrokeThickness="1"
+                                        Padding="8,4"
+                                        BackgroundColor="#1A1A1A"
+                                        HorizontalOptions="End">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="12" />
+                                        </Border.StrokeShape>
+                                        <Label
+                                            Text="{Binding CurrentStatus}"
+                                            FontSize="12"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource GoldText}" />
+                                    </Border>
+                                </Grid>
 
-            <RefreshView Grid.Row="1" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsLoading}">
-                <CollectionView ItemsSource="{Binding Reservations}" VerticalOptions="FillAndExpand">
-                    <CollectionView.EmptyView>
-                        <Label Text="Aucun planning à afficher." HorizontalOptions="Center" VerticalOptions="Center" />
-                    </CollectionView.EmptyView>
+                                <Grid ColumnDefinitions="*,auto" ColumnSpacing="12" RowDefinitions="auto">
+                                    <VerticalStackLayout Spacing="4" Grid.Column="0">
+                                        <Picker
+                                            Grid.Column="0"
+                                            ItemsSource="{Binding BindingContext.AvailableStatuses, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                            SelectedItem="{Binding SelectedStatusOption, Mode=TwoWay}"
+                                            BackgroundColor="#121212"
+                                            Title="Modifier l'état"
+                                            FontSize="14"
+                                            TextColor="{StaticResource GoldText}"
+                                            TitleColor="{StaticResource GoldText}" />
+                                    </VerticalStackLayout>
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="Annuler"
+                                        Command="{Binding BindingContext.RevertStatusCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding CanRevert}"
+                                        BackgroundColor="Transparent"
+                                        BorderColor="{StaticResource GoldText}"
+                                        BorderWidth="1.5"
+                                        CornerRadius="10"
+                                        TextColor="{StaticResource GoldText}" />
+                                </Grid>
 
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                            <Frame Padding="10" Margin="0,4" HasShadow="False" BorderColor="LightGray">
-                                <VerticalStackLayout Spacing="4">
-                                    <Label Text="{Binding DisplayTitle}" FontAttributes="Bold" />
-                                    <Label Text="{Binding DisplayDay}" />
-                                    <Label Text="{Binding DisplayTimeRange}" FontSize="12" TextColor="Gray" />
+                                <VerticalStackLayout Spacing="10" IsVisible="{Binding IsExpanded}">
+                                    <Border BackgroundColor="#0D0D0D" Padding="10" StrokeThickness="0">
+                                        <VerticalStackLayout Spacing="6">
+                                            <Grid ColumnDefinitions="auto,*" ColumnSpacing="8" IsVisible="{Binding IsLoadingDetails}">
+                                                <ActivityIndicator Grid.Column="0" IsVisible="True" IsRunning="True" />
+                                                <Label Grid.Column="1" Text="Chargement des détails..." Opacity="0.8" />
+                                            </Grid>
+
+                                            <Label
+                                                Text="{Binding DetailsError}"
+                                                TextColor="Tomato"
+                                                IsVisible="{Binding HasDetailsError}" />
+
+                                            <CollectionView
+                                                ItemsSource="{Binding OrderLines}"
+                                                SelectionMode="None"
+                                                IsVisible="{Binding HasLoadedDetails}">
+                                                <CollectionView.EmptyView>
+                                                    <Label Text="Aucun détail trouvé pour cette commande." />
+                                                </CollectionView.EmptyView>
+                                                <CollectionView.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto" Padding="8" ColumnSpacing="12">
+                                                            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                                                <Label Text="{Binding LeProduit.NomProduit}" FontAttributes="Bold" />
+                                                                <Label Text="{Binding Quantite, StringFormat='Quantité : {0}'}" Opacity="0.8" />
+                                                                <Label Text="{Binding PrixRetenu, StringFormat='Prix : {0:C}'}" Opacity="0.8" />
+                                                                <Label
+                                                                    Text="À traiter"
+                                                                    Opacity="0.8">
+                                                                    <Label.Triggers>
+                                                                        <DataTrigger TargetType="Label" Binding="{Binding Livree}" Value="True">
+                                                                            <Setter Property="Text" Value="Livré" />
+                                                                            <Setter Property="TextColor" Value="#5BE35B" />
+                                                                            <Setter Property="Opacity" Value="1" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger TargetType="Label" Binding="{Binding Traite}" Value="True">
+                                                                            <Setter Property="Text" Value="Traité" />
+                                                                            <Setter Property="TextColor" Value="#5BE35B" />
+                                                                            <Setter Property="Opacity" Value="1" />
+                                                                        </DataTrigger>
+                                                                    </Label.Triggers>
+                                                                </Label>
+                                                                <Label
+                                                                    Text="Livré"
+                                                                    TextColor="#5BE35B"
+                                                                    Opacity="1"
+                                                                    IsVisible="False">
+                                                                    <Label.Triggers>
+                                                                        <DataTrigger TargetType="Label" Binding="{Binding Livree}" Value="True">
+                                                                            <Setter Property="IsVisible" Value="True" />
+                                                                        </DataTrigger>
+                                                                    </Label.Triggers>
+                                                                </Label>
+                                                            </VerticalStackLayout>
+
+                                                            <Grid Grid.Column="1" ColumnDefinitions="auto" RowDefinitions="auto,auto" RowSpacing="6">
+                                                                <ImageButton
+                                                                    Grid.Row="0"
+                                                                    Command="{Binding BindingContext.MarkLineTreatedCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                                                    CommandParameter="{Binding .}"
+                                                                    BackgroundColor="#1A1A1A"
+                                                                    CornerRadius="12"
+                                                                    Padding="10"
+                                                                    HorizontalOptions="End"
+                                                                    VerticalOptions="Center">
+                                                                    <ImageButton.Source>
+                                                                        <FontImageSource Glyph="&#x2713;" Color="{StaticResource GoldText}" Size="22" />
+                                                                    </ImageButton.Source>
+                                                                    <ImageButton.Triggers>
+                                                                        <DataTrigger TargetType="ImageButton" Binding="{Binding Traite}" Value="True">
+                                                                            <Setter Property="Opacity" Value="0.4" />
+                                                                            <Setter Property="IsEnabled" Value="False" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger TargetType="ImageButton"
+                                                                                     Binding="{Binding BindingContext.CurrentStatus, Source={RelativeSource AncestorType={x:Type CollectionView}}}"
+                                                                                     Value="Traitée">
+                                                                            <Setter Property="IsVisible" Value="False" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger TargetType="ImageButton"
+                                                                                     Binding="{Binding BindingContext.CurrentStatus, Source={RelativeSource AncestorType={x:Type CollectionView}}}"
+                                                                                     Value="Livrée">
+                                                                            <Setter Property="IsVisible" Value="False" />
+                                                                        </DataTrigger>
+                                                                    </ImageButton.Triggers>
+                                                                </ImageButton>
+
+                                                                <ImageButton
+                                                                    Grid.Row="1"
+                                                                    Command="{Binding BindingContext.MarkLineDeliveredCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                                                    CommandParameter="{Binding .}"
+                                                                    BackgroundColor="#1A1A1A"
+                                                                    CornerRadius="12"
+                                                                    Padding="10"
+                                                                    HorizontalOptions="End"
+                                                                    VerticalOptions="Center"
+                                                                    IsVisible="False">
+                                                                    <ImageButton.Source>
+                                                                        <FontImageSource Glyph="&#x1F464;" Color="{StaticResource GoldText}" Size="22" />
+                                                                    </ImageButton.Source>
+                                                                    <ImageButton.Triggers>
+                                                                        <DataTrigger TargetType="ImageButton"
+                                                                                     Binding="{Binding BindingContext.CurrentStatus, Source={RelativeSource AncestorType={x:Type CollectionView}}}"
+                                                                                     Value="Traitée">
+                                                                            <Setter Property="IsVisible" Value="True" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger TargetType="ImageButton"
+                                                                                     Binding="{Binding BindingContext.CurrentStatus, Source={RelativeSource AncestorType={x:Type CollectionView}}}"
+                                                                                     Value="Livrée">
+                                                                            <Setter Property="IsVisible" Value="True" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger TargetType="ImageButton" Binding="{Binding Livree}" Value="True">
+                                                                            <Setter Property="Opacity" Value="0.4" />
+                                                                            <Setter Property="IsEnabled" Value="False" />
+                                                                        </DataTrigger>
+                                                                    </ImageButton.Triggers>
+                                                                </ImageButton>
+                                                            </Grid>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </CollectionView.ItemTemplate>
+                                            </CollectionView>
+                                        </VerticalStackLayout>
+                                    </Border>
                                 </VerticalStackLayout>
-                            </Frame>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </RefreshView>
-        </Grid>
-    </ContentPage.Content>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Button
+                Text="Voir plus"
+                Command="{Binding ShowMoreCommand}"
+                IsVisible="{Binding CanShowMore}"
+                BackgroundColor="Transparent"
+                BorderColor="{StaticResource GoldText}"
+                BorderWidth="1.5"
+                CornerRadius="10"
+                TextColor="{StaticResource GoldText}"
+                Padding="14,10"
+                HorizontalOptions="Center" />
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>
