@@ -157,7 +157,11 @@
                                             TextColor="{StaticResource GoldText}"
                                             TitleColor="{StaticResource GoldText}" />
                                     </VerticalStackLayout>
-                                    <HorizontalStackLayout Grid.Row="1" Spacing="10" HorizontalOptions="End">
+                                    <FlexLayout Grid.Row="1" 
+                                                Wrap="Wrap" 
+                                                JustifyContent="End" 
+                                                AlignItems="Start"
+                                                AlignContent="Start">
                                         <Button
                                             Text="Annuler"
                                             Command="{Binding BindingContext.RevertStatusCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
@@ -168,6 +172,7 @@
                                             BorderWidth="1.5"
                                             CornerRadius="10"
                                             WidthRequest="110"
+                                            Margin="5,5,0,0"
                                             TextColor="{StaticResource GoldText}" />
                                         <Button
                                             Text="Supprimer"
@@ -179,8 +184,9 @@
                                             BorderWidth="1.5"
                                             CornerRadius="10"
                                             WidthRequest="110"
+                                            Margin="5,5,0,0"
                                             TextColor="Tomato" />
-                                    </HorizontalStackLayout>
+                                    </FlexLayout>
                                 </Grid>
 
                                 <VerticalStackLayout Spacing="10" IsVisible="{Binding IsExpanded}">
