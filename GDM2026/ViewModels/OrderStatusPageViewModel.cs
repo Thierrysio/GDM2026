@@ -50,6 +50,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         ShowMoreCommand = new Command(ShowMoreOrders);
         SelectReservationStatusCommand = new Command<ReservationStatusDisplay>(async status => await OnReservationStatusSelectedAsync(status));
         ApplyReservationFiltersCommand = new Command(async () => await ReloadWithFiltersAsync());
+        DeleteReservationCommand = new Command<OrderStatusEntry>(async order => await ConfirmAndDeleteReservationAsync(order));
     }
 
     public ObservableCollection<OrderStatusEntry> Orders
@@ -75,6 +76,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     public ICommand SelectReservationStatusCommand { get; }
 
     public ICommand ApplyReservationFiltersCommand { get; }
+
+    public ICommand DeleteReservationCommand { get; }
 
     public string? Status
     {
@@ -763,6 +766,72 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         }
 
         return null;
+    }
+
+    private async Task ConfirmAndDeleteReservationAsync(OrderStatusEntry? order)
+    {
+        if (order is null || !IsReservationMode)
+        {
+            return;
+        }
+
+        var isConfirmed = await RequestReservationDeletionAsync(order.OrderId).ConfigureAwait(false);
+
+        if (!isConfirmed)
+        {
+            return;
+        }
+
+        const string endpoint = "/reserver/commades/supprimer";
+        var request = new DeleteReservationRequest { Id = order.OrderId };
+
+        try
+        {
+            var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
+
+            if (!success)
+            {
+                await ShowLoadErrorAsync("Impossible de supprimer cette réservation.");
+                return;
+            }
+
+            await RemoveReservationAsync(order).ConfigureAwait(false);
+        }
+        catch (TaskCanceledException)
+        {
+            await ShowLoadErrorAsync("La suppression a expiré. Veuillez vérifier votre connexion.");
+        }
+        catch (HttpRequestException)
+        {
+            await ShowLoadErrorAsync("Impossible de supprimer cette réservation.");
+        }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue empêche la suppression de cette réservation.");
+        }
+    }
+
+    private Task<bool> RequestReservationDeletionAsync(int orderId)
+    {
+        return MainThread.InvokeOnMainThreadAsync(() =>
+            DialogService.DisplayConfirmationAsync(
+                "Confirmation",
+                $"Voulez-vous annuler la réservation #{orderId} ?",
+                "Oui",
+                "Non"));
+    }
+
+    private async Task RemoveReservationAsync(OrderStatusEntry order)
+    {
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            _allOrders.Remove(order);
+            _lastKnownStatuses.Remove(order);
+            _statusUpdatesInProgress.Remove(order);
+            Orders.Remove(order);
+        });
+
+        UpdateSelectedReservationCount();
     }
 
     private static void SyncOrderLines(OrderStatusEntry order, IEnumerable<OrderLine> updatedLines)
