@@ -53,3 +53,8 @@ public class ReservationStatusRequest
 
     public string? DateFin { get; set; }
 }
+
+public class DeleteReservationRequest
+{
+    public int Id { get; set; }
+}
