@@ -2,6 +2,7 @@ using GDM2026.Models;
 using GDM2026.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -19,37 +20,37 @@ public class PartnersViewModel : BaseViewModel
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
 
-    private const string DefaultPartnerLogo = "12ca34b82310d78aa6c989b705fe92dda310b8a4.jpg";
-
     private bool _sessionPrepared;
-    private bool _hasLoaded;
 
     private bool _isLoading;
-    private string _statusMessage = "Cliquez sur « Modifier / Supprimer » pour charger les partenaires.";
-
-    private bool _isSelectionVisible;
+    private string _statusMessage = "Cliquez sur « Charger / Recharger les partenaires ».";
 
     private Partner? _selectedPartner;
-
-    private bool _imageLibraryLoaded;
-    private bool _isImageLibraryLoading;
-    private string _imageLibraryMessage = "Sélectionnez un logo ou utilisez la recherche.";
-    private string _imageSearchTerm = string.Empty;
-    private AdminImage? _selectedLibraryImage;
-    private bool _hasSelectedImage;
-    private string _selectedImageName = "Aucun logo sélectionné.";
-    private ImageSource? _selectedImagePreview;
-    private string? _selectedImageUrl;
-
-    private string _editPartnerName = string.Empty;
-    private string _editPartnerWebsite = string.Empty;
 
     private string _newPartnerName = string.Empty;
     private string _newPartnerWebsite = string.Empty;
 
+    private string _editPartnerName = string.Empty;
+    private string _editPartnerWebsite = string.Empty;
+
+    // ====== Image library / logo ======
+    private bool _imageLibraryLoaded;
+    private bool _isImageLibraryLoading;
+    private string _imageLibraryMessage = "Sélectionnez un logo ou utilisez la recherche.";
+    private string _imageSearchTerm = string.Empty;
+
+    private AdminImage? _selectedLibraryImage;
+    private bool _hasSelectedImage;
+    private string _selectedImageName = "Aucun logo sélectionné.";
+    private ImageSource? _selectedImagePreview;
+
+    // chemin/url (stockée) du logo sélectionné
+    private string? _selectedImageUrlOrPath;
+
     public PartnersViewModel()
     {
-        ToggleEditModeCommand = new Command(async () => await ToggleEditModeAsync(), () => !IsLoading && !IsBusy);
+        LoadPartnersCommand = new Command(async () => await LoadPartnersAsync(forceReload: true),
+            () => !IsLoading && !IsBusy);
 
         CreateCommand = new Command(async () => await CreateAsync(), CanCreate);
         UpdateCommand = new Command(async () => await UpdateAsync(), CanUpdate);
@@ -59,16 +60,39 @@ public class PartnersViewModel : BaseViewModel
         ClearLogoCommand = new Command(ClearSelectedLogo);
     }
 
+    // appelé par la page : ne charge pas les partenaires
+    public async Task OnPageAppearingAsync()
+    {
+        if (!_sessionPrepared)
+            await EnsureSessionAsync();
+
+        StatusMessage = "Cliquez sur « Charger / Recharger les partenaires ».";
+        _ = EnsureImageLibraryLoadedAsync();
+        RefreshCommands();
+    }
+
+    /* =======================
+     *  COLLECTIONS
+     * ======================= */
+
     public ObservableCollection<Partner> Partners { get; } = new();
     public ObservableCollection<AdminImage> ImageLibrary { get; } = new();
     public ObservableCollection<AdminImage> FilteredImageLibrary { get; } = new();
 
-    public ICommand ToggleEditModeCommand { get; }
+    /* =======================
+     *  COMMANDES
+     * ======================= */
+
+    public ICommand LoadPartnersCommand { get; }
     public ICommand CreateCommand { get; }
     public ICommand UpdateCommand { get; }
     public ICommand DeleteCommand { get; }
     public ICommand OpenWebsiteCommand { get; }
     public ICommand ClearLogoCommand { get; }
+
+    /* =======================
+     *  ETATS
+     * ======================= */
 
     public bool IsLoading
     {
@@ -86,20 +110,9 @@ public class PartnersViewModel : BaseViewModel
         set => SetProperty(ref _statusMessage, value);
     }
 
-    public bool IsSelectionVisible
-    {
-        get => _isSelectionVisible;
-        set
-        {
-            if (SetProperty(ref _isSelectionVisible, value))
-            {
-                OnPropertyChanged(nameof(EditModeButtonText));
-                RefreshCommands();
-            }
-        }
-    }
-
-    public string EditModeButtonText => IsSelectionVisible ? "Masquer" : "Modifier / Supprimer";
+    /* =======================
+     *  SELECTION PARTNER
+     * ======================= */
 
     public Partner? SelectedPartner
     {
@@ -110,16 +123,262 @@ public class PartnersViewModel : BaseViewModel
             {
                 EditPartnerName = value?.DisplayName ?? string.Empty;
                 EditPartnerWebsite = value?.Website ?? string.Empty;
+
+                // ✅ IMPORTANT : prévisualiser le logo existant
                 ApplyExistingLogo(value);
+
                 OnPropertyChanged(nameof(SelectedPartnerLabel));
                 RefreshCommands();
             }
         }
     }
 
-    public string SelectedPartnerLabel => SelectedPartner is null
-        ? "Aucun partenaire sélectionné."
-        : $"#{SelectedPartner.Id} — {SelectedPartner.DisplayName}";
+    public string SelectedPartnerLabel =>
+        SelectedPartner is null
+            ? "Aucun partenaire sélectionné."
+            : $"#{SelectedPartner.Id} — {SelectedPartner.DisplayName}";
+
+    /* =======================
+     *  CHAMPS CREATE
+     * ======================= */
+
+    public string NewPartnerName
+    {
+        get => _newPartnerName;
+        set
+        {
+            if (SetProperty(ref _newPartnerName, value))
+                RefreshCommands();
+        }
+    }
+
+    public string NewPartnerWebsite
+    {
+        get => _newPartnerWebsite;
+        set => SetProperty(ref _newPartnerWebsite, value);
+    }
+
+    private bool CanCreate() =>
+        !IsBusy && !IsLoading && !string.IsNullOrWhiteSpace(NewPartnerName);
+
+    private async Task CreateAsync()
+    {
+        if (!CanCreate())
+        {
+            StatusMessage = "Renseignez le nom du partenaire.";
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            IsLoading = true;
+            RefreshCommands();
+
+            await EnsureSessionAsync();
+
+            var payload = new
+            {
+                nom = NewPartnerName.Trim(),
+                url = string.IsNullOrWhiteSpace(NewPartnerWebsite) ? null : NewPartnerWebsite.Trim(),
+                // logo : envoie ce que tu veux côté API (chemin relatif conseillé)
+                logo = _selectedImageUrlOrPath
+            };
+
+            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/create", payload);
+
+            StatusMessage = ok ? "Partenaire créé." : "La création a échoué.";
+
+            if (ok)
+            {
+                NewPartnerName = string.Empty;
+                NewPartnerWebsite = string.Empty;
+                ClearSelectedLogo();
+                await LoadPartnersAsync(forceReload: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Impossible de créer le partenaire.";
+            Debug.WriteLine($"[PARTNERS] create error: {ex}");
+        }
+        finally
+        {
+            IsBusy = false;
+            IsLoading = false;
+            RefreshCommands();
+        }
+    }
+
+    /* =======================
+     *  CHAMPS EDIT
+     * ======================= */
+
+    public string EditPartnerName
+    {
+        get => _editPartnerName;
+        set
+        {
+            if (SetProperty(ref _editPartnerName, value))
+                RefreshCommands();
+        }
+    }
+
+    public string EditPartnerWebsite
+    {
+        get => _editPartnerWebsite;
+        set => SetProperty(ref _editPartnerWebsite, value);
+    }
+
+    private bool CanUpdate() =>
+        !IsBusy && !IsLoading && SelectedPartner is not null && !string.IsNullOrWhiteSpace(EditPartnerName);
+
+    private async Task UpdateAsync()
+    {
+        if (!CanUpdate())
+        {
+            StatusMessage = "Sélectionnez un partenaire et renseignez au moins son nom.";
+            return;
+        }
+
+        var partner = SelectedPartner!;
+        var confirm = await ConfirmAsync("Mise à jour", $"Mettre à jour « {partner.DisplayName} » ?");
+        if (!confirm) return;
+
+        try
+        {
+            IsBusy = true;
+            IsLoading = true;
+            RefreshCommands();
+
+            await EnsureSessionAsync();
+
+            var payload = new
+            {
+                id = partner.Id,
+                nom = EditPartnerName.Trim(),
+                url = string.IsNullOrWhiteSpace(EditPartnerWebsite) ? null : EditPartnerWebsite.Trim(),
+                logo = _selectedImageUrlOrPath ?? partner.ImagePath
+            };
+
+            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/update", payload);
+
+            StatusMessage = ok ? "Partenaire mis à jour." : "La mise à jour a échoué.";
+
+            if (ok)
+                await LoadPartnersAsync(forceReload: true);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Impossible de mettre à jour le partenaire.";
+            Debug.WriteLine($"[PARTNERS] update error: {ex}");
+        }
+        finally
+        {
+            IsBusy = false;
+            IsLoading = false;
+            RefreshCommands();
+        }
+    }
+
+    private bool CanDelete() =>
+        !IsBusy && !IsLoading && SelectedPartner is not null;
+
+    private async Task DeleteAsync()
+    {
+        if (!CanDelete())
+        {
+            StatusMessage = "Sélectionnez un partenaire à supprimer.";
+            return;
+        }
+
+        var partner = SelectedPartner!;
+        var confirm = await ConfirmAsync("Suppression", $"Supprimer « {partner.DisplayName} » ?");
+        if (!confirm) return;
+
+        try
+        {
+            IsBusy = true;
+            IsLoading = true;
+            RefreshCommands();
+
+            await EnsureSessionAsync();
+
+            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/delete", new { id = partner.Id });
+
+            if (!ok)
+            {
+                StatusMessage = "La suppression a échoué.";
+                return;
+            }
+
+            Partners.Remove(partner);
+            SelectedPartner = null;
+            ClearSelectedLogo();
+            StatusMessage = "Partenaire supprimé.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Impossible de supprimer le partenaire.";
+            Debug.WriteLine($"[PARTNERS] delete error: {ex}");
+        }
+        finally
+        {
+            IsBusy = false;
+            IsLoading = false;
+            RefreshCommands();
+        }
+    }
+
+    /* =======================
+     *  LOAD PARTNERS
+     * ======================= */
+
+    private async Task LoadPartnersAsync(bool forceReload)
+    {
+        if (IsBusy || IsLoading)
+            return;
+
+        try
+        {
+            IsBusy = true;
+            IsLoading = true;
+
+            StatusMessage = "Chargement des partenaires…";
+
+            await EnsureSessionAsync();
+
+            var list = await _apis.GetListAsync<Partner>("/api/crud/partenaires/list");
+            list ??= new List<Partner>();
+
+            Partners.Clear();
+            foreach (var p in list)
+                Partners.Add(p);
+
+            StatusMessage = Partners.Count == 0
+                ? "Aucun partenaire."
+                : $"{Partners.Count} partenaire(s) chargé(s).";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            StatusMessage = "Accès refusé. Reconnectez-vous.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = "Erreur lors du chargement.";
+            Debug.WriteLine($"[PARTNERS] load error: {ex}");
+        }
+        finally
+        {
+            IsBusy = false;
+            IsLoading = false;
+            RefreshCommands();
+        }
+    }
+
+    /* =======================
+     *  IMAGE LIBRARY
+     * ======================= */
 
     public bool IsImageLibraryLoading
     {
@@ -171,268 +430,9 @@ public class PartnersViewModel : BaseViewModel
         set => SetProperty(ref _selectedImagePreview, value);
     }
 
-    public string EditPartnerName
-    {
-        get => _editPartnerName;
-        set
-        {
-            if (SetProperty(ref _editPartnerName, value))
-                RefreshCommands();
-        }
-    }
-
-    public string EditPartnerWebsite
-    {
-        get => _editPartnerWebsite;
-        set
-        {
-            if (SetProperty(ref _editPartnerWebsite, value))
-                RefreshCommands();
-        }
-    }
-
-    public string NewPartnerName
-    {
-        get => _newPartnerName;
-        set
-        {
-            if (SetProperty(ref _newPartnerName, value))
-                RefreshCommands();
-        }
-    }
-
-    public string NewPartnerWebsite
-    {
-        get => _newPartnerWebsite;
-        set
-        {
-            if (SetProperty(ref _newPartnerWebsite, value))
-                RefreshCommands();
-        }
-    }
-
-    // appelé par la page : NE charge rien
-    public async Task OnPageAppearingAsync()
-    {
-        if (!_sessionPrepared)
-            await PrepareSessionAsync();
-
-        StatusMessage = "Cliquez sur « Modifier / Supprimer » pour charger les partenaires.";
-        _ = EnsureImageLibraryLoadedAsync();
-    }
-
-    private async Task PrepareSessionAsync()
-    {
-        try
-        {
-            await _sessionService.LoadAsync();
-            _apis.SetBearerToken(_sessionService.AuthToken);
-            _sessionPrepared = true;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[PARTNERS] Session non préparée : {ex}");
-            _sessionPrepared = true;
-        }
-    }
-
-    private async Task ToggleEditModeAsync()
-    {
-        IsSelectionVisible = !IsSelectionVisible;
-
-        if (IsSelectionVisible)
-        {
-            await EnsureImageLibraryLoadedAsync();
-            await LoadPartnersAsync(forceReload: true);
-        }
-        else
-        {
-            SelectedPartner = null;
-            EditPartnerName = string.Empty;
-            EditPartnerWebsite = string.Empty;
-        }
-    }
-
-    private async Task LoadPartnersAsync(bool forceReload = false)
-    {
-        if (IsBusy || IsLoading)
-            return;
-
-        if (!forceReload && _hasLoaded)
-            return;
-
-        try
-        {
-            IsLoading = true;
-            IsBusy = true;
-
-            StatusMessage = "Chargement des partenaires…";
-
-            if (!_sessionPrepared)
-                await PrepareSessionAsync();
-
-            var partners = await _apis.GetListAsync<Partner>("/api/crud/partenaires/list");
-            partners ??= new List<Partner>();
-
-            Partners.Clear();
-            foreach (var partner in partners)
-                Partners.Add(partner);
-
-            _hasLoaded = true;
-
-            StatusMessage = Partners.Count == 0
-                ? "Aucun partenaire à afficher."
-                : $"{Partners.Count} partenaire(s) chargé(s).";
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            StatusMessage = "Accès refusé. Veuillez vous reconnecter.";
-            Debug.WriteLine($"[PARTNERS] 401 : {ex}");
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = "Impossible de récupérer les partenaires.";
-            Debug.WriteLine($"[PARTNERS] load error : {ex}");
-        }
-        finally
-        {
-            IsBusy = false;
-            IsLoading = false;
-            RefreshCommands();
-        }
-    }
-
-    private bool CanCreate()
-        => !IsBusy
-           && !IsLoading
-           && !string.IsNullOrWhiteSpace(NewPartnerName);
-
-    private async Task CreateAsync()
-    {
-        if (!CanCreate())
-        {
-            StatusMessage = "Renseignez le nom du partenaire.";
-            return;
-        }
-
-        try
-        {
-            IsBusy = true;
-            IsLoading = true;
-            RefreshCommands();
-
-            if (!_sessionPrepared)
-                await PrepareSessionAsync();
-
-            var payload = new
-            {
-                nom = NewPartnerName.Trim(),
-                url = string.IsNullOrWhiteSpace(NewPartnerWebsite) ? null : NewPartnerWebsite.Trim(),
-                logo = ResolveLogoPath(_selectedImageUrl)
-            };
-
-            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/create", payload);
-            // pas de ConfigureAwait(false)
-            StatusMessage = ok ? "Partenaire créé." : "Création échouée.";
-
-            NewPartnerName = string.Empty;
-            NewPartnerWebsite = string.Empty;
-            ClearSelectedLogo();
-
-            // si on est en mode édition, recharge la liste
-            if (IsSelectionVisible)
-                await LoadPartnersAsync(forceReload: true);
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = "Impossible de créer le partenaire.";
-            Debug.WriteLine($"[PARTNERS] create error : {ex}");
-        }
-        finally
-        {
-            IsBusy = false;
-            IsLoading = false;
-            RefreshCommands();
-        }
-    }
-
-    private bool CanUpdate()
-        => !IsBusy
-           && !IsLoading
-           && IsSelectionVisible
-           && SelectedPartner is not null
-           && !string.IsNullOrWhiteSpace(EditPartnerName);
-
-    private async Task UpdateAsync()
-    {
-        if (!CanUpdate())
-        {
-            StatusMessage = "Sélectionnez un partenaire et renseignez au moins son nom.";
-            return;
-        }
-
-        var partner = SelectedPartner!;
-        var name = EditPartnerName.Trim();
-        var website = string.IsNullOrWhiteSpace(EditPartnerWebsite) ? null : EditPartnerWebsite.Trim();
-
-        var confirm = await ConfirmAsync("Mise à jour", $"Mettre à jour « {partner.DisplayName} » ?");
-        if (!confirm) return;
-
-        try
-        {
-            IsBusy = true;
-            IsLoading = true;
-            RefreshCommands();
-
-            if (!_sessionPrepared)
-                await PrepareSessionAsync();
-
-            var payload = new
-            {
-                id = partner.Id,
-                nom = name,
-                url = website,
-                site_web = website,
-                logo = ResolveLogoPath(_selectedImageUrl ?? partner.ImagePath)
-            };
-
-            // Rester sur le thread UI pour éviter les exceptions lors des mises à jour liées à la CollectionView
-            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/update", payload);
-            if (!ok)
-            {
-                StatusMessage = "La mise à jour a échoué.";
-                return;
-            }
-
-            StatusMessage = "Partenaire mis à jour.";
-            await ShowInfoAsync("Mise à jour", "Partenaire mis à jour avec succès.");
-
-            await LoadPartnersAsync(forceReload: true);
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = "Impossible de mettre à jour le partenaire.";
-            Debug.WriteLine($"[PARTNERS] update error : {ex}");
-        }
-        finally
-        {
-            IsBusy = false;
-            IsLoading = false;
-            RefreshCommands();
-        }
-    }
-
     private async Task EnsureImageLibraryLoadedAsync()
     {
         if (_imageLibraryLoaded || IsImageLibraryLoading)
-            return;
-
-        await LoadImageLibraryAsync();
-    }
-
-    private async Task LoadImageLibraryAsync()
-    {
-        if (IsImageLibraryLoading)
             return;
 
         try
@@ -440,32 +440,23 @@ public class PartnersViewModel : BaseViewModel
             IsImageLibraryLoading = true;
             ImageLibraryMessage = "Chargement de la bibliothèque d'images…";
 
-            if (!_sessionPrepared)
-                await PrepareSessionAsync();
+            await EnsureSessionAsync();
 
             var images = await _apis.GetListAsync<AdminImage>("/api/crud/images/list");
+            images ??= new List<AdminImage>();
 
             ImageLibrary.Clear();
-            foreach (var image in images ?? Enumerable.Empty<AdminImage>())
-                ImageLibrary.Add(image);
+            foreach (var img in images)
+                ImageLibrary.Add(img);
 
             _imageLibraryLoaded = true;
 
-            ImageLibraryMessage = ImageLibrary.Count == 0
-                ? "Aucune image trouvée dans la bibliothèque."
-                : "Sélectionnez un logo ou utilisez la recherche.";
-
             RefreshImageLibraryFilter();
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            ImageLibraryMessage = "Accès refusé. Reconnectez-vous pour charger les logos.";
-            Debug.WriteLine($"[PARTNERS] images 401 : {ex}");
         }
         catch (Exception ex)
         {
             ImageLibraryMessage = "Impossible de charger la bibliothèque d'images.";
-            Debug.WriteLine($"[PARTNERS] image load error : {ex}");
+            Debug.WriteLine($"[PARTNERS] image library error: {ex}");
         }
         finally
         {
@@ -473,188 +464,126 @@ public class PartnersViewModel : BaseViewModel
         }
     }
 
+    // ✅ FILTRE : robuste et immédiat
     private void RefreshImageLibraryFilter()
     {
         if (IsImageLibraryLoading)
             return;
+
+        FilteredImageLibrary.Clear();
 
         IEnumerable<AdminImage> source = ImageLibrary;
 
         if (!string.IsNullOrWhiteSpace(ImageSearchTerm))
         {
             var query = ImageSearchTerm.Trim().ToLowerInvariant();
-            source = source.Where(img => img.DisplayName.ToLowerInvariant().Contains(query));
+            source = source.Where(img =>
+                !string.IsNullOrWhiteSpace(img.DisplayName) &&
+                img.DisplayName.ToLowerInvariant().Contains(query));
         }
 
-        FilteredImageLibrary.Clear();
-        foreach (var image in source)
-            FilteredImageLibrary.Add(image);
+        foreach (var img in source)
+            FilteredImageLibrary.Add(img);
 
-        if (FilteredImageLibrary.Count == 0)
+        ImageLibraryMessage = FilteredImageLibrary.Count switch
         {
-            ImageLibraryMessage = string.IsNullOrWhiteSpace(ImageSearchTerm)
-                ? "Aucune image disponible."
-                : $"Aucun résultat pour \"{ImageSearchTerm}\".";
-        }
-        else
-        {
-            ImageLibraryMessage = string.IsNullOrWhiteSpace(ImageSearchTerm)
-                ? "Sélectionnez un logo ou utilisez la recherche."
-                : $"{FilteredImageLibrary.Count} résultat(s) pour \"{ImageSearchTerm}\".";
-        }
+            0 when string.IsNullOrWhiteSpace(ImageSearchTerm) => "Aucune image disponible.",
+            0 => $"Aucun résultat pour « {ImageSearchTerm} ».",
+            _ when string.IsNullOrWhiteSpace(ImageSearchTerm) => "Sélectionnez un logo ou utilisez la recherche.",
+            _ => $"{FilteredImageLibrary.Count} résultat(s) pour « {ImageSearchTerm} »."
+        };
     }
 
+    // ✅ Sélection d'une image : met à jour preview + valeur envoyée à l'API
     private void ApplyImageSelection(AdminImage? image)
     {
         if (image is null)
         {
             ClearSelectedLogo();
-            RefreshCommands();
             return;
         }
 
-        _selectedImageUrl = image.Url;
-        HasSelectedImage = true;
-        SelectedImageName = $"Logo sélectionné : {image.DisplayName}";
-        SelectedImagePreview = ImageSource.FromUri(new Uri(image.FullUrl));
-        StatusMessage = "Logo sélectionné depuis la bibliothèque.";
-        RefreshCommands();
+        try
+        {
+            _selectedImageUrlOrPath = image.Url;
+
+            HasSelectedImage = true;
+            SelectedImageName = $"Logo sélectionné : {image.DisplayName}";
+            SelectedImagePreview = ImageSource.FromUri(new Uri(image.FullUrl));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PARTNERS] selected image invalid: {ex}");
+            ClearSelectedLogo();
+        }
     }
 
+    // ✅ Quand on sélectionne un partenaire, on affiche son logo
     private void ApplyExistingLogo(Partner? partner)
     {
-        if (partner is null)
+        if (partner is null || string.IsNullOrWhiteSpace(partner.FullImageUrl))
         {
             ClearSelectedLogo();
             return;
         }
 
-        _selectedImageUrl = partner.ImagePath;
-        HasSelectedImage = !string.IsNullOrWhiteSpace(partner.ImagePath);
-        SelectedImageName = HasSelectedImage
-            ? $"Logo actuel : {partner.ImagePath}"
-            : "Aucun logo sélectionné.";
-        SelectedImagePreview = string.IsNullOrWhiteSpace(partner.FullImageUrl)
-            ? null
-            : ImageSource.FromUri(new Uri(partner.FullImageUrl));
+        try
+        {
+            _selectedImageUrlOrPath = partner.ImagePath;
+
+            HasSelectedImage = true;
+            SelectedImageName = $"Logo actuel : {partner.DisplayName}";
+            SelectedImagePreview = ImageSource.FromUri(new Uri(partner.FullImageUrl));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PARTNERS] partner logo invalid: {ex}");
+            ClearSelectedLogo();
+        }
     }
 
     private void ClearSelectedLogo()
     {
-        _selectedImageUrl = null;
+        _selectedImageUrlOrPath = null;
+
         HasSelectedImage = false;
         SelectedImageName = "Aucun logo sélectionné.";
         SelectedImagePreview = null;
+
         _selectedLibraryImage = null;
         OnPropertyChanged(nameof(SelectedLibraryImage));
     }
 
-    private static string ResolveLogoPath(string? path)
+    /* =======================
+     *  SESSION / NAV
+     * ======================= */
+
+    private async Task EnsureSessionAsync()
     {
-        if (string.IsNullOrWhiteSpace(path))
-            return $"images/{DefaultPartnerLogo}";
+        if (_sessionPrepared)
+            return;
 
-        var sanitized = path.Replace("\\", "/").Trim();
-        sanitized = sanitized.TrimStart('/');
-
-        if (!sanitized.Contains('/'))
-            sanitized = $"images/{sanitized}";
-
-        return sanitized;
+        await _sessionService.LoadAsync();
+        _apis.SetBearerToken(_sessionService.AuthToken);
+        _sessionPrepared = true;
     }
 
-    private bool CanDelete()
-        => !IsBusy
-           && !IsLoading
-           && IsSelectionVisible
-           && SelectedPartner is not null;
-
-    private async Task DeleteAsync()
+    private static async Task OpenWebsiteAsync(string? url)
     {
-        if (!CanDelete())
-        {
-            StatusMessage = "Sélectionnez un partenaire à supprimer.";
+        if (string.IsNullOrWhiteSpace(url))
             return;
-        }
 
-        var partner = SelectedPartner!;
-
-        var confirm = await ConfirmAsync("Suppression", $"Supprimer « {partner.DisplayName} » ?");
-        if (!confirm) return;
-
-        try
-        {
-            IsBusy = true;
-            IsLoading = true;
-            RefreshCommands();
-
-            if (!_sessionPrepared)
-                await PrepareSessionAsync();
-
-            var payload = new { id = partner.Id };
-
-            // Rester sur le thread UI pour éviter les exceptions lors des mises à jour liées à la CollectionView
-            var ok = await _apis.PostBoolAsync("/api/crud/partenaires/delete", payload);
-            if (!ok)
-            {
-                StatusMessage = "La suppression a échoué.";
-                return;
-            }
-
-            Partners.Remove(partner);
-
-            SelectedPartner = null;
-            EditPartnerName = string.Empty;
-            EditPartnerWebsite = string.Empty;
-
-            StatusMessage = "Partenaire supprimé.";
-            await ShowInfoAsync("Suppression", "Partenaire supprimé avec succès.");
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = "Impossible de supprimer le partenaire.";
-            Debug.WriteLine($"[PARTNERS] delete error : {ex}");
-        }
-        finally
-        {
-            IsBusy = false;
-            IsLoading = false;
-            RefreshCommands();
-        }
-    }
-
-    private async Task OpenWebsiteAsync(string? url)
-    {
-        var trimmed = url?.Trim();
-        if (string.IsNullOrWhiteSpace(trimmed))
-        {
-            StatusMessage = "Aucun site web n'est renseigné pour ce partenaire.";
-            return;
-        }
-
+        var trimmed = url.Trim();
         if (!trimmed.StartsWith("http", StringComparison.OrdinalIgnoreCase))
             trimmed = $"https://{trimmed}";
 
-        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
-        {
-            StatusMessage = "URL de partenaire invalide.";
-            return;
-        }
-
-        try
-        {
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
             await Launcher.OpenAsync(uri);
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = "Impossible d'ouvrir le site du partenaire.";
-            Debug.WriteLine($"[PARTNERS] open website error : {ex}");
-        }
     }
 
     private void RefreshCommands()
     {
-        (ToggleEditModeCommand as Command)?.ChangeCanExecute();
+        (LoadPartnersCommand as Command)?.ChangeCanExecute();
         (CreateCommand as Command)?.ChangeCanExecute();
         (UpdateCommand as Command)?.ChangeCanExecute();
         (DeleteCommand as Command)?.ChangeCanExecute();
@@ -665,22 +594,8 @@ public class PartnersViewModel : BaseViewModel
         return MainThread.InvokeOnMainThreadAsync(async () =>
         {
             var page = Application.Current?.Windows?.FirstOrDefault()?.Page;
-            if (page is null)
-                return true;
-
+            if (page is null) return true;
             return await page.DisplayAlert(title, message, "Oui", "Non");
-        });
-    }
-
-    private Task ShowInfoAsync(string title, string message)
-    {
-        return MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            var page = Application.Current?.Windows?.FirstOrDefault()?.Page;
-            if (page is null)
-                return;
-
-            await page.DisplayAlert(title, message, "OK");
         });
     }
 }

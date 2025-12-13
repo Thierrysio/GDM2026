@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using Microsoft.Maui.Controls;
 using Newtonsoft.Json;
 
 namespace GDM2026.Models;
@@ -8,14 +10,12 @@ public class Partner
     [JsonProperty("id")]
     public int Id { get; set; }
 
-    // Certains endpoints renvoient "name", d'autres "nom"
     [JsonProperty("name")]
     public string? Name { get; set; }
 
     [JsonProperty("nom")]
     public string? Nom { get; set; }
 
-    // URL / site
     [JsonProperty("url")]
     public string? Url { get; set; }
 
@@ -28,7 +28,6 @@ public class Partner
     [JsonProperty("lien")]
     public string? Lien { get; set; }
 
-    // Image / logo (noms variables selon endpoint)
     [JsonProperty("image")]
     public string? Image { get; set; }
 
@@ -38,27 +37,70 @@ public class Partner
     [JsonProperty("photo")]
     public string? Photo { get; set; }
 
-    // ✅ Affichage (nom)
     public string DisplayName => !string.IsNullOrWhiteSpace(Name)
         ? Name!
-        : !string.IsNullOrWhiteSpace(Nom)
-            ? Nom!
-            : "Partenaire";
+        : Nom ?? "Partenaire";
 
-    // ✅ Site web (premier champ non vide)
     public string? Website => FirstNonEmpty(Url, Site, SiteWeb, Lien);
 
     public string WebsiteDisplay => string.IsNullOrWhiteSpace(Website)
         ? "Site non renseigné"
         : Website!;
 
-    // ✅ Image (premier champ non vide)
     public string? ImagePath => FirstNonEmpty(Image, Logo, Photo);
+
+    public string FullImageUrl => BuildFullUrl(ImagePath);
 
     public bool HasImage => !string.IsNullOrWhiteSpace(ImagePath);
 
-    // ✅ URL finale de l'image
-    public string FullImageUrl => BuildFullUrl(ImagePath);
+    // ✅ Chemin local du logo (warmup)
+    [JsonIgnore]
+    public string? LocalLogoFile { get; private set; }
+
+    [JsonIgnore]
+    private ImageSource? _logoSource;
+
+    // ✅ Source bindée par le XAML
+    [JsonIgnore]
+    public ImageSource? LogoSource
+    {
+        get
+        {
+            // 1) priorité au fichier local (warmup)
+            if (!string.IsNullOrWhiteSpace(LocalLogoFile) && File.Exists(LocalLogoFile))
+                return ImageSource.FromFile(LocalLogoFile);
+
+            // 2) sinon URL distante
+            if (!HasImage || string.IsNullOrWhiteSpace(FullImageUrl))
+                return null;
+
+            if (_logoSource != null)
+                return _logoSource;
+
+            try
+            {
+                _logoSource = ImageSource.FromUri(new Uri(FullImageUrl));
+                return _logoSource;
+            }
+            catch
+            {
+                _logoSource = null;
+                return null;
+            }
+        }
+    }
+
+    // Appelé par le ViewModel après téléchargement
+    public void SetLocalLogoFile(string? filePath)
+    {
+        LocalLogoFile = filePath;
+        _logoSource = null;
+    }
+
+    public void ResetLogoCache()
+    {
+        _logoSource = null;
+    }
 
     private static string BuildFullUrl(string? path)
     {
@@ -67,17 +109,11 @@ public class Partner
 
         var sanitized = path.Replace("\\", "/").Trim();
 
-        // Déjà absolu (http/https)
         if (Uri.TryCreate(sanitized, UriKind.Absolute, out var absolute))
             return absolute.ToString();
 
-        // Relatif => base images
         var trimmedPath = sanitized.TrimStart('/');
-
-        if (!trimmedPath.Contains("/"))
-            trimmedPath = $"images/{trimmedPath}";
         var baseAddress = Constantes.BaseImagesAddress.TrimEnd('/');
-
         return $"{baseAddress}/{trimmedPath}";
     }
 
@@ -88,7 +124,6 @@ public class Partner
             if (!string.IsNullOrWhiteSpace(value))
                 return value;
         }
-
         return null;
     }
 }

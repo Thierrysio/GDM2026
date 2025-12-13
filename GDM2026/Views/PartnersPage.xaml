@@ -14,18 +14,16 @@
         <Color x:Key="StrokeDark">#2D2D2D</Color>
     </ContentPage.Resources>
 
-    <!-- ✅ UN SEUL SCROLL : CollectionView -->
     <CollectionView x:Name="PartnersCollection"
                     ItemsSource="{Binding Partners}"
                     SelectionMode="Single"
                     SelectedItem="{Binding SelectedPartner}"
                     ItemSizingStrategy="MeasureAllItems">
 
-        <!-- ================= HEADER ================= -->
         <CollectionView.Header>
             <VerticalStackLayout Padding="20" Spacing="16">
 
-                <!-- TITRE -->
+                <!-- TITRE + STATUT -->
                 <Border Background="{StaticResource CardBackground}"
                         Padding="18"
                         Stroke="#000"
@@ -41,11 +39,12 @@
                                TextColor="{StaticResource GoldText}"
                                HorizontalTextAlignment="Center"/>
 
-                        <Grid ColumnDefinitions="*,Auto">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                             <Label Text="{Binding StatusMessage}"
                                    FontSize="13"
                                    TextColor="{StaticResource GoldText}"
-                                   Opacity="0.85"/>
+                                   Opacity="0.85"
+                                   LineBreakMode="WordWrap"/>
 
                             <ActivityIndicator Grid.Column="1"
                                                IsRunning="{Binding IsLoading}"
@@ -53,10 +52,16 @@
                                                Color="{StaticResource GoldText}"
                                                InputTransparent="True"/>
                         </Grid>
+
+                        <!-- ✅ BOUTON VISIBLE POUR CHARGER -->
+                        <Button Text="Charger / Recharger les partenaires"
+                                Command="{Binding LoadPartnersCommand}"
+                                BackgroundColor="#303030"
+                                TextColor="{StaticResource GoldText}" />
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- ================= CREATE ================= -->
+                <!-- CREATE -->
                 <Border Background="{StaticResource CardBackground}"
                         Padding="18"
                         Stroke="#000"
@@ -90,7 +95,7 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- ================= EDIT ================= -->
+                <!-- EDIT (visible si SelectedPartner != null) -->
                 <Border Background="{StaticResource CardBackground}"
                         Padding="18"
                         Stroke="#000"
@@ -145,7 +150,7 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- ================= LOGO ================= -->
+                <!-- LOGO (visible si SelectedPartner != null) -->
                 <Border Background="{StaticResource CardBackground}"
                         Padding="18"
                         Stroke="#000"
@@ -180,7 +185,6 @@
                                            Color="{StaticResource GoldText}"
                                            InputTransparent="True"/>
 
-                        <!-- ✅ FIX Android : Orientation obligatoire -->
                         <CollectionView ItemsSource="{Binding FilteredImageLibrary}"
                                         SelectionMode="Single"
                                         SelectedItem="{Binding SelectedLibraryImage}"
@@ -201,17 +205,10 @@
                                             <RoundRectangle CornerRadius="10"/>
                                         </Border.StrokeShape>
 
-                                        <VerticalStackLayout Spacing="6">
-                                            <Image Source="{Binding FullUrl}"
-                                                   HeightRequest="80"
-                                                   WidthRequest="100"
-                                                   Aspect="AspectFill" />
-                                            <Label Text="{Binding DisplayName}"
-                                                   TextColor="{StaticResource GoldText}"
-                                                   FontSize="11"
-                                                   LineBreakMode="TailTruncation"
-                                                   HorizontalTextAlignment="Center" />
-                                        </VerticalStackLayout>
+                                        <Image Source="{Binding FullUrl}"
+                                               HeightRequest="80"
+                                               WidthRequest="100"
+                                               Aspect="AspectFill" />
                                     </Border>
                                 </DataTemplate>
                             </CollectionView.ItemTemplate>
@@ -245,25 +242,28 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <Label Text="Liste des partenaires : touchez un partenaire pour l'éditer."
+                <Label Text="Liste : touchez un partenaire pour le sélectionner."
                        FontSize="12"
                        TextColor="{StaticResource GoldText}"
                        Opacity="0.6" />
-
             </VerticalStackLayout>
         </CollectionView.Header>
 
-        <!-- ================= LIST ================= -->
         <CollectionView.ItemsLayout>
             <LinearItemsLayout Orientation="Vertical" ItemSpacing="10"/>
         </CollectionView.ItemsLayout>
 
         <CollectionView.EmptyView>
             <VerticalStackLayout Padding="20" Spacing="8">
-                <Label Text="Aucun partenaire à afficher."
+                <Label Text="Aucun partenaire affiché."
                        TextColor="{StaticResource GoldText}"
                        HorizontalTextAlignment="Center"
                        Opacity="0.7" />
+                <Label Text="Cliquez sur « Charger / Recharger les partenaires »."
+                       TextColor="{StaticResource GoldText}"
+                       HorizontalTextAlignment="Center"
+                       Opacity="0.5"
+                       FontSize="12" />
             </VerticalStackLayout>
         </CollectionView.EmptyView>
 
@@ -293,22 +293,6 @@
                                                 CacheValidity="7.00:00:00" />
                             </Image.Source>
                         </Image>
-
-                        <Label Grid.Column="0"
-                               Text="Pas d'image"
-                               FontSize="10"
-                               TextColor="#AAAAAA"
-                               HorizontalTextAlignment="Center"
-                               VerticalTextAlignment="Center"
-                               IsVisible="False">
-                            <Label.Triggers>
-                                <DataTrigger TargetType="Label"
-                                             Binding="{Binding HasImage}"
-                                             Value="False">
-                                    <Setter Property="IsVisible" Value="True"/>
-                                </DataTrigger>
-                            </Label.Triggers>
-                        </Label>
 
                         <VerticalStackLayout Grid.Column="1" Spacing="6">
                             <Label Text="{Binding DisplayName}"
