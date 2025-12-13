@@ -1,211 +1,919 @@
 using GDM2026.Models;
 using GDM2026.Services;
 using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Controls;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
-using GDM2026;
-using GDM2026.Views;
 
 namespace GDM2026.ViewModels;
 
-public partial class HomePageViewModel : BaseViewModel
+public partial class OrderStatusPageViewModel : BaseViewModel
 {
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
-    private string _welcomeText = "Bonjour!";
 
-    public HomePageViewModel()
+    private readonly IReadOnlyList<string> _availableStatuses =
+    [
+        "Confirmée",
+        "En cours de traitement",
+        "Traitée",
+        "Livrée",
+        "A confirmer"
+    ];
+
+    private readonly ObservableCollection<ReservationStatusDisplay> _reservationStatuses = [];
+    private readonly Dictionary<OrderStatusEntry, string> _lastKnownStatuses = [];
+    private readonly HashSet<OrderStatusEntry> _statusUpdatesInProgress = [];
+    private readonly List<OrderStatusEntry> _allOrders = [];
+
+    private DateTime _startDate = DateTime.Today;
+    private DateTime _endDate = DateTime.Today;
+    private bool _hasLoaded;
+    private bool _isReservationMode;
+    private string? _status;
+    private string _pageTitle = string.Empty;
+    private string _subtitle = string.Empty;
+    private string _searchQuery = string.Empty;
+    private bool _isShowingLimitedOrders = true;
+    private bool _canShowMore;
+    private ObservableCollection<OrderStatusEntry> _orders = [];
+
+    private CancellationTokenSource? _searchDebounceCts;
+    private const int SearchDebounceMs = 250;
+
+    public OrderStatusPageViewModel()
     {
-        Categories = [];
-        OrderStatuses = [];
+        Orders = [];
 
-        CategorySelectedCommand = new Command<CategoryCard>(async card => await NavigateToCategoryAsync(card));
-        OrderStatusSelectedCommand = new Command<OrderStatusDisplay>(async status => await NavigateToOrderStatusAsync(status));
+        RevertStatusCommand = new Command<OrderStatusEntry>(async order => await RevertStatusAsync(order));
+        ToggleOrderDetailsCommand = new Command<OrderStatusEntry>(async order => await ToggleOrderDetailsAsync(order));
+        MarkLineTreatedCommand = new Command<OrderLine>(async line => await MarkLineTreatedAsync(line));
+        MarkLineDeliveredCommand = new Command<OrderLine>(async line => await MarkLineDeliveredAsync(line));
+        ShowMoreCommand = new Command(ShowMoreOrders);
 
-        LoadCategories();
+        SelectReservationStatusCommand = new Command<ReservationStatusDisplay>(async status => await OnReservationStatusSelectedAsync(status));
+        ApplyReservationFiltersCommand = new Command(async () => await ReloadWithFiltersAsync());
+
+        // ✅ Visible partout, et supprime via /reserver/commandes/supprimer
+        DeleteReservationCommand = new Command<OrderStatusEntry>(async order => await ConfirmAndDeleteReservationAsync(order));
     }
 
-    public ObservableCollection<CategoryCard> Categories { get; }
-
-    public ObservableCollection<OrderStatusDisplay> OrderStatuses { get; }
-
-    public ICommand CategorySelectedCommand { get; }
-
-    public ICommand OrderStatusSelectedCommand { get; }
-
-    public string WelcomeText
+    public ObservableCollection<OrderStatusEntry> Orders
     {
-        get => _welcomeText;
-        set => SetProperty(ref _welcomeText, value);
+        get => _orders;
+        private set => SetProperty(ref _orders, value);
+    }
+
+    public ObservableCollection<ReservationStatusDisplay> ReservationStatuses => _reservationStatuses;
+
+    public IReadOnlyList<string> AvailableStatuses => _availableStatuses;
+
+    public ICommand RevertStatusCommand { get; }
+    public ICommand ToggleOrderDetailsCommand { get; }
+    public ICommand MarkLineTreatedCommand { get; }
+    public ICommand MarkLineDeliveredCommand { get; }
+    public ICommand ShowMoreCommand { get; }
+    public ICommand SelectReservationStatusCommand { get; }
+    public ICommand ApplyReservationFiltersCommand { get; }
+    public ICommand DeleteReservationCommand { get; }
+
+    public string? Status
+    {
+        get => _status;
+        set
+        {
+            if (SetProperty(ref _status, value) && !_hasLoaded)
+            {
+                _ = InitializeAsync();
+            }
+        }
+    }
+
+    public DateTime StartDate
+    {
+        get => _startDate;
+        set
+        {
+            if (SetProperty(ref _startDate, value))
+            {
+                EnsureValidDateRange();
+                if (IsReservationMode) ApplyFilters();
+            }
+        }
+    }
+
+    public DateTime EndDate
+    {
+        get => _endDate;
+        set
+        {
+            if (SetProperty(ref _endDate, value))
+            {
+                EnsureValidDateRange();
+                if (IsReservationMode) ApplyFilters();
+            }
+        }
+    }
+
+    public bool IsReservationMode
+    {
+        get => _isReservationMode;
+        set
+        {
+            if (SetProperty(ref _isReservationMode, value))
+            {
+                EnsureReservationStatuses();
+                ApplyFilters();
+            }
+        }
+    }
+
+    public string PageTitle
+    {
+        get => _pageTitle;
+        set => SetProperty(ref _pageTitle, value);
+    }
+
+    public string Subtitle
+    {
+        get => _subtitle;
+        set => SetProperty(ref _subtitle, value);
+    }
+
+    public string SearchQuery
+    {
+        get => _searchQuery;
+        set
+        {
+            if (!SetProperty(ref _searchQuery, value))
+                return;
+
+            if (string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                _isShowingLimitedOrders = true;
+                ApplyFilters();
+                return;
+            }
+
+            _searchDebounceCts?.Cancel();
+            _searchDebounceCts?.Dispose();
+            _searchDebounceCts = new CancellationTokenSource();
+            var token = _searchDebounceCts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(SearchDebounceMs, token).ConfigureAwait(false);
+                    if (token.IsCancellationRequested) return;
+                    ApplyFilters();
+                }
+                catch (TaskCanceledException) { }
+            }, token);
+        }
+    }
+
+    public bool CanShowMore
+    {
+        get => _canShowMore;
+        private set => SetProperty(ref _canShowMore, value);
     }
 
     public async Task InitializeAsync()
     {
-        await LoadSessionAsync();
-        _apis.SetBearerToken(_sessionService.AuthToken);
+        if (_hasLoaded)
+            return;
 
-        await LoadOrderStatusesAsync();
+        if (string.IsNullOrWhiteSpace(Status))
+            return;
+
+        _hasLoaded = true;
+
+        await EnsureSessionAsync().ConfigureAwait(false);
+        EnsureReservationStatuses();
+        await LoadStatusAsync().ConfigureAwait(false);
     }
 
-    public static void OnDisappearing()
-    {
-        OrderStatusDeltaTracker.Clear();
-    }
-
-    private async Task LoadSessionAsync()
+    private async Task EnsureSessionAsync()
     {
         var hasSession = await _sessionService.LoadAsync().ConfigureAwait(false);
+        _apis.SetBearerToken(hasSession ? _sessionService.AuthToken : string.Empty);
+    }
+
+    private async Task LoadStatusAsync()
+    {
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            WelcomeText = hasSession && _sessionService.CurrentUser != null
-                ? $"Bonjour {_sessionService.CurrentUser.Prenom ?? _sessionService.CurrentUser.Nom ?? _sessionService.CurrentUser.UserIdentifier}!"
-                : "Bonjour!";
+            IsBusy = true;
+            PageTitle = IsReservationMode ? $"Réservations : {Status}" : $"Commandes : {Status}";
+            Subtitle = IsReservationMode
+                ? $"{Status} · période du {StartDate:dd/MM/yyyy} au {EndDate:dd/MM/yyyy}"
+                : "Commandes : en cours de chargement...";
         });
-    }
 
-    private void LoadCategories()
-    {
-        Categories.Clear();
-
-        var items = new List<CategoryCard>
-        {
-            new("Dashboard", "Vue d'ensemble et indicateurs clés."),
-            new("Actualite", "Dernières nouvelles et publications."),
-            new("Categories", "Gestion des catégories principales."),
-            new("Catégories Evenements", "Sections dédiées aux événements."),
-            new("Images", "Bibliothèque et gestion des médias."),
-            new("Messages", "Communication et notifications utilisateurs."),
-            new("Partenaires", "Gestion des partenaires et fournisseurs."),
-            new("Reservations", "Planning et suivi des réservations."),
-            new("Produits", "Gérez le catalogue, les fiches et les stocks."),
-            new("Utilisateurs", "Comptes, rôles et informations des membres."),
-            new("Commentaires", "Modération et suivi des avis."),
-            new("Promo", "Codes promo, remises et campagnes."),
-            new("Planning", "Calendrier et organisation des activités."),
-            new("Histoire", "Présentation et historique de Dantec Market."),
-            new("Catalogue", "Consultation globale des offres."),
-        };
-
-        foreach (var item in items)
-        {
-            Categories.Add(item);
-        }
-    }
-
-    private async Task LoadOrderStatusesAsync()
-    {
         try
         {
-            var statuses = await _apis
-                .GetAsync<Dictionary<string, int>>("https://dantecmarket.com/api/mobile/getNombreCommandes")
-                .ConfigureAwait(false) ?? new Dictionary<string, int>();
+            List<OrderByStatus> orders;
 
-            var deltas = OrderStatusDeltaTracker.GetDeltas();
+            if (IsReservationMode)
+            {
+                const string endpoint = "/reserver/commandes/etat";
+
+                var request = new ReservationStatusRequest
+                {
+                    Etat = Status,
+                    DateDebut = StartDate.ToString("yyyy-MM-dd"),
+                    DateFin = EndDate.ToString("yyyy-MM-dd")
+                };
+
+                var reservationOrders = await _apis
+                    .PostAsync<ReservationStatusRequest, List<ReservationOrder>>(endpoint, request)
+                    .ConfigureAwait(false) ?? new List<ReservationOrder>();
+
+                orders = reservationOrders
+                    .Select(order => MapReservationOrder(order, Status))
+                    .ToList();
+            }
+            else
+            {
+                const string endpoint = "https://dantecmarket.com/api/mobile/commandesParEtat";
+                var request = new OrderStatusRequest { Cd = Status };
+
+                orders = await _apis
+                    .PostAsync<OrderStatusRequest, List<OrderByStatus>>(endpoint, request)
+                    .ConfigureAwait(false) ?? new List<OrderByStatus>();
+            }
+
+            _allOrders.Clear();
+
+            var items = (orders ?? new List<OrderByStatus>())
+                .Select(order =>
+                {
+                    var entry = new OrderStatusEntry();
+                    entry.PopulateFromOrder(order, Status);
+                    return entry;
+                })
+                .ToList();
+
+            var statusMap = new Dictionary<OrderStatusEntry, string>();
+
+            foreach (var item in items)
+            {
+                statusMap[item] = item.CurrentStatus;
+                AttachStatusHandler(item);
+                _allOrders.Add(item);
+            }
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                OrderStatuses.Clear();
+                _lastKnownStatuses.Clear();
+                foreach (var kv in statusMap)
+                    _lastKnownStatuses[kv.Key] = kv.Value;
 
-                foreach (var status in statuses)
-                {
-                    var delta = deltas.TryGetValue(status.Key, out var change) ? change : 0;
-                    OrderStatuses.Add(new OrderStatusDisplay(status.Key, status.Value, delta));
-                }
-
-                foreach (var delta in deltas.Where(d => !statuses.ContainsKey(d.Key)))
-                {
-                    OrderStatuses.Add(new OrderStatusDisplay(delta.Key, 0, delta.Value));
-                }
+                _isShowingLimitedOrders = true;
             });
+
+            ApplyFilters();
+            UpdateSelectedReservationCount();
         }
         catch (TaskCanceledException)
         {
-            // Ignore timeout and keep the existing data.
+            await ShowLoadErrorAsync("Le chargement a expiré. Veuillez vérifier votre connexion.");
         }
         catch (HttpRequestException)
         {
-            // Ignore network/API errors and keep the existing data.
+            await ShowLoadErrorAsync("Impossible de récupérer les commandes pour cet état.");
         }
         catch (Exception)
         {
-            // Ignore unexpected errors to avoid breaking the UI lifecycle.
+            await ShowLoadErrorAsync("Une erreur inattendue est survenue pendant le chargement.");
+        }
+        finally
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
         }
     }
 
-    private Task NavigateToCategoryAsync(CategoryCard? card)
+    private void AttachStatusHandler(OrderStatusEntry order)
     {
-        if (card == null || Shell.Current == null)
+        order.PropertyChanged += (_, args) =>
         {
-            return Task.CompletedTask;
+            if (args.PropertyName == nameof(OrderStatusEntry.CurrentStatus))
+                _ = OnOrderStatusChangedAsync(order);
+        };
+    }
+
+    private async Task OnOrderStatusChangedAsync(OrderStatusEntry order)
+    {
+        if (_statusUpdatesInProgress.Contains(order))
+            return;
+
+        var newStatus = order.CurrentStatus;
+        var previousStatus = _lastKnownStatuses.TryGetValue(order, out var last) ? last : string.Empty;
+
+        if (string.IsNullOrWhiteSpace(newStatus) || string.Equals(newStatus, previousStatus, StringComparison.Ordinal))
+            return;
+
+        await UpdateOrderStatusAsync(order, newStatus, isReverting: false);
+    }
+
+    private async Task RevertStatusAsync(OrderStatusEntry? order)
+    {
+        if (order?.PreviousStatus == null)
+            return;
+
+        await UpdateOrderStatusAsync(order, order.PreviousStatus, isReverting: true);
+    }
+
+    private async Task<bool> UpdateOrderStatusAsync(OrderStatusEntry order, string newStatus, bool isReverting)
+    {
+        if (string.IsNullOrWhiteSpace(newStatus))
+            return false;
+
+        var previousStatus = _lastKnownStatuses.TryGetValue(order, out var last) ? last : order.CurrentStatus;
+
+        if (string.Equals(previousStatus, newStatus, StringComparison.Ordinal))
+        {
+            if (isReverting) order.ClearPreviousStatus();
+            return false;
         }
 
-        if (string.Equals(card.Title, "Images", StringComparison.OrdinalIgnoreCase))
+        const string endpoint = "https://dantecmarket.com/api/mobile/updateEtat";
+        var request = new UpdateOrderStatusRequest { Id = order.OrderId, Etat = newStatus };
+
+        const string orderStateEndpoint = "https://dantecmarket.com/api/mobile/updateEtat";
+        var normalizedState = NormalizeOrderStateForApi(newStatus);
+        OrderDetailsResponse? updatedOrder = null;
+
+        _statusUpdatesInProgress.Add(order);
+
+        try
         {
-            return Shell.Current.GoToAsync(nameof(ImageUploadPage), animate: false);
+            var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
+
+            if (!success)
+            {
+                await ShowLoadErrorAsync("Impossible de modifier l'état de cette commande.");
+                await ResetOrderStatusAsync(order, previousStatus);
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(normalizedState))
+            {
+                var orderStateRequest = new ChangeOrderStateRequest { Id = order.OrderId, Etat = normalizedState };
+
+                updatedOrder = await _apis
+                    .PostAsync<ChangeOrderStateRequest, OrderDetailsResponse>(orderStateEndpoint, orderStateRequest)
+                    .ConfigureAwait(false);
+
+                if (updatedOrder is null)
+                {
+                    await ShowLoadErrorAsync("Impossible de synchroniser l'état de la commande.");
+                    await ResetOrderStatusAsync(order, previousStatus);
+                    return false;
+                }
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (isReverting) order.ClearPreviousStatus();
+                else order.RememberPreviousStatus(previousStatus);
+
+                SetOrderStatusSilently(order, newStatus);
+                _lastKnownStatuses[order] = newStatus;
+
+                if (updatedOrder?.LesCommandes is { Count: > 0 })
+                    SyncOrderLines(order, updatedOrder.LesCommandes);
+            });
+
+            OrderStatusDeltaTracker.RecordChange(previousStatus, newStatus);
+            return true;
+        }
+        catch (TaskCanceledException)
+        {
+            await ShowLoadErrorAsync("La mise à jour du statut a expiré. Veuillez réessayer.");
+        }
+        catch (HttpRequestException)
+        {
+            await ShowLoadErrorAsync("Impossible de mettre à jour le statut.");
+        }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue empêche la mise à jour du statut.");
+        }
+        finally
+        {
+            _statusUpdatesInProgress.Remove(order);
         }
 
-        if (string.Equals(card.Title, "Actualite", StringComparison.OrdinalIgnoreCase))
+        await ResetOrderStatusAsync(order, previousStatus);
+        return false;
+    }
+
+    private async Task ResetOrderStatusAsync(OrderStatusEntry order, string status)
+    {
+        await MainThread.InvokeOnMainThreadAsync(() => SetOrderStatusSilently(order, status));
+    }
+
+    private void SetOrderStatusSilently(OrderStatusEntry order, string status)
+    {
+        _statusUpdatesInProgress.Add(order);
+        order.CurrentStatus = status;
+        _statusUpdatesInProgress.Remove(order);
+    }
+
+    private async Task ToggleOrderDetailsAsync(OrderStatusEntry? order)
+    {
+        if (order is null)
+            return;
+
+        try
         {
-            return Shell.Current.GoToAsync(nameof(ActualitePage), animate: false);
+            var isOpening = !order.IsExpanded;
+            order.IsExpanded = isOpening;
+
+            if (!isOpening)
+                return;
+
+            // petite respiration UI (1 frame)
+            await Task.Delay(16).ConfigureAwait(false);
+
+            var isAlreadyInProgress = string.Equals(order.CurrentStatus, "En cours de traitement", StringComparison.OrdinalIgnoreCase);
+            var isAlreadyCompleted = string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase);
+
+            if (!isAlreadyInProgress && !isAlreadyCompleted)
+                await UpdateOrderStatusAsync(order, "En cours de traitement", isReverting: false);
+
+            await LoadOrderDetailsAsync(order);
+        }
+        catch (Exception)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                order.IsExpanded = false;
+                order.DetailsError = "Une erreur inattendue empêche l'affichage des détails.";
+                order.IsLoadingDetails = false;
+            });
+        }
+    }
+
+    private async Task LoadOrderDetailsAsync(OrderStatusEntry order)
+    {
+        if (order.IsLoadingDetails || order.HasLoadedDetails)
+            return;
+
+        order.IsLoadingDetails = true;
+        order.DetailsError = null;
+
+        try
+        {
+            const string endpoint = "https://dantecmarket.com/api/mobile/commandeDetails";
+            var request = new OrderDetailsRequest { Id = order.OrderId };
+
+            var details = await _apis
+                .PostAsync<OrderDetailsRequest, OrderDetailsResponse>(endpoint, request)
+                .ConfigureAwait(false);
+
+            var lines = details?.LesCommandes ?? new List<OrderLine>();
+            var isDeliveredOrder = string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                order.OrderLines.Clear();
+
+                foreach (var line in lines)
+                {
+                    line.OrderId = order.OrderId;
+
+                    if (isDeliveredOrder)
+                    {
+                        line.Traite = true;
+                        line.Livree = true;
+                    }
+
+                    order.OrderLines.Add(line);
+                }
+
+                order.HasLoadedDetails = true;
+            });
+
+            await CheckAndUpdateOrderCompletionAsync(order).ConfigureAwait(false);
+            await CheckAndUpdateOrderDeliveryAsync(order).ConfigureAwait(false);
+        }
+        catch (TaskCanceledException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => order.DetailsError = "Le chargement des détails a expiré.");
+        }
+        catch (HttpRequestException)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => order.DetailsError = "Impossible de récupérer les détails.");
+        }
+        catch (Exception)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => order.DetailsError = "Une erreur inattendue empêche l'affichage.");
+        }
+        finally
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => order.IsLoadingDetails = false);
+        }
+    }
+
+    private OrderStatusEntry? FindOrderById(int orderId)
+        => _allOrders.FirstOrDefault(o => o.OrderId == orderId) ?? Orders.FirstOrDefault(o => o.OrderId == orderId);
+
+    private async Task MarkLineTreatedAsync(OrderLine? line)
+    {
+        if (line is null || line.Traite)
+            return;
+
+        var order = FindOrderById(line.OrderId);
+        if (order is null)
+            return;
+
+        const string endpoint = "https://dantecmarket.com/api/mobile/changerEtatCommander";
+        var request = new ChangeOrderLineStateRequest
+        {
+            Id = line.Id,
+            Etat = NormalizeOrderStateForApi("Traitée") ?? "traite"
+        };
+
+        try
+        {
+            var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
+
+            if (!success)
+            {
+                await ShowLoadErrorAsync("Impossible de marquer ce produit comme traité.");
+                return;
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(() => line.Traite = true);
+            await CheckAndUpdateOrderCompletionAsync(order).ConfigureAwait(false);
+        }
+        catch (TaskCanceledException)
+        {
+            await ShowLoadErrorAsync("La mise à jour du produit a expiré.");
+        }
+        catch (HttpRequestException)
+        {
+            await ShowLoadErrorAsync("Impossible de mettre à jour ce produit.");
+        }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue empêche la mise à jour.");
+        }
+    }
+
+    private async Task MarkLineDeliveredAsync(OrderLine? line)
+    {
+        if (line is null || line.Livree)
+            return;
+
+        var order = FindOrderById(line.OrderId);
+        if (order is null)
+            return;
+
+        const string endpoint = "https://dantecmarket.com/api/mobile/changerEtatCommander";
+        var request = new ChangeOrderLineStateRequest
+        {
+            Id = line.Id,
+            Etat = NormalizeOrderStateForApi("Livrée") ?? "livre"
+        };
+
+        try
+        {
+            var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
+
+            if (!success)
+            {
+                await ShowLoadErrorAsync("Impossible de marquer ce produit comme livré.");
+                return;
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                line.Traite = true;
+                line.Livree = true;
+            });
+
+            await CheckAndUpdateOrderCompletionAsync(order).ConfigureAwait(false);
+            await CheckAndUpdateOrderDeliveryAsync(order).ConfigureAwait(false);
+        }
+        catch (TaskCanceledException)
+        {
+            await ShowLoadErrorAsync("La mise à jour du produit a expiré.");
+        }
+        catch (HttpRequestException)
+        {
+            await ShowLoadErrorAsync("Impossible de mettre à jour ce produit.");
+        }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue empêche la mise à jour.");
+        }
+    }
+
+    private async Task CheckAndUpdateOrderCompletionAsync(OrderStatusEntry order)
+    {
+        if (order.OrderLines.Count == 0)
+            return;
+
+        if (!order.OrderLines.All(l => l.Traite))
+            return;
+
+        if (string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        await UpdateOrderStatusAsync(order, "Traitée", isReverting: false);
+    }
+
+    private async Task CheckAndUpdateOrderDeliveryAsync(OrderStatusEntry order)
+    {
+        if (order.OrderLines.Count == 0)
+            return;
+
+        if (!order.OrderLines.All(l => l.Livree))
+            return;
+
+        if (string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        await UpdateOrderStatusAsync(order, "Livrée", isReverting: false);
+    }
+
+    private void ReplaceOrdersInPlace(IReadOnlyList<OrderStatusEntry> items)
+    {
+        if (Orders is null)
+        {
+            Orders = new ObservableCollection<OrderStatusEntry>(items);
+            return;
         }
 
-        if (string.Equals(card.Title, "Catégories Evenements", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(card.Title, "Catégories événements", StringComparison.OrdinalIgnoreCase))
+        Orders.Clear();
+        foreach (var item in items)
+            Orders.Add(item);
+    }
+
+    private void ApplyFilters()
+    {
+        IEnumerable<OrderStatusEntry> filtered = _allOrders;
+
+        var q = SearchQuery?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(q))
         {
-            return Shell.Current.GoToAsync(nameof(EvenementPage), animate: false);
+            filtered = filtered.Where(o => o.MatchesQuery(q));
+            CanShowMore = false;
+        }
+        else if (IsReservationMode)
+        {
+            filtered = filtered
+                .Where(o =>
+                    !o.PickupDate.HasValue
+                    || (o.PickupDate.Value.Date >= StartDate.Date && o.PickupDate.Value.Date <= EndDate.Date))
+                .OrderByDescending(o => o.OrderDate);
+
+            CanShowMore = false;
+        }
+        else
+        {
+            var today = DateTime.Today;
+
+            var todays = filtered
+                .Where(o => o.PickupDate?.Date == today)
+                .OrderByDescending(o => o.OrderDate)
+                .ToList();
+
+            CanShowMore = _isShowingLimitedOrders && todays.Count > 3;
+
+            filtered = _isShowingLimitedOrders ? todays.Take(3) : todays;
         }
 
-        if (string.Equals(card.Title, "Messages", StringComparison.OrdinalIgnoreCase))
-        {
-            return Shell.Current.GoToAsync(nameof(MessagesPage), animate: false);
-        }
+        var finalOrders = filtered.ToList();
 
-        if (string.Equals(card.Title, "Partenaires", StringComparison.OrdinalIgnoreCase))
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            return Shell.Current.GoToAsync(nameof(PartnersPage), animate: false);
-        }
+            ReplaceOrdersInPlace(finalOrders);
 
-        if (string.Equals(card.Title, "Reservations", StringComparison.OrdinalIgnoreCase))
-        {
-            return Shell.Current.GoToAsync(nameof(ReservationsPage), animate: false);
-        }
-
-        if (string.Equals(card.Title, "Produits", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(card.Title, "Catalogue", StringComparison.OrdinalIgnoreCase))
-        {
-            return Shell.Current.GoToAsync(nameof(ProductsPage), animate: false);
-        }
-
-        if (string.Equals(card.Title, "Utilisateurs", StringComparison.OrdinalIgnoreCase))
-        {
-            return Shell.Current.GoToAsync(nameof(UsersPage), animate: false);
-        }
-
-        if (string.Equals(card.Title, "Commentaires", StringComparison.OrdinalIgnoreCase))
-        {
-            return Shell.Current.GoToAsync(nameof(CommentsPage), animate: false);
-        }
-
-        return Shell.Current.GoToAsync(nameof(CategoryDetailPage), animate: false, new Dictionary<string, object>
-        {
-            { "card", card }
+            Subtitle = IsReservationMode
+                ? $"Réservations : {finalOrders.Count}"
+                : $"Commandes : {finalOrders.Count}";
         });
     }
 
-    private Task NavigateToOrderStatusAsync(OrderStatusDisplay? status)
+    private void ShowMoreOrders()
     {
-        if (status == null || Shell.Current == null)
+        if (!CanShowMore)
+            return;
+
+        _isShowingLimitedOrders = false;
+        ApplyFilters();
+    }
+
+    private static string? NormalizeOrderStateForApi(string status)
+    {
+        if (string.Equals(status, "Traitée", StringComparison.OrdinalIgnoreCase))
+            return "traite";
+
+        if (string.Equals(status, "Livrée", StringComparison.OrdinalIgnoreCase))
+            return "livre";
+
+        return null;
+    }
+
+    // ✅ Supprimer = /reserver/commandes/supprimer + confirmation + remove de la liste (visible partout)
+    private async Task ConfirmAndDeleteReservationAsync(OrderStatusEntry? order)
+    {
+        if (order is null)
+            return;
+
+        var confirmed = await MainThread.InvokeOnMainThreadAsync(() =>
+            DialogService.DisplayConfirmationAsync(
+                "Confirmation",
+                $"Voulez-vous supprimer la commande #{order.OrderId} ?",
+                "Oui",
+                "Non"));
+
+        if (!confirmed)
+            return;
+
+        const string endpoint = "/reserver/commandes/supprimer";
+        var request = new DeleteReservationRequest { Id = order.OrderId };
+
+        try
         {
+            var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
+
+            if (!success)
+            {
+                await ShowLoadErrorAsync("Impossible de supprimer cette commande.");
+                return;
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                _allOrders.Remove(order);
+                _lastKnownStatuses.Remove(order);
+                _statusUpdatesInProgress.Remove(order);
+                Orders.Remove(order);
+            });
+
+            UpdateSelectedReservationCount();
+        }
+        catch (TaskCanceledException)
+        {
+            await ShowLoadErrorAsync("La suppression a expiré. Veuillez réessayer.");
+        }
+        catch (HttpRequestException)
+        {
+            await ShowLoadErrorAsync("Impossible de supprimer cette commande.");
+        }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue empêche la suppression.");
+        }
+    }
+
+    private static void SyncOrderLines(OrderStatusEntry order, IEnumerable<OrderLine> updatedLines)
+    {
+        var existing = order.OrderLines.ToDictionary(l => l.Id);
+
+        foreach (var updated in updatedLines)
+        {
+            updated.OrderId = order.OrderId;
+
+            if (existing.TryGetValue(updated.Id, out var line))
+            {
+                line.Traite = line.Traite || updated.Traite;
+                line.Livree = line.Livree || updated.Livree;
+                line.NomProduit = updated.NomProduit;
+                line.Quantite = updated.Quantite;
+                line.PrixRetenu = updated.PrixRetenu;
+                line.ProduitId = updated.ProduitId;
+                line.NoteDonnee = updated.NoteDonnee;
+                line.LeProduit = updated.LeProduit;
+            }
+            else
+            {
+                order.OrderLines.Add(updated);
+            }
+        }
+    }
+
+    private void EnsureReservationStatuses()
+    {
+        if (!IsReservationMode)
+            return;
+
+        if (ReservationStatuses.Count > 0)
+            return;
+
+        foreach (var s in _availableStatuses)
+            ReservationStatuses.Add(new ReservationStatusDisplay(s));
+
+        // sélection automatique si Status déjà défini
+        var selected = ReservationStatuses.FirstOrDefault(t => string.Equals(t.Status, Status, StringComparison.OrdinalIgnoreCase))
+                       ?? ReservationStatuses.FirstOrDefault();
+
+        if (selected != null)
+        {
+            foreach (var t in ReservationStatuses) t.IsSelected = ReferenceEquals(t, selected);
+            Status = selected.Status;
+        }
+    }
+
+    private async Task OnReservationStatusSelectedAsync(ReservationStatusDisplay? status)
+    {
+        if (status is null)
+            return;
+
+        foreach (var tile in ReservationStatuses)
+            tile.IsSelected = ReferenceEquals(tile, status);
+
+        Status = status.Status;
+
+        if (_hasLoaded)
+            await ReloadWithFiltersAsync().ConfigureAwait(false);
+    }
+
+    public Task ReloadWithFiltersAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Status))
             return Task.CompletedTask;
+
+        return LoadStatusAsync();
+    }
+
+    private void EnsureValidDateRange()
+    {
+        if (EndDate < StartDate)
+            EndDate = StartDate;
+    }
+
+    private static OrderByStatus MapReservationOrder(ReservationOrder order, string? fallbackStatus)
+    {
+        var reservation = order.Reservations?.FirstOrDefault();
+
+        var mapped = new OrderByStatus
+        {
+            Id = order.Id,
+            Etat = string.IsNullOrWhiteSpace(order.Etat) ? fallbackStatus : order.Etat,
+            Valider = order.Valider,
+            MontantTotal = order.MontantTotal,
+            DateCommande = TryParseDate(order.DateCommande),
+            PlanningDetails = reservation?.Planning,
+            Jour = reservation?.Date
+        };
+
+        foreach (var line in order.LignesCommande ?? new List<ReservationOrderLine>())
+        {
+            mapped.LesCommandes.Add(new OrderLine
+            {
+                Id = line.Id,
+                Quantite = line.Quantite,
+                PrixRetenu = line.PrixRetenu,
+                LeProduit = new ProductSummary { NomProduit = line.Produit }
+            });
         }
 
-        return Shell.Current.GoToAsync(nameof(OrderStatusPage), animate: false, new Dictionary<string, object>
+        return mapped;
+    }
+
+    private void UpdateSelectedReservationCount()
+    {
+        if (!IsReservationMode)
+            return;
+
+        var selected = ReservationStatuses.FirstOrDefault(t => t.IsSelected)
+                       ?? ReservationStatuses.FirstOrDefault(t => string.Equals(t.Status, Status, StringComparison.OrdinalIgnoreCase));
+
+        if (selected is null)
+            return;
+
+        selected.Count = Orders?.Count ?? 0;
+    }
+
+    private static DateTime TryParseDate(string? dateText)
+    {
+        if (DateTime.TryParse(dateText, out var parsed))
+            return parsed;
+
+        return DateTime.Now;
+    }
+
+    private static async Task ShowLoadErrorAsync(string message)
+    {
+        await MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            { "status", status.Status }
+            await DialogService.DisplayAlertAsync("Erreur", message, "OK");
         });
     }
 }
