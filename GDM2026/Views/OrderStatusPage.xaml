@@ -145,10 +145,10 @@
                                     </Border>
                                 </Grid>
 
-                                <Grid ColumnDefinitions="*,auto,auto" ColumnSpacing="12" RowDefinitions="auto">
-                                    <VerticalStackLayout Spacing="4" Grid.Column="0">
+                                <Grid ColumnDefinitions="*" RowDefinitions="auto,auto" ColumnSpacing="0" RowSpacing="6">
+                                    <VerticalStackLayout Spacing="4" Grid.Row="0">
                                         <Picker
-                                            Grid.Column="0"
+                                            Grid.Row="0"
                                             ItemsSource="{Binding BindingContext.AvailableStatuses, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
                                             SelectedItem="{Binding SelectedStatusOption, Mode=TwoWay}"
                                             BackgroundColor="#121212"
@@ -157,28 +157,30 @@
                                             TextColor="{StaticResource GoldText}"
                                             TitleColor="{StaticResource GoldText}" />
                                     </VerticalStackLayout>
-                                    <Button
-                                        Grid.Column="1"
-                                        Text="Annuler"
-                                        Command="{Binding BindingContext.RevertStatusCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
-                                        CommandParameter="{Binding .}"
-                                        IsVisible="{Binding CanRevert}"
-                                        BackgroundColor="Transparent"
-                                        BorderColor="{StaticResource GoldText}"
-                                        BorderWidth="1.5"
-                                        CornerRadius="10"
-                                        TextColor="{StaticResource GoldText}" />
-                                    <Button
-                                        Grid.Column="2"
-                                        Text="Supprimer"
-                                        Command="{Binding BindingContext.DeleteReservationCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
-                                        CommandParameter="{Binding .}"
-                                        IsVisible="{Binding BindingContext.IsReservationMode, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
-                                        BackgroundColor="Transparent"
-                                        BorderColor="Tomato"
-                                        BorderWidth="1.5"
-                                        CornerRadius="10"
-                                        TextColor="Tomato" />
+                                    <HorizontalStackLayout Grid.Row="1" Spacing="10" HorizontalOptions="End">
+                                        <Button
+                                            Text="Annuler"
+                                            Command="{Binding BindingContext.RevertStatusCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding CanRevert}"
+                                            BackgroundColor="Transparent"
+                                            BorderColor="{StaticResource GoldText}"
+                                            BorderWidth="1.5"
+                                            CornerRadius="10"
+                                            WidthRequest="110"
+                                            TextColor="{StaticResource GoldText}" />
+                                        <Button
+                                            Text="Supprimer"
+                                            Command="{Binding BindingContext.DeleteReservationCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding BindingContext.IsReservationMode, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                            BackgroundColor="Transparent"
+                                            BorderColor="Tomato"
+                                            BorderWidth="1.5"
+                                            CornerRadius="10"
+                                            WidthRequest="110"
+                                            TextColor="Tomato" />
+                                    </HorizontalStackLayout>
                                 </Grid>
 
                                 <VerticalStackLayout Spacing="10" IsVisible="{Binding IsExpanded}">
