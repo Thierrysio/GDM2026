@@ -2,6 +2,7 @@ using GDM2026.Models;
 using GDM2026.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -23,10 +24,14 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         "A confirmer"
     ];
 
+    private readonly ObservableCollection<ReservationStatusDisplay> _reservationStatuses = [];
     private readonly Dictionary<OrderStatusEntry, string> _lastKnownStatuses = [];
     private readonly HashSet<OrderStatusEntry> _statusUpdatesInProgress = [];
     private readonly List<OrderStatusEntry> _allOrders = [];
+    private DateTime _startDate = DateTime.Today;
+    private DateTime _endDate = DateTime.Today;
     private bool _hasLoaded;
+    private bool _isReservationMode;
     private string? _status;
     private string _pageTitle = string.Empty;
     private string _subtitle = string.Empty;
@@ -43,6 +48,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         MarkLineTreatedCommand = new Command<OrderLine>(async line => await MarkLineTreatedAsync(line));
         MarkLineDeliveredCommand = new Command<OrderLine>(async line => await MarkLineDeliveredAsync(line));
         ShowMoreCommand = new Command(ShowMoreOrders);
+        SelectReservationStatusCommand = new Command<ReservationStatusDisplay>(async status => await OnReservationStatusSelectedAsync(status));
+        ApplyReservationFiltersCommand = new Command(async () => await ReloadWithFiltersAsync());
     }
 
     public ObservableCollection<OrderStatusEntry> Orders
@@ -50,6 +57,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         get => _orders;
         private set => SetProperty(ref _orders, value);
     }
+
+    public ObservableCollection<ReservationStatusDisplay> ReservationStatuses => _reservationStatuses;
 
     public IReadOnlyList<string> AvailableStatuses => _availableStatuses;
 
@@ -63,6 +72,10 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     public ICommand ShowMoreCommand { get; }
 
+    public ICommand SelectReservationStatusCommand { get; }
+
+    public ICommand ApplyReservationFiltersCommand { get; }
+
     public string? Status
     {
         get => _status;
@@ -71,6 +84,42 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             if (SetProperty(ref _status, value) && !_hasLoaded)
             {
                 _ = InitializeAsync();
+            }
+        }
+    }
+
+    public DateTime StartDate
+    {
+        get => _startDate;
+        set
+        {
+            if (SetProperty(ref _startDate, value))
+            {
+                EnsureValidDateRange();
+            }
+        }
+    }
+
+    public DateTime EndDate
+    {
+        get => _endDate;
+        set
+        {
+            if (SetProperty(ref _endDate, value))
+            {
+                EnsureValidDateRange();
+            }
+        }
+    }
+
+    public bool IsReservationMode
+    {
+        get => _isReservationMode;
+        set
+        {
+            if (SetProperty(ref _isReservationMode, value))
+            {
+                EnsureReservationStatuses();
             }
         }
     }
@@ -124,6 +173,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         _hasLoaded = true;
         await EnsureSessionAsync().ConfigureAwait(false);
+        EnsureReservationStatuses();
         await LoadStatusAsync().ConfigureAwait(false);
     }
 
@@ -138,17 +188,42 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             IsBusy = true;
-            PageTitle = $"Commandes : {Status}";
-            Subtitle = "Commandes : en cours de chargement...";
+            PageTitle = IsReservationMode ? $"Réservations : {Status}" : $"Commandes : {Status}";
+            Subtitle = IsReservationMode
+                ? $"{Status} · période du {StartDate:dd/MM/yyyy} au {EndDate:dd/MM/yyyy}"
+                : "Commandes : en cours de chargement...";
         });
 
         try
         {
-            var endpoint = "https://dantecmarket.com/api/mobile/commandesParEtat";
-            var request = new OrderStatusRequest { Cd = Status };
-            var orders = await _apis
-                .PostAsync<OrderStatusRequest, List<OrderByStatus>>(endpoint, request)
-                .ConfigureAwait(false);
+            List<OrderByStatus> orders;
+
+            if (IsReservationMode)
+            {
+                var endpoint = "/reserver/commandes/etat";
+                var request = new ReservationStatusRequest
+                {
+                    Etat = Status,
+                    DateDebut = StartDate.ToString("yyyy-MM-dd"),
+                    DateFin = EndDate.ToString("yyyy-MM-dd")
+                };
+
+                var reservationOrders = await _apis
+                    .PostAsync<ReservationStatusRequest, List<ReservationOrder>>(endpoint, request)
+                    .ConfigureAwait(false) ?? new List<ReservationOrder>();
+
+                orders = reservationOrders
+                    .Select(order => MapReservationOrder(order, Status))
+                    .ToList();
+            }
+            else
+            {
+                var endpoint = "https://dantecmarket.com/api/mobile/commandesParEtat";
+                var request = new OrderStatusRequest { Cd = Status };
+                orders = await _apis
+                    .PostAsync<OrderStatusRequest, List<OrderByStatus>>(endpoint, request)
+                    .ConfigureAwait(false) ?? new List<OrderByStatus>();
+            }
 
             _allOrders.Clear();
 
@@ -182,6 +257,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             });
 
             ApplyFilters();
+            UpdateSelectedReservationCount();
         }
         catch (TaskCanceledException)
         {
@@ -646,7 +722,9 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         MainThread.BeginInvokeOnMainThread(() =>
         {
             Orders = new ObservableCollection<OrderStatusEntry>(finalOrders);
-            Subtitle = $"Commandes : {finalOrders.Count}";
+            Subtitle = IsReservationMode
+                ? $"Réservations : {finalOrders.Count}"
+                : $"Commandes : {finalOrders.Count}";
         });
     }
 
@@ -699,6 +777,114 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                 order.OrderLines.Add(updatedLine);
             }
         }
+    }
+
+    private void EnsureReservationStatuses()
+    {
+        if (!IsReservationMode || ReservationStatuses.Count > 0)
+        {
+            return;
+        }
+
+        foreach (var status in _availableStatuses)
+        {
+            ReservationStatuses.Add(new ReservationStatusDisplay(status));
+        }
+    }
+
+    private async Task OnReservationStatusSelectedAsync(ReservationStatusDisplay? status)
+    {
+        if (status is null)
+        {
+            return;
+        }
+
+        foreach (var tile in ReservationStatuses)
+        {
+            tile.IsSelected = ReferenceEquals(tile, status);
+        }
+
+        Status = status.Status;
+
+        if (_hasLoaded)
+        {
+            await ReloadWithFiltersAsync().ConfigureAwait(false);
+        }
+    }
+
+    public Task ReloadWithFiltersAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Status))
+        {
+            return Task.CompletedTask;
+        }
+
+        return LoadStatusAsync();
+    }
+
+    private void EnsureValidDateRange()
+    {
+        if (EndDate < StartDate)
+        {
+            EndDate = StartDate;
+        }
+    }
+
+    private static OrderByStatus MapReservationOrder(ReservationOrder order, string? fallbackStatus)
+    {
+        var reservation = order.Reservations?.FirstOrDefault();
+
+        var mapped = new OrderByStatus
+        {
+            Id = order.Id,
+            Etat = string.IsNullOrWhiteSpace(order.Etat) ? fallbackStatus : order.Etat,
+            Valider = order.Valider,
+            MontantTotal = order.MontantTotal,
+            DateCommande = TryParseDate(order.DateCommande),
+            PlanningDetails = reservation?.Planning,
+            Jour = reservation?.Date
+        };
+
+        foreach (var line in order.LignesCommande ?? new List<ReservationOrderLine>())
+        {
+            mapped.LesCommandes.Add(new OrderLine
+            {
+                Id = line.Id,
+                Quantite = line.Quantite,
+                PrixRetenu = line.PrixRetenu,
+                LeProduit = new ProductSummary { NomProduit = line.Produit }
+            });
+        }
+
+        return mapped;
+    }
+
+    private void UpdateSelectedReservationCount()
+    {
+        if (!IsReservationMode)
+        {
+            return;
+        }
+
+        var selected = ReservationStatuses.FirstOrDefault(t => t.IsSelected)
+                       ?? ReservationStatuses.FirstOrDefault(t => string.Equals(t.Status, Status, StringComparison.OrdinalIgnoreCase));
+
+        if (selected is null)
+        {
+            return;
+        }
+
+        selected.Count = Orders?.Count ?? 0;
+    }
+
+    private static DateTime TryParseDate(string? dateText)
+    {
+        if (DateTime.TryParse(dateText, out var parsed))
+        {
+            return parsed;
+        }
+
+        return DateTime.Now;
     }
 
     private static async Task ShowLoadErrorAsync(string message)
