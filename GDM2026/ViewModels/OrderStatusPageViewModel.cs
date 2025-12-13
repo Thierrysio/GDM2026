@@ -702,6 +702,17 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             filteredOrders = filteredOrders.Where(order => order.MatchesQuery(query));
             CanShowMore = false;
         }
+        else if (IsReservationMode)
+        {
+            filteredOrders = filteredOrders
+                .Where(order =>
+                    !order.PickupDate.HasValue
+                    || (order.PickupDate.Value.Date >= StartDate.Date
+                        && order.PickupDate.Value.Date <= EndDate.Date))
+                .OrderByDescending(order => order.OrderDate);
+
+            CanShowMore = false;
+        }
         else
         {
             var today = DateTime.Today;
