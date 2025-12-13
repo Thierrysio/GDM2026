@@ -782,7 +782,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             return;
         }
 
-        const string endpoint = "/reserver/commades/supprimer";
+        const string endpoint = "/reserver/commandes/supprimer";
         var request = new DeleteReservationRequest { Id = order.OrderId };
 
         try
