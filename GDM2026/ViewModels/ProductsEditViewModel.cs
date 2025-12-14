@@ -700,7 +700,8 @@ public class ProductsEditViewModel : BaseViewModel
                 LesImages = imageList
             };
 
-            var success = await _apis.PostBoolAsync("/produits/update", request).ConfigureAwait(false);
+            var endpoint = $"/api/produits/{SelectedProduct.Id}";
+            var success = await _apis.PutBoolAsync(endpoint, request).ConfigureAwait(false);
 
             if (success)
             {
