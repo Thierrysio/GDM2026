@@ -24,9 +24,12 @@ public class ProductsEditViewModel : BaseViewModel
     private bool _isSearching;
     private bool _hasMore = true;
     private string _searchText = string.Empty;
-    private string _statusMessage = "Entrez un nom pour rechercher ou faites défiler pour charger plus.";
+    private string _statusMessage = "Entrez un nom pour rechercher ou faites dÃ©filer pour charger plus.";
 
     private int _currentPage = 0;
+    private bool _productsLoaded;
+    private bool _isLoadingProducts;
+    private readonly List<ProductCatalogItem> _productCache = new();
 
     public ProductsEditViewModel()
     {
@@ -97,7 +100,7 @@ public class ProductsEditViewModel : BaseViewModel
         try
         {
             StatusMessage = string.IsNullOrWhiteSpace(SearchText)
-                ? "Chargement des produits…"
+                ? "Chargement des produits"
                 : $"Recherche pour '{SearchText}'";
 
             VisibleProducts.Clear();
@@ -110,25 +113,25 @@ public class ProductsEditViewModel : BaseViewModel
                 return;
             }
 
-            var products = await _apis.GetListAsync<ProductCatalogItem>($"/api/mobile/produits?search={Uri.EscapeDataString(SearchText)}")
-                .ConfigureAwait(false);
+            var products = await EnsureProductsCacheAsync().ConfigureAwait(false);
+            var filtered = FilterProducts(products, SearchText).ToList();
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                foreach (var item in products)
+                foreach (var item in filtered)
                 {
                     VisibleProducts.Add(item);
                 }
 
                 HasMore = false;
-                StatusMessage = products.Count == 0
-                    ? "Aucun produit trouvé."
-                    : $"{products.Count} résultat(s).";
+                StatusMessage = filtered.Count == 0
+                    ? "Aucun produit trouvÃ©."
+                    : $"{filtered.Count} rÃ©sultat(s).";
             });
         }
         catch (HttpRequestException ex)
         {
-            StatusMessage = "Impossible de récupérer les produits.";
+            StatusMessage = "Impossible de rÃ©cupÃ©rer les produits.";
             Debug.WriteLine($"[PRODUCTS_EDIT] HTTP error: {ex}");
         }
         catch (Exception ex)
@@ -157,7 +160,7 @@ public class ProductsEditViewModel : BaseViewModel
         try
         {
             IsBusy = true;
-            StatusMessage = "Chargement supplémentaire…";
+            StatusMessage = "Chargement supplÃ©mentaire";
 
             var skip = _currentPage * PageSize;
             var products = await FetchPagedProductsAsync(skip, PageSize).ConfigureAwait(false);
@@ -180,7 +183,7 @@ public class ProductsEditViewModel : BaseViewModel
 
                 StatusMessage = VisibleProducts.Count == 0
                     ? "Aucun produit n'est disponible."
-                    : $"{VisibleProducts.Count} produit(s) affiché(s).";
+                    : $"{VisibleProducts.Count} produit(s) affichÃ©(s).";
             });
         }
         catch (HttpRequestException ex)
@@ -190,7 +193,7 @@ public class ProductsEditViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            StatusMessage = "Erreur lors du chargement supplémentaire.";
+            StatusMessage = "Erreur lors du chargement supplÃ©mentaire.";
             Debug.WriteLine($"[PRODUCTS_EDIT] error: {ex}");
         }
         finally
@@ -201,16 +204,97 @@ public class ProductsEditViewModel : BaseViewModel
 
     private async Task<List<ProductCatalogItem>> FetchPagedProductsAsync(int skip, int take)
     {
-        var endpoint = $"/api/mobile/produits?skip={skip}&take={take}";
+        var products = await EnsureProductsCacheAsync().ConfigureAwait(false);
+        return products.Skip(skip).Take(take).ToList();
+    }
+
+    private async Task<List<ProductCatalogItem>> EnsureProductsCacheAsync()
+    {
+        if (_productsLoaded && _productCache.Count > 0)
+        {
+            return _productCache;
+        }
+
+        if (_isLoadingProducts)
+        {
+            return _productCache;
+        }
+
+        _isLoadingProducts = true;
         try
         {
-            var data = await _apis.GetListAsync<ProductCatalogItem>(endpoint).ConfigureAwait(false);
-            return data;
+            var data = await FetchProductsFromApiAsync().ConfigureAwait(false);
+
+            _productCache.Clear();
+            _productCache.AddRange(data);
+            _productsLoaded = true;
+
+            return _productCache;
         }
-        catch (Exception)
+        finally
         {
-            var fallback = await _apis.GetListAsync<ProductCatalogItem>("/api/mobile/GetListProduit").ConfigureAwait(false);
-            return fallback.Skip(skip).Take(take).ToList();
+            _isLoadingProducts = false;
         }
+    }
+
+    private async Task<List<ProductCatalogItem>> FetchProductsFromApiAsync()
+    {
+        List<ProductCatalogItem>? results = null;
+        Exception? lastError = null;
+
+        var endpoints = new[]
+        {
+            "/api/produits",
+            "/api/mobile/produits",
+            "/api/mobile/GetListProduit"
+        };
+
+        foreach (var endpoint in endpoints)
+        {
+            try
+            {
+                var data = await _apis.GetListAsync<ProductCatalogItem>(endpoint).ConfigureAwait(false);
+                if (results is null || data.Count > 0)
+                {
+                    results = data;
+                }
+
+                if (data.Count > 0)
+                {
+                    return data;
+                }
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            {
+                lastError = ex;
+                Debug.WriteLine($"[PRODUCTS_EDIT] Endpoint Ã©chouÃ© '{endpoint}': {ex.Message}");
+            }
+        }
+
+        if (results != null)
+        {
+            return results;
+        }
+
+        if (lastError != null)
+        {
+            throw lastError;
+        }
+
+        return new List<ProductCatalogItem>();
+    }
+
+    private static IEnumerable<ProductCatalogItem> FilterProducts(IEnumerable<ProductCatalogItem> products, string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return products;
+        }
+
+        var normalized = query.Trim().ToLowerInvariant();
+        return products.Where(p =>
+            (!string.IsNullOrWhiteSpace(p.Nom) && p.Nom.ToLowerInvariant().Contains(normalized)) ||
+            (!string.IsNullOrWhiteSpace(p.Description) && p.Description.ToLowerInvariant().Contains(normalized)) ||
+            (!string.IsNullOrWhiteSpace(p.Categorie) && p.Categorie.ToLowerInvariant().Contains(normalized)));
     }
 }
