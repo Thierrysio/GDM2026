@@ -406,6 +406,7 @@ public class ProductsViewModel : BaseViewModel
 
         var endpoints = new[]
         {
+            "/api/produits",
             "/api/mobile/GetListProduit",
             "/api/mobile/getListProduit",
             "/api/mobile/produits",
@@ -707,7 +708,7 @@ public class ProductsViewModel : BaseViewModel
                     : new List<string> { _selectedImageUrl }
             };
 
-            var success = await _apis.PostBoolAsync("/api/crud/produit/create", request).ConfigureAwait(false);
+            var success = await _apis.PostBoolAsync("/api/produits", request).ConfigureAwait(false);
 
             if (success)
             {
