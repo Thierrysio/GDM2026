@@ -18,13 +18,14 @@ namespace GDM2026.ViewModels;
 public class ProductsViewModel : BaseViewModel
 {
     private const bool ProductLoadingEnabled = false;
+    private const string DefaultCreationMessage = "Remplissez le formulaire pour crÃ©er un produit.";
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
 
     private bool _sessionPrepared;
     private bool _hasLoaded;
     private bool _isRefreshing;
-    private string _statusMessage = "Chargement du catalogue…";
+    private string _statusMessage = "Chargement du catalogueÂ…";
     private string _searchText = string.Empty;
 
     private bool _isFormVisible;
@@ -34,33 +35,46 @@ public class ProductsViewModel : BaseViewModel
     private string _newProductCategory = string.Empty;
     private string _productPriceText = string.Empty;
     private string _productQuantityText = string.Empty;
-    private string _creationStatusMessage = "Remplissez le formulaire pour créer un produit.";
+    private string _creationStatusMessage = DefaultCreationMessage;
     private Color _creationStatusColor = Colors.Gold;
     private bool _isSubmittingProduct;
+    private bool _isSubmitEnabled;
+
+    private bool _categoriesLoaded;
+    private bool _isCategoryLoading;
+    private bool _isCategorySelectionEnabled = true;
+    private string _categoryStatusMessage = "CatÃ©gories en cours de chargement";
+    private SubCategory? _selectedCategory;
 
     private bool _imageLibraryLoaded;
     private bool _isImageLibraryLoading;
-    private string _imageLibraryMessage = "Sélectionnez une image depuis la bibliothèque.";
+    private string _imageLibraryMessage = "SÃ©lectionnez une image depuis la bibliothÃ¨que.";
     private string _imageSearchTerm = string.Empty;
     private AdminImage? _selectedLibraryImage;
-    private string _selectedImageName = "Aucune image sélectionnée.";
+    private string _selectedImageName = "Aucune image sÃ©lectionnÃ©e.";
     private string? _selectedImageUrl;
 
     public ProductsViewModel()
     {
         Products = new ObservableCollection<ProductCatalogItem>();
         FilteredProducts = new ObservableCollection<ProductCatalogItem>();
+        AvailableCategories = new ObservableCollection<SubCategory>();
         ImageLibrary = new ObservableCollection<AdminImage>();
         FilteredImageLibrary = new ObservableCollection<AdminImage>();
 
         RefreshCommand = new Command(async () => await LoadProductsAsync(forceRefresh: true));
         ToggleFormCommand = new Command(async () => await ToggleFormAsync());
         SubmitProductCommand = new Command(async () => await SubmitProductAsync(), CanSubmitProduct);
+        ResetFormCommand = new Command(ResetForm);
+
+        RefreshSubmitAvailability();
     }
 
     public ObservableCollection<ProductCatalogItem> Products { get; }
 
     public ObservableCollection<ProductCatalogItem> FilteredProducts { get; }
+
+    public ObservableCollection<SubCategory> AvailableCategories { get; }
 
     public ObservableCollection<AdminImage> ImageLibrary { get; }
 
@@ -71,6 +85,8 @@ public class ProductsViewModel : BaseViewModel
     public ICommand ToggleFormCommand { get; }
 
     public ICommand SubmitProductCommand { get; }
+
+    public ICommand ResetFormCommand { get; }
 
     public bool IsRefreshing
     {
@@ -120,6 +136,8 @@ public class ProductsViewModel : BaseViewModel
         }
     }
 
+    public bool IsNameMissing => string.IsNullOrWhiteSpace(NewProductName);
+
     public string NewProductShortDescription
     {
         get => _newProductShortDescription;
@@ -131,6 +149,8 @@ public class ProductsViewModel : BaseViewModel
             }
         }
     }
+
+    public bool IsShortDescriptionMissing => string.IsNullOrWhiteSpace(NewProductShortDescription);
 
     public string NewProductFullDescription
     {
@@ -144,6 +164,8 @@ public class ProductsViewModel : BaseViewModel
         }
     }
 
+    public bool IsFullDescriptionMissing => string.IsNullOrWhiteSpace(NewProductFullDescription);
+
     public string NewProductCategory
     {
         get => _newProductCategory;
@@ -155,6 +177,8 @@ public class ProductsViewModel : BaseViewModel
             }
         }
     }
+
+    public bool IsCategoryMissing => SelectedCategory is null;
 
     public string ProductPriceText
     {
@@ -168,6 +192,8 @@ public class ProductsViewModel : BaseViewModel
         }
     }
 
+    public bool IsPriceMissing => string.IsNullOrWhiteSpace(ProductPriceText);
+
     public string ProductQuantityText
     {
         get => _productQuantityText;
@@ -180,6 +206,8 @@ public class ProductsViewModel : BaseViewModel
         }
     }
 
+    public bool IsQuantityMissing => string.IsNullOrWhiteSpace(ProductQuantityText);
+
     public string CreationStatusMessage
     {
         get => _creationStatusMessage;
@@ -191,6 +219,48 @@ public class ProductsViewModel : BaseViewModel
         get => _creationStatusColor;
         set => SetProperty(ref _creationStatusColor, value);
     }
+
+    public bool IsSubmitEnabled
+    {
+        get => _isSubmitEnabled;
+        private set => SetProperty(ref _isSubmitEnabled, value);
+    }
+
+    public bool IsCategoryLoading
+    {
+        get => _isCategoryLoading;
+        set => SetProperty(ref _isCategoryLoading, value);
+    }
+
+    public bool IsCategorySelectionEnabled
+    {
+        get => _isCategorySelectionEnabled;
+        set => SetProperty(ref _isCategorySelectionEnabled, value);
+    }
+
+    public string CategoryStatusMessage
+    {
+        get => _categoryStatusMessage;
+        set => SetProperty(ref _categoryStatusMessage, value);
+    }
+
+    public SubCategory? SelectedCategory
+    {
+        get => _selectedCategory;
+        set
+        {
+            if (SetProperty(ref _selectedCategory, value))
+            {
+                NewProductCategory = value?.Name ?? string.Empty;
+                CategoryStatusMessage = value is null
+                    ? "SÃ©lectionnez une catÃ©gorie pour ce produit."
+                    : $"CatÃ©gorie sÃ©lectionnÃ©e : {value.DisplayName}";
+                RefreshSubmitAvailability();
+            }
+        }
+    }
+
+    public bool IsImageMissing => string.IsNullOrWhiteSpace(_selectedImageUrl);
 
     public bool IsImageLibraryLoading
     {
@@ -257,7 +327,7 @@ public class ProductsViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[PRODUCTS] Session non préparée : {ex}");
+            Debug.WriteLine($"[PRODUCTS] Session non prÃ©parÃ©e : {ex}");
             _sessionPrepared = true;
         }
     }
@@ -266,7 +336,7 @@ public class ProductsViewModel : BaseViewModel
     {
         if (!ProductLoadingEnabled)
         {
-            StatusMessage = "Le chargement du catalogue est désactivé.";
+            StatusMessage = "Le chargement du catalogue est dÃ©sactivÃ©.";
             IsRefreshing = false;
             IsBusy = false;
             Products.Clear();
@@ -283,7 +353,7 @@ public class ProductsViewModel : BaseViewModel
         {
             IsBusy = true;
             IsRefreshing = forceRefresh;
-            StatusMessage = forceRefresh ? "Actualisation du catalogue…" : "Chargement du catalogue…";
+            StatusMessage = forceRefresh ? "Actualisation du catalogueÂ…" : "Chargement du catalogueÂ…";
 
             var items = await FetchProductsAsync().ConfigureAwait(false);
 
@@ -300,21 +370,21 @@ public class ProductsViewModel : BaseViewModel
 
                 if (!Products.Any())
                 {
-                    StatusMessage = "Aucun produit à afficher pour le moment.";
+                    StatusMessage = "Aucun produit Ã  afficher pour le moment.";
                 }
                 else if (string.IsNullOrWhiteSpace(SearchText))
                 {
-                    StatusMessage = $"{Products.Count} produit(s) chargé(s).";
+                    StatusMessage = $"{Products.Count} produit(s) chargÃ©(s).";
                 }
             });
         }
         catch (TaskCanceledException)
         {
-            StatusMessage = "Chargement annulé.";
+            StatusMessage = "Chargement annulÃ©.";
         }
         catch (HttpRequestException ex)
         {
-            StatusMessage = "Impossible de récupérer les produits.";
+            StatusMessage = "Impossible de rÃ©cupÃ©rer les produits.";
             Debug.WriteLine($"[PRODUCTS] Erreur HTTP : {ex}");
         }
         catch (Exception ex)
@@ -362,7 +432,7 @@ public class ProductsViewModel : BaseViewModel
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
             {
                 lastError = ex;
-                Debug.WriteLine($"[PRODUCTS] Endpoint échoué '{endpoint}': {ex.Message}");
+                Debug.WriteLine($"[PRODUCTS] Endpoint Ã©chouÃ© '{endpoint}': {ex.Message}");
             }
         }
 
@@ -402,12 +472,12 @@ public class ProductsViewModel : BaseViewModel
         if (!string.IsNullOrWhiteSpace(query))
         {
             StatusMessage = FilteredProducts.Count == 0
-                ? "Aucun produit ne correspond à cette recherche."
-                : $"{FilteredProducts.Count} résultat(s) pour \"{query}\".";
+                ? "Aucun produit ne correspond Ã  cette recherche."
+                : $"{FilteredProducts.Count} rÃ©sultat(s) pour \"{query}\".";
         }
         else if (Products.Count > 0)
         {
-            StatusMessage = $"{Products.Count} produit(s) chargé(s).";
+            StatusMessage = $"{Products.Count} produit(s) chargÃ©(s).";
         }
     }
 
@@ -417,6 +487,65 @@ public class ProductsViewModel : BaseViewModel
         if (IsFormVisible)
         {
             await EnsureImageLibraryLoadedAsync();
+            await EnsureCategoriesLoadedAsync();
+        }
+    }
+
+    private async Task EnsureCategoriesLoadedAsync()
+    {
+        if (_categoriesLoaded || IsCategoryLoading)
+        {
+            return;
+        }
+
+        if (!_sessionPrepared)
+        {
+            await PrepareSessionAsync();
+        }
+
+        await LoadCategoriesAsync();
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        try
+        {
+            IsCategoryLoading = true;
+            IsCategorySelectionEnabled = false;
+            CategoryStatusMessage = "Chargement des catÃ©gories...";
+
+            var categories = await _apis.GetListAsync<SubCategory>("/api/crud/categorie/list").ConfigureAwait(false);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                AvailableCategories.Clear();
+                foreach (var category in categories.OrderBy(c => c.Name))
+                {
+                    AvailableCategories.Add(category);
+                }
+
+                _categoriesLoaded = true;
+                CategoryStatusMessage = AvailableCategories.Count == 0
+                    ? "Aucune catÃ©gorie disponible."
+                    : "SÃ©lectionnez une catÃ©gorie puis renseignez le reste du formulaire.";
+                RefreshSubmitAvailability();
+            });
+        }
+        catch (HttpRequestException ex)
+        {
+            CategoryStatusMessage = "Impossible de charger les catÃ©gories.";
+            Debug.WriteLine($"[PRODUCTS] Erreur HTTP (catÃ©gories) : {ex}");
+        }
+        catch (Exception ex)
+        {
+            CategoryStatusMessage = "Une erreur est survenue lors du chargement des catÃ©gories.";
+            Debug.WriteLine($"[PRODUCTS] Erreur inattendue (catÃ©gories) : {ex}");
+        }
+        finally
+        {
+            IsCategoryLoading = false;
+            IsCategorySelectionEnabled = true;
+            RefreshSubmitAvailability();
         }
     }
 
@@ -435,7 +564,7 @@ public class ProductsViewModel : BaseViewModel
         try
         {
             IsImageLibraryLoading = true;
-            ImageLibraryMessage = "Chargement de la bibliothèque d'images…";
+            ImageLibraryMessage = "Chargement de la bibliothÃ¨que d'imagesÂ…";
 
             var images = await _apis.GetListAsync<AdminImage>("/api/crud/images/list").ConfigureAwait(false);
 
@@ -450,13 +579,13 @@ public class ProductsViewModel : BaseViewModel
                 _imageLibraryLoaded = true;
                 ImageLibraryMessage = ImageLibrary.Count == 0
                     ? "Aucune image disponible dans l'admin."
-                    : "Sélectionnez une image ou utilisez la recherche.";
+                    : "SÃ©lectionnez une image ou utilisez la recherche.";
                 RefreshImageLibraryFilter();
             });
         }
         catch (HttpRequestException ex)
         {
-            ImageLibraryMessage = "Impossible de charger la bibliothèque d'images.";
+            ImageLibraryMessage = "Impossible de charger la bibliothÃ¨que d'images.";
             Debug.WriteLine($"[PRODUCTS] Erreur HTTP (images) : {ex}");
         }
         catch (Exception ex)
@@ -492,12 +621,12 @@ public class ProductsViewModel : BaseViewModel
         if (hasSearch)
         {
             ImageLibraryMessage = FilteredImageLibrary.Count == 0
-                ? "Aucune image ne correspond à cette recherche."
-                : $"{FilteredImageLibrary.Count} résultat(s) pour \"{ImageSearchTerm}\".";
+                ? "Aucune image ne correspond Ã  cette recherche."
+                : $"{FilteredImageLibrary.Count} rÃ©sultat(s) pour \"{ImageSearchTerm}\".";
         }
         else if (ImageLibrary.Count > 0)
         {
-            ImageLibraryMessage = "Sélectionnez une image ou utilisez la recherche.";
+            ImageLibraryMessage = "SÃ©lectionnez une image ou utilisez la recherche.";
         }
     }
 
@@ -506,25 +635,26 @@ public class ProductsViewModel : BaseViewModel
         if (image is null)
         {
             _selectedImageUrl = null;
-            SelectedImageName = "Aucune image sélectionnée.";
+            SelectedImageName = "Aucune image sÃ©lectionnÃ©e.";
             RefreshSubmitAvailability();
             return;
         }
 
         _selectedImageUrl = image.Url;
-        SelectedImageName = $"Image sélectionnée : {image.DisplayName}";
+        SelectedImageName = $"Image sÃ©lectionnÃ©e : {image.DisplayName}";
         CreationStatusColor = Colors.Gold;
-        CreationStatusMessage = "Image prête pour la création.";
+        CreationStatusMessage = "Image prÃªte pour la crÃ©ation.";
         RefreshSubmitAvailability();
     }
 
     private bool CanSubmitProduct()
     {
         return !_isSubmittingProduct
+            && !IsCategoryLoading
             && !string.IsNullOrWhiteSpace(NewProductName)
             && !string.IsNullOrWhiteSpace(NewProductShortDescription)
             && !string.IsNullOrWhiteSpace(NewProductFullDescription)
-            && !string.IsNullOrWhiteSpace(NewProductCategory)
+            && SelectedCategory is not null
             && !string.IsNullOrWhiteSpace(ProductPriceText)
             && !string.IsNullOrWhiteSpace(ProductQuantityText)
             && !string.IsNullOrWhiteSpace(_selectedImageUrl);
@@ -532,6 +662,15 @@ public class ProductsViewModel : BaseViewModel
 
     private void RefreshSubmitAvailability()
     {
+        OnPropertyChanged(nameof(IsNameMissing));
+        OnPropertyChanged(nameof(IsShortDescriptionMissing));
+        OnPropertyChanged(nameof(IsFullDescriptionMissing));
+        OnPropertyChanged(nameof(IsCategoryMissing));
+        OnPropertyChanged(nameof(IsPriceMissing));
+        OnPropertyChanged(nameof(IsQuantityMissing));
+        OnPropertyChanged(nameof(IsImageMissing));
+
+        IsSubmitEnabled = CanSubmitProduct();
         (SubmitProductCommand as Command)?.ChangeCanExecute();
     }
 
@@ -552,14 +691,14 @@ public class ProductsViewModel : BaseViewModel
             _isSubmittingProduct = true;
             RefreshSubmitAvailability();
             CreationStatusColor = Colors.Gold;
-            CreationStatusMessage = "Création du produit en cours…";
+            CreationStatusMessage = "CrÃ©ation du produit en coursÂ…";
 
             var request = new ProductCreateRequest
             {
                 Nom = NewProductName.Trim(),
                 Description = NewProductFullDescription.Trim(),
                 DescriptionCourte = NewProductShortDescription.Trim(),
-                Categorie = NewProductCategory.Trim(),
+                Categorie = SelectedCategory?.Name?.Trim() ?? string.Empty,
                 Prix = price,
                 Quantite = quantity,
                 Image = _selectedImageUrl,
@@ -573,26 +712,26 @@ public class ProductsViewModel : BaseViewModel
             if (success)
             {
                 CreationStatusColor = Colors.LimeGreen;
-                CreationStatusMessage = "Produit créé avec succès.";
+                CreationStatusMessage = "Produit crÃ©Ã© avec succÃ¨s.";
                 ClearForm();
                 await LoadProductsAsync(forceRefresh: true);
             }
             else
             {
                 CreationStatusColor = Colors.OrangeRed;
-                CreationStatusMessage = "La création du produit a échoué.";
+                CreationStatusMessage = "La crÃ©ation du produit a Ã©chouÃ©.";
             }
         }
         catch (HttpRequestException ex)
         {
             CreationStatusColor = Colors.OrangeRed;
-            CreationStatusMessage = "Impossible de contacter le serveur pour créer le produit.";
+            CreationStatusMessage = "Impossible de contacter le serveur pour crÃ©er le produit.";
             Debug.WriteLine($"[PRODUCTS] Erreur HTTP (create) : {ex}");
         }
         catch (Exception ex)
         {
             CreationStatusColor = Colors.OrangeRed;
-            CreationStatusMessage = $"Erreur lors de la création : {ex.Message}";
+            CreationStatusMessage = $"Erreur lors de la crÃ©ation : {ex.Message}";
             Debug.WriteLine($"[PRODUCTS] Erreur inattendue (create) : {ex}");
         }
         finally
@@ -610,7 +749,7 @@ public class ProductsViewModel : BaseViewModel
         if (string.IsNullOrWhiteSpace(NewProductName)
             || string.IsNullOrWhiteSpace(NewProductShortDescription)
             || string.IsNullOrWhiteSpace(NewProductFullDescription)
-            || string.IsNullOrWhiteSpace(NewProductCategory))
+            || SelectedCategory is null)
         {
             CreationStatusColor = Colors.OrangeRed;
             CreationStatusMessage = "Merci de renseigner toutes les informations du produit.";
@@ -627,18 +766,25 @@ public class ProductsViewModel : BaseViewModel
         if (!int.TryParse(ProductQuantityText?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out quantity) || quantity < 0)
         {
             CreationStatusColor = Colors.OrangeRed;
-            CreationStatusMessage = "Indiquez une quantité disponible valide.";
+            CreationStatusMessage = "Indiquez une quantitÃ© disponible valide.";
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(_selectedImageUrl))
         {
             CreationStatusColor = Colors.OrangeRed;
-            CreationStatusMessage = "Sélectionnez une image pour le produit.";
+            CreationStatusMessage = "SÃ©lectionnez une image pour le produit.";
             return false;
         }
 
         return true;
+    }
+
+    private void ResetForm()
+    {
+        ClearForm();
+        CreationStatusColor = Colors.Gold;
+        CreationStatusMessage = DefaultCreationMessage;
     }
 
     private void ClearForm()
@@ -647,11 +793,16 @@ public class ProductsViewModel : BaseViewModel
         NewProductShortDescription = string.Empty;
         NewProductFullDescription = string.Empty;
         NewProductCategory = string.Empty;
+        SelectedCategory = null;
         ProductPriceText = string.Empty;
         ProductQuantityText = string.Empty;
         SelectedLibraryImage = null;
         _selectedImageUrl = null;
-        SelectedImageName = "Aucune image sélectionnée.";
+        SelectedImageName = "Aucune image sÃ©lectionnÃ©e.";
+        CategoryStatusMessage = AvailableCategories.Count == 0
+            ? "Aucune catÃ©gorie disponible."
+            : "SÃ©lectionnez une catÃ©gorie pour ce produit.";
+        RefreshSubmitAvailability();
     }
 
     private static bool TryParseDouble(string? text, out double value)

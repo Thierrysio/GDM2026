@@ -16,7 +16,7 @@
                    HorizontalTextAlignment="Center"
                    TextColor="{StaticResource GoldText}" />
 
-            <Label Text="Retrouvez la liste des produits publi�s sur Dantec Market."
+            <Label Text="Retrouvez la liste des produits publiés sur Dantec Market."
                    FontSize="15"
                    HorizontalTextAlignment="Center"
                    TextColor="{StaticResource GoldText}"
@@ -33,39 +33,63 @@
                    BorderColor="#000000"
                    CornerRadius="18">
                 <VerticalStackLayout Spacing="12">
-                    <Label Text="Nom du produit"
-                           TextColor="{StaticResource GoldText}"
-                           FontAttributes="Bold" />
+                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                        <Label Text="Nom du produit"
+                               TextColor="{StaticResource GoldText}"
+                               FontAttributes="Bold" />
+                        <Label Text="⚠"
+                               TextColor="Tomato"
+                               FontAttributes="Bold"
+                               IsVisible="{Binding IsNameMissing}" />
+                    </HorizontalStackLayout>
                     <Entry Placeholder="Entrez le nom"
                            Text="{Binding NewProductName}"
                            TextColor="{StaticResource GoldText}" />
 
-                    <Label Text="Description courte"
-                           TextColor="{StaticResource GoldText}"
-                           FontAttributes="Bold" />
-                    <Editor Placeholder="R�sum� du produit"
+                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                        <Label Text="Description courte"
+                               TextColor="{StaticResource GoldText}"
+                               FontAttributes="Bold" />
+                        <Label Text="⚠"
+                               TextColor="Tomato"
+                               FontAttributes="Bold"
+                               IsVisible="{Binding IsShortDescriptionMissing}" />
+                    </HorizontalStackLayout>
+                    <Editor Placeholder="Résumé du produit"
                             HeightRequest="80"
                             Text="{Binding NewProductShortDescription}"
                             TextColor="{StaticResource GoldText}" />
 
-                    <Label Text="Description compl�te"
-                           TextColor="{StaticResource GoldText}"
-                           FontAttributes="Bold" />
-                    <Editor Placeholder="Description d�taill�e"
+                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                        <Label Text="Description complète"
+                               TextColor="{StaticResource GoldText}"
+                               FontAttributes="Bold" />
+                        <Label Text="⚠"
+                               TextColor="Tomato"
+                               FontAttributes="Bold"
+                               IsVisible="{Binding IsFullDescriptionMissing}" />
+                    </HorizontalStackLayout>
+                    <Editor Placeholder="Description détaillée"
                             HeightRequest="140"
                             Text="{Binding NewProductFullDescription}"
                             TextColor="{StaticResource GoldText}" />
 
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                         <VerticalStackLayout Grid.Column="0" Spacing="4">
-                            <Label Text="Prix" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                            <HorizontalStackLayout Spacing="6">
+                                <Label Text="Prix" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <Label Text="⚠" TextColor="Tomato" FontAttributes="Bold" IsVisible="{Binding IsPriceMissing}" />
+                            </HorizontalStackLayout>
                             <Entry Placeholder="ex : 14.90"
                                    Keyboard="Numeric"
                                    Text="{Binding ProductPriceText}"
                                    TextColor="{StaticResource GoldText}" />
                         </VerticalStackLayout>
                         <VerticalStackLayout Grid.Column="1" Spacing="4">
-                            <Label Text="Quantit�" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                            <HorizontalStackLayout Spacing="6">
+                                <Label Text="Quantité" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <Label Text="⚠" TextColor="Tomato" FontAttributes="Bold" IsVisible="{Binding IsQuantityMissing}" />
+                            </HorizontalStackLayout>
                             <Entry Placeholder="ex : 25"
                                    Keyboard="Numeric"
                                    Text="{Binding ProductQuantityText}"
@@ -73,16 +97,39 @@
                         </VerticalStackLayout>
                     </Grid>
 
-                    <Label Text="Cat�gorie"
+                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                        <Label Text="Catégorie"
+                               TextColor="{StaticResource GoldText}"
+                               FontAttributes="Bold" />
+                        <Label Text="⚠"
+                               TextColor="Tomato"
+                               FontAttributes="Bold"
+                               IsVisible="{Binding IsCategoryMissing}" />
+                    </HorizontalStackLayout>
+                    <Label Text="{Binding CategoryStatusMessage}"
+                           FontSize="12"
                            TextColor="{StaticResource GoldText}"
-                           FontAttributes="Bold" />
-                    <Entry Placeholder="Cat�gorie du produit"
-                           Text="{Binding NewProductCategory}"
-                           TextColor="{StaticResource GoldText}" />
+                           Opacity="0.85" />
+                    <ActivityIndicator IsRunning="{Binding IsCategoryLoading}"
+                                       IsVisible="{Binding IsCategoryLoading}"
+                                       Color="{StaticResource GoldText}" />
+                    <Picker ItemsSource="{Binding AvailableCategories}"
+                            SelectedItem="{Binding SelectedCategory}"
+                            ItemDisplayBinding="{Binding DisplayName}"
+                            Title="Choisissez une catégorie"
+                            IsEnabled="{Binding IsCategorySelectionEnabled}"
+                            TextColor="{StaticResource GoldText}"
+                            BackgroundColor="#101010" />
 
-                    <Label Text="{Binding SelectedImageName}"
-                           TextColor="{StaticResource GoldText}"
-                           FontAttributes="Bold" />
+                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                        <Label Text="{Binding SelectedImageName}"
+                               TextColor="{StaticResource GoldText}"
+                               FontAttributes="Bold" />
+                        <Label Text="⚠"
+                               TextColor="Tomato"
+                               FontAttributes="Bold"
+                               IsVisible="{Binding IsImageMissing}" />
+                    </HorizontalStackLayout>
 
                     <Border BackgroundColor="#1B1B1B"
                             Stroke="#2D2D2D"
@@ -137,10 +184,18 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <Button Text="Cr�er le produit"
-                            Command="{Binding SubmitProductCommand}"
-                            BackgroundColor="#C18F1A"
-                            TextColor="{StaticResource GoldText}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Button Text="Réinitialiser"
+                                Command="{Binding ResetFormCommand}"
+                                BackgroundColor="#353535"
+                                TextColor="{StaticResource GoldText}" />
+                        <Button Grid.Column="1"
+                                Text="Créer le produit"
+                                Command="{Binding SubmitProductCommand}"
+                                IsEnabled="{Binding IsSubmitEnabled}"
+                                BackgroundColor="#C18F1A"
+                                TextColor="{StaticResource GoldText}" />
+                    </Grid>
 
                     <Label Text="{Binding CreationStatusMessage}"
                            TextColor="{Binding CreationStatusColor}"
@@ -179,7 +234,7 @@
                         <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
                     </CollectionView.ItemsLayout>
                     <CollectionView.EmptyView>
-                        <Label Text="Aucun produit � afficher."
+                        <Label Text="Aucun produit à afficher."
                                HorizontalTextAlignment="Center"
                                TextColor="{StaticResource GoldText}"
                                Opacity="0.6" />
@@ -210,7 +265,7 @@
                                                FontSize="18"
                                                FontAttributes="Bold"
                                                TextColor="{StaticResource GoldText}" />
-                                        <Label Text="{Binding Categorie, StringFormat='Cat�gorie : {0}'}"
+                                        <Label Text="{Binding Categorie, StringFormat='Catégorie : {0}'}"
                                                FontSize="13"
                                                TextColor="{StaticResource GoldText}"
                                                Opacity="0.8" />
