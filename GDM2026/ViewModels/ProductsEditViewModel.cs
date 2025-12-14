@@ -39,17 +39,42 @@ public class ProductsEditViewModel : BaseViewModel
     private string _editStatusMessage = "Sélectionnez un produit pour afficher le formulaire de modification.";
     private bool _isSaving;
 
+    private bool _categoriesLoaded;
+    private bool _isCategoryLoading;
+    private bool _isCategorySelectionEnabled = true;
+    private SubCategory? _selectedCategory;
+    private string _categoryStatusMessage = "Sélectionnez une catégorie pour ce produit.";
+
+    private bool _imageLibraryLoaded;
+    private bool _isImageLibraryLoading;
+    private string _imageLibraryMessage = "Sélectionnez une image ou utilisez la recherche.";
+    private string _imageSearchTerm = string.Empty;
+    private string _selectedImageName = "Aucune image sélectionnée.";
+    private string? _selectedImageUrl;
+    private AdminImage? _selectedLibraryImage;
+
     public ProductsEditViewModel()
     {
         VisibleProducts = new ObservableCollection<ProductCatalogItem>();
+        AvailableCategories = new ObservableCollection<SubCategory>();
+        ImageLibrary = new ObservableCollection<AdminImage>();
+        FilteredImageLibrary = new ObservableCollection<AdminImage>();
         SearchProductsCommand = new Command(async () => await SearchAsync());
         LoadMoreCommand = new Command(async () => await LoadMoreAsync());
         ProductSelectionChangedCommand = new Command<SelectionChangedEventArgs>(OnProductSelectionChanged);
         SelectProductCommand = new Command<ProductCatalogItem?>(SelectProduct);
         SaveChangesCommand = new Command(async () => await SaveSelectionAsync(), CanSaveSelection);
+        ResetFormCommand = new Command(ResetFormToSelection);
+        GoBackCommand = new Command(async () => await NavigateBackAsync());
     }
 
     public ObservableCollection<ProductCatalogItem> VisibleProducts { get; }
+
+    public ObservableCollection<SubCategory> AvailableCategories { get; }
+
+    public ObservableCollection<AdminImage> ImageLibrary { get; }
+
+    public ObservableCollection<AdminImage> FilteredImageLibrary { get; }
 
     public ICommand SearchProductsCommand { get; }
 
@@ -60,6 +85,10 @@ public class ProductsEditViewModel : BaseViewModel
     public ICommand SelectProductCommand { get; }
 
     public ICommand SaveChangesCommand { get; }
+
+    public ICommand ResetFormCommand { get; }
+
+    public ICommand GoBackCommand { get; }
 
     public string SearchText
     {
@@ -95,6 +124,12 @@ public class ProductsEditViewModel : BaseViewModel
 
     public bool IsEditFormVisible => SelectedProduct is not null;
 
+    public bool IsNameMissing => string.IsNullOrWhiteSpace(EditProductName);
+
+    public bool IsShortDescriptionMissing => string.IsNullOrWhiteSpace(EditShortDescription);
+
+    public bool IsFullDescriptionMissing => string.IsNullOrWhiteSpace(EditFullDescription);
+
     public string EditProductName
     {
         get => _editProductName;
@@ -110,19 +145,37 @@ public class ProductsEditViewModel : BaseViewModel
     public string EditShortDescription
     {
         get => _editShortDescription;
-        set => SetProperty(ref _editShortDescription, value);
+        set
+        {
+            if (SetProperty(ref _editShortDescription, value))
+            {
+                RefreshSaveAvailability();
+            }
+        }
     }
 
     public string EditFullDescription
     {
         get => _editFullDescription;
-        set => SetProperty(ref _editFullDescription, value);
+        set
+        {
+            if (SetProperty(ref _editFullDescription, value))
+            {
+                RefreshSaveAvailability();
+            }
+        }
     }
 
     public string EditCategory
     {
         get => _editCategory;
-        set => SetProperty(ref _editCategory, value);
+        set
+        {
+            if (SetProperty(ref _editCategory, value))
+            {
+                RefreshSaveAvailability();
+            }
+        }
     }
 
     public string EditPriceText
@@ -140,7 +193,13 @@ public class ProductsEditViewModel : BaseViewModel
     public string EditStockText
     {
         get => _editStockText;
-        set => SetProperty(ref _editStockText, value);
+        set
+        {
+            if (SetProperty(ref _editStockText, value))
+            {
+                RefreshSaveAvailability();
+            }
+        }
     }
 
     public string EditStatusMessage
@@ -161,6 +220,96 @@ public class ProductsEditViewModel : BaseViewModel
         }
     }
 
+    public bool IsCategoryMissing => SelectedCategory is null && string.IsNullOrWhiteSpace(EditCategory);
+
+    public bool IsPriceMissing => string.IsNullOrWhiteSpace(EditPriceText);
+
+    public bool IsQuantityMissing => string.IsNullOrWhiteSpace(EditStockText);
+
+    public bool IsCategoryLoading
+    {
+        get => _isCategoryLoading;
+        set => SetProperty(ref _isCategoryLoading, value);
+    }
+
+    public bool IsCategorySelectionEnabled
+    {
+        get => _isCategorySelectionEnabled;
+        set => SetProperty(ref _isCategorySelectionEnabled, value);
+    }
+
+    public string CategoryStatusMessage
+    {
+        get => _categoryStatusMessage;
+        set => SetProperty(ref _categoryStatusMessage, value);
+    }
+
+    public SubCategory? SelectedCategory
+    {
+        get => _selectedCategory;
+        set
+        {
+            if (SetProperty(ref _selectedCategory, value))
+            {
+                if (value is not null)
+                {
+                    EditCategory = value.Name ?? string.Empty;
+                    CategoryStatusMessage = $"Catégorie sélectionnée : {value.DisplayName}";
+                }
+                else
+                {
+                    CategoryStatusMessage = "Sélectionnez une catégorie pour ce produit.";
+                }
+
+                RefreshSaveAvailability();
+            }
+        }
+    }
+
+    public bool IsImageMissing => string.IsNullOrWhiteSpace(_selectedImageUrl);
+
+    public bool IsImageLibraryLoading
+    {
+        get => _isImageLibraryLoading;
+        set => SetProperty(ref _isImageLibraryLoading, value);
+    }
+
+    public string ImageLibraryMessage
+    {
+        get => _imageLibraryMessage;
+        set => SetProperty(ref _imageLibraryMessage, value);
+    }
+
+    public string ImageSearchTerm
+    {
+        get => _imageSearchTerm;
+        set
+        {
+            if (SetProperty(ref _imageSearchTerm, value))
+            {
+                RefreshImageLibraryFilter();
+            }
+        }
+    }
+
+    public AdminImage? SelectedLibraryImage
+    {
+        get => _selectedLibraryImage;
+        set
+        {
+            if (SetProperty(ref _selectedLibraryImage, value))
+            {
+                ApplyImageSelection(value);
+            }
+        }
+    }
+
+    public string SelectedImageName
+    {
+        get => _selectedImageName;
+        set => SetProperty(ref _selectedImageName, value);
+    }
+
     public async Task InitializeAsync()
     {
         if (_sessionLoaded)
@@ -171,6 +320,9 @@ public class ProductsEditViewModel : BaseViewModel
         await _sessionService.LoadAsync().ConfigureAwait(false);
         _apis.SetBearerToken(_sessionService.AuthToken);
         _sessionLoaded = true;
+
+        await LoadCategoriesAsync().ConfigureAwait(false);
+        await EnsureImageLibraryLoadedAsync().ConfigureAwait(false);
     }
 
     private async Task SearchAsync()
@@ -351,6 +503,149 @@ public class ProductsEditViewModel : BaseViewModel
         return new List<ProductCatalogItem>();
     }
 
+    private async Task LoadCategoriesAsync()
+    {
+        if (_categoriesLoaded || IsCategoryLoading)
+        {
+            return;
+        }
+
+        try
+        {
+            IsCategoryLoading = true;
+            IsCategorySelectionEnabled = false;
+            CategoryStatusMessage = "Chargement des catégories...";
+
+            var categories = await _apis.GetListAsync<SubCategory>("/api/crud/categorie/list").ConfigureAwait(false);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                AvailableCategories.Clear();
+                foreach (var category in categories.OrderBy(c => c.Name))
+                {
+                    AvailableCategories.Add(category);
+                }
+
+                _categoriesLoaded = true;
+                CategoryStatusMessage = AvailableCategories.Count == 0
+                    ? "Aucune catégorie disponible."
+                    : "Sélectionnez une catégorie puis renseignez le reste du formulaire.";
+                RefreshSaveAvailability();
+            });
+        }
+        catch (HttpRequestException ex)
+        {
+            CategoryStatusMessage = "Impossible de charger les catégories.";
+            Debug.WriteLine($"[PRODUCTS_EDIT] Erreur HTTP (catégories) : {ex}");
+        }
+        catch (Exception ex)
+        {
+            CategoryStatusMessage = "Une erreur est survenue lors du chargement des catégories.";
+            Debug.WriteLine($"[PRODUCTS_EDIT] Erreur inattendue (catégories) : {ex}");
+        }
+        finally
+        {
+            IsCategoryLoading = false;
+            IsCategorySelectionEnabled = true;
+        }
+    }
+
+    private async Task EnsureImageLibraryLoadedAsync()
+    {
+        if (_imageLibraryLoaded || IsImageLibraryLoading)
+        {
+            return;
+        }
+
+        await LoadImageLibraryAsync();
+    }
+
+    private async Task LoadImageLibraryAsync()
+    {
+        try
+        {
+            IsImageLibraryLoading = true;
+            ImageLibraryMessage = "Chargement de la bibliothèque d'images";
+
+            var images = await _apis.GetListAsync<AdminImage>("/api/crud/images/list").ConfigureAwait(false);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                ImageLibrary.Clear();
+                foreach (var image in images)
+                {
+                    ImageLibrary.Add(image);
+                }
+
+                _imageLibraryLoaded = true;
+                ImageLibraryMessage = ImageLibrary.Count == 0
+                    ? "Aucune image disponible dans l'admin."
+                    : "Sélectionnez une image ou utilisez la recherche.";
+                RefreshImageLibraryFilter();
+            });
+        }
+        catch (HttpRequestException ex)
+        {
+            ImageLibraryMessage = "Impossible de charger la bibliothèque d'images.";
+            Debug.WriteLine($"[PRODUCTS_EDIT] Erreur HTTP (images) : {ex}");
+        }
+        catch (Exception ex)
+        {
+            ImageLibraryMessage = "Erreur lors du chargement des images.";
+            Debug.WriteLine($"[PRODUCTS_EDIT] Erreur inattendue (images) : {ex}");
+        }
+        finally
+        {
+            IsImageLibraryLoading = false;
+        }
+    }
+
+    private void RefreshImageLibraryFilter()
+    {
+        var hasSearch = !string.IsNullOrWhiteSpace(ImageSearchTerm);
+        var normalized = ImageSearchTerm?.Trim().ToLowerInvariant();
+
+        IEnumerable<AdminImage> source = ImageLibrary;
+        if (hasSearch)
+        {
+            source = source.Where(img =>
+                (!string.IsNullOrWhiteSpace(img.DisplayName) && img.DisplayName.ToLowerInvariant().Contains(normalized)) ||
+                (!string.IsNullOrWhiteSpace(img.Url) && img.Url.ToLowerInvariant().Contains(normalized)));
+        }
+
+        FilteredImageLibrary.Clear();
+        foreach (var image in source)
+        {
+            FilteredImageLibrary.Add(image);
+        }
+
+        if (hasSearch)
+        {
+            ImageLibraryMessage = FilteredImageLibrary.Count == 0
+                ? "Aucune image ne correspond à cette recherche."
+                : $"{FilteredImageLibrary.Count} résultat(s) pour \"{ImageSearchTerm}\".";
+        }
+        else if (ImageLibrary.Count > 0)
+        {
+            ImageLibraryMessage = "Sélectionnez une image ou utilisez la recherche.";
+        }
+    }
+
+    private void ApplyImageSelection(AdminImage? image)
+    {
+        if (image is null)
+        {
+            _selectedImageUrl = null;
+            SelectedImageName = "Aucune image sélectionnée.";
+            RefreshSaveAvailability();
+            return;
+        }
+
+        _selectedImageUrl = image.Url;
+        SelectedImageName = $"Image sélectionnée : {image.DisplayName}";
+        RefreshSaveAvailability();
+    }
+
     private async Task SaveSelectionAsync()
     {
         if (SelectedProduct is null)
@@ -364,41 +659,110 @@ public class ProductsEditViewModel : BaseViewModel
             return;
         }
 
+        var culture = CultureInfo.GetCultureInfo("fr-FR");
+        var numberStyles = NumberStyles.AllowDecimalPoint | NumberStyles.AllowThousands;
+
+        if (!double.TryParse(EditPriceText, numberStyles, culture, out var price) || price <= 0)
+        {
+            EditStatusMessage = "Prix invalide. Utilisez un format numérique (ex : 14,90).";
+            return;
+        }
+
+        if (!int.TryParse(EditStockText, NumberStyles.Integer, culture, out var quantity) || quantity < 0)
+        {
+            EditStatusMessage = "Quantité invalide. Renseignez un entier positif.";
+            return;
+        }
+
+        var categoryName = SelectedCategory?.Name?.Trim()
+            ?? (string.IsNullOrWhiteSpace(EditCategory) ? string.Empty : EditCategory.Trim());
+
+        var imageList = string.IsNullOrWhiteSpace(_selectedImageUrl)
+            ? new List<string>()
+            : new List<string> { _selectedImageUrl };
+
+        var request = new ProductUpdateRequest
+        {
+            Id = SelectedProduct.Id,
+            Nom = EditProductName.Trim(),
+            Description = EditFullDescription.Trim(),
+            DescriptionCourte = EditShortDescription.Trim(),
+            Categorie = categoryName,
+            Prix = price,
+            Quantite = quantity,
+            Image = _selectedImageUrl,
+            Images = imageList,
+            LesImages = imageList
+        };
+
         IsSaving = true;
+        RefreshSaveAvailability();
 
         try
         {
-            var culture = CultureInfo.GetCultureInfo("fr-FR");
-            var numberStyles = NumberStyles.AllowDecimalPoint | NumberStyles.AllowThousands;
+            var endpoint = $"/api/produits/{SelectedProduct.Id}";
+            var success = await _apis.PutBoolAsync(endpoint, request);
 
-            var price = double.TryParse(EditPriceText, numberStyles, culture, out var parsedPrice)
-                ? parsedPrice
-                : 0d;
-
-            int? stock = null;
-            if (int.TryParse(EditStockText, NumberStyles.Integer, culture, out var parsedStock))
+            if (success)
             {
-                stock = parsedStock;
+                SelectedProduct.Nom = request.Nom;
+                SelectedProduct.DescriptionCourte = request.DescriptionCourte;
+                SelectedProduct.DescriptionLongue = request.Description;
+                SelectedProduct.Categorie = request.Categorie;
+                SelectedProduct.Prix = request.Prix;
+                SelectedProduct.Stock = request.Quantite;
+
+                if (!string.IsNullOrWhiteSpace(_selectedImageUrl))
+                {
+                    SelectedProduct.ImageUrl = _selectedImageUrl;
+                    SelectedProduct.Images = new List<string>(imageList);
+                }
+
+                EditStatusMessage = "Produit mis à jour avec succès.";
+                StatusMessage = $"Produit #{SelectedProduct.Id} mis à jour.";
+
+                if (Shell.Current != null)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                        await Shell.Current.DisplayAlert(
+                            "Mise à jour",
+                            $"Le produit \"{EditProductName.Trim()}\" a été mis à jour avec succès.",
+                            "OK"));
+                }
+            }
+            else
+            {
+                EditStatusMessage = "La mise à jour du produit a échoué.";
+
+                if (Shell.Current != null)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                        await Shell.Current.DisplayAlert(
+                            "Mise à jour",
+                            "La mise à jour du produit a échoué.",
+                            "OK"));
+                }
             }
 
-            SelectedProduct.Nom = EditProductName.Trim();
-            SelectedProduct.DescriptionCourte = EditShortDescription;
-            SelectedProduct.DescriptionLongue = EditFullDescription;
-            SelectedProduct.Categorie = string.IsNullOrWhiteSpace(EditCategory) ? SelectedProduct.Categorie : EditCategory;
-            SelectedProduct.Prix = price;
-            SelectedProduct.Stock = stock;
-
-            EditStatusMessage = "Modifications prêtes à être envoyées (sauvegarde locale uniquement).";
-            StatusMessage = $"Produit #{SelectedProduct.Id} prêt pour modification.";
         }
         catch (Exception ex)
         {
-            EditStatusMessage = "Erreur lors de la préparation des modifications.";
+            EditStatusMessage = "Erreur lors de la mise à jour du produit.";
             Debug.WriteLine($"[PRODUCTS_EDIT] save error: {ex}");
+
+            if (Shell.Current != null)
+            {
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                    await Shell.Current.DisplayAlert(
+                        "Mise à jour",
+                        "Une erreur est survenue pendant la mise à jour.",
+                        "OK"));
+            }
         }
         finally
         {
             IsSaving = false;
+            RefreshSaveAvailability();
         }
     }
 
@@ -429,6 +793,8 @@ public class ProductsEditViewModel : BaseViewModel
             EditPriceText = string.Empty;
             EditStockText = string.Empty;
             EditStatusMessage = "Sélectionnez un produit pour afficher le formulaire de modification.";
+            SelectedCategory = null;
+            ApplyImageSelection(null);
             return;
         }
 
@@ -439,19 +805,62 @@ public class ProductsEditViewModel : BaseViewModel
         EditPriceText = product.Prix > 0 ? product.Prix.ToString("0.##", CultureInfo.GetCultureInfo("fr-FR")) : string.Empty;
         EditStockText = product.Stock?.ToString() ?? string.Empty;
         EditStatusMessage = $"Modification de {product.DisplayName}.";
+
+        SelectedCategory = AvailableCategories.FirstOrDefault(c =>
+            !string.IsNullOrWhiteSpace(c.Name)
+            && !string.IsNullOrWhiteSpace(product.Categorie)
+            && string.Equals(c.Name, product.Categorie, StringComparison.OrdinalIgnoreCase));
+
+        _selectedImageUrl = product.PrimaryImage;
+        if (ImageLibrary.Any() && !string.IsNullOrWhiteSpace(_selectedImageUrl))
+        {
+            SelectedLibraryImage = ImageLibrary.FirstOrDefault(img => string.Equals(img.Url, _selectedImageUrl, StringComparison.OrdinalIgnoreCase));
+        }
+
+        SelectedImageName = string.IsNullOrWhiteSpace(_selectedImageUrl)
+            ? "Aucune image sélectionnée."
+            : $"Image sélectionnée : {_selectedImageUrl}";
+
+        RefreshImageLibraryFilter();
     }
 
     private bool CanSaveSelection()
     {
         return SelectedProduct is not null
             && !IsSaving
+            && !IsCategoryLoading
             && !string.IsNullOrWhiteSpace(EditProductName)
-            && !string.IsNullOrWhiteSpace(EditPriceText);
+            && !string.IsNullOrWhiteSpace(EditShortDescription)
+            && !string.IsNullOrWhiteSpace(EditFullDescription)
+            && !IsCategoryMissing
+            && !string.IsNullOrWhiteSpace(EditPriceText)
+            && !string.IsNullOrWhiteSpace(EditStockText)
+            && !IsImageMissing;
     }
 
     private void RefreshSaveAvailability()
     {
+        OnPropertyChanged(nameof(IsNameMissing));
+        OnPropertyChanged(nameof(IsShortDescriptionMissing));
+        OnPropertyChanged(nameof(IsFullDescriptionMissing));
+        OnPropertyChanged(nameof(IsCategoryMissing));
+        OnPropertyChanged(nameof(IsPriceMissing));
+        OnPropertyChanged(nameof(IsQuantityMissing));
+        OnPropertyChanged(nameof(IsImageMissing));
         (SaveChangesCommand as Command)?.ChangeCanExecute();
+    }
+
+    private void ResetFormToSelection()
+    {
+        PrepareEditForm(SelectedProduct);
+    }
+
+    private static async Task NavigateBackAsync()
+    {
+        if (Shell.Current != null)
+        {
+            await Shell.Current.GoToAsync("//HomePage", animate: true);
+        }
     }
 
     private static IEnumerable<ProductCatalogItem> FilterProducts(IEnumerable<ProductCatalogItem> products, string? query)

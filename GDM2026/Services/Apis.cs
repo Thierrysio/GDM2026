@@ -17,6 +17,7 @@ namespace GDM2026.Services
         Task<TOut> GetAsync<TOut>(string relativeUrl, CancellationToken ct = default);
         Task<TResponse> PostAsync<TRequest, TResponse>(string relativeUrl, TRequest body, CancellationToken ct = default);
         Task<bool> PostBoolAsync<TRequest>(string relativeUrl, TRequest body, CancellationToken ct = default);
+        Task<bool> PutBoolAsync<TRequest>(string relativeUrl, TRequest body, CancellationToken ct = default);
 
         void SetBearerToken(string token);
     }
@@ -140,6 +141,20 @@ namespace GDM2026.Services
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
             using var resp = await _http.PostAsync(BuildUri(relativeUrl), content, reqCts.Token).ConfigureAwait(false);
+            if (resp.IsSuccessStatusCode) return true;
+
+            await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
+            return false; // n’est jamais atteint si EnsureSuccess lève
+        }
+
+        // ---------- PUT/PATCH : bool succès/échec ----------
+        public async Task<bool> PutBoolAsync<TRequest>(string relativeUrl, TRequest body, CancellationToken ct = default)
+        {
+            var payload = JsonConvert.SerializeObject(body, _json);
+            using var content = new StringContent(payload, Encoding.UTF8, "application/json");
+            using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
+
+            using var resp = await _http.PutAsync(BuildUri(relativeUrl), content, reqCts.Token).ConfigureAwait(false);
             if (resp.IsSuccessStatusCode) return true;
 
             await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);

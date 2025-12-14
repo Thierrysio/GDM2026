@@ -67,6 +67,12 @@ public class ProductCatalogItem
     [JsonProperty("stock")]
     public int? Stock { get; set; }
 
+    [JsonProperty("quantite")]
+    private int? LegacyQuantity
+    {
+        set => Stock = value;
+    }
+
     public string DisplayName => string.IsNullOrWhiteSpace(Nom) ? $"Produit #{Id}" : Nom!;
 
     public string Description => !string.IsNullOrWhiteSpace(DescriptionCourte)
@@ -88,7 +94,7 @@ public class ProductCatalogItem
             var amount = Prix > 0 ? Prix : PrixPromo;
             return amount > 0
                 ? string.Format(culture, "{0:C}", amount)
-                : "Prix non renseigné";
+                : "Prix non renseignÃ©";
         }
     }
 
