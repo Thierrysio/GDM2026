@@ -45,6 +45,7 @@ public class ProductsEditViewModel : BaseViewModel
         SearchProductsCommand = new Command(async () => await SearchAsync());
         LoadMoreCommand = new Command(async () => await LoadMoreAsync());
         ProductSelectionChangedCommand = new Command<SelectionChangedEventArgs>(OnProductSelectionChanged);
+        SelectProductCommand = new Command<ProductCatalogItem?>(SelectProduct);
         SaveChangesCommand = new Command(async () => await SaveSelectionAsync(), CanSaveSelection);
     }
 
@@ -55,6 +56,8 @@ public class ProductsEditViewModel : BaseViewModel
     public ICommand LoadMoreCommand { get; }
 
     public ICommand ProductSelectionChangedCommand { get; }
+
+    public ICommand SelectProductCommand { get; }
 
     public ICommand SaveChangesCommand { get; }
 
@@ -408,6 +411,11 @@ public class ProductsEditViewModel : BaseViewModel
         }
 
         SelectedProduct = null;
+    }
+
+    private void SelectProduct(ProductCatalogItem? product)
+    {
+        SelectedProduct = product;
     }
 
     private void PrepareEditForm(ProductCatalogItem? product)

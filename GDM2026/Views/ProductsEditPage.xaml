@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="GDM2026.ProductsEditPage"
+             x:Name="ProductsEditPage"
              BackgroundColor="#0B0B0B">
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
@@ -60,6 +61,26 @@
                            CornerRadius="16"
                            HasShadow="False"
                            BorderColor="#000">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal">
+                                    <VisualState.Setters>
+                                        <Setter Property="BorderColor" Value="#000" />
+                                        <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Selected">
+                                    <VisualState.Setters>
+                                        <Setter Property="BorderColor" Value="#C18F1A" />
+                                        <Setter Property="BackgroundColor" Value="#1A1406" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                        <Frame.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding BindingContext.SelectProductCommand, Source={x:Reference ProductsEditPage}}"
+                                                 CommandParameter="{Binding .}" />
+                        </Frame.GestureRecognizers>
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
                             <Border WidthRequest="90"
                                     HeightRequest="90"
