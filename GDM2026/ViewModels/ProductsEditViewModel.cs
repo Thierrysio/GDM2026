@@ -659,49 +659,49 @@ public class ProductsEditViewModel : BaseViewModel
             return;
         }
 
+        var culture = CultureInfo.GetCultureInfo("fr-FR");
+        var numberStyles = NumberStyles.AllowDecimalPoint | NumberStyles.AllowThousands;
+
+        if (!double.TryParse(EditPriceText, numberStyles, culture, out var price) || price <= 0)
+        {
+            EditStatusMessage = "Prix invalide. Utilisez un format numérique (ex : 14,90).";
+            return;
+        }
+
+        if (!int.TryParse(EditStockText, NumberStyles.Integer, culture, out var quantity) || quantity < 0)
+        {
+            EditStatusMessage = "Quantité invalide. Renseignez un entier positif.";
+            return;
+        }
+
+        var categoryName = SelectedCategory?.Name?.Trim()
+            ?? (string.IsNullOrWhiteSpace(EditCategory) ? string.Empty : EditCategory.Trim());
+
+        var imageList = string.IsNullOrWhiteSpace(_selectedImageUrl)
+            ? new List<string>()
+            : new List<string> { _selectedImageUrl };
+
+        var request = new ProductUpdateRequest
+        {
+            Id = SelectedProduct.Id,
+            Nom = EditProductName.Trim(),
+            Description = EditFullDescription.Trim(),
+            DescriptionCourte = EditShortDescription.Trim(),
+            Categorie = categoryName,
+            Prix = price,
+            Quantite = quantity,
+            Image = _selectedImageUrl,
+            Images = imageList,
+            LesImages = imageList
+        };
+
         IsSaving = true;
         RefreshSaveAvailability();
 
         try
         {
-            var culture = CultureInfo.GetCultureInfo("fr-FR");
-            var numberStyles = NumberStyles.AllowDecimalPoint | NumberStyles.AllowThousands;
-
-            if (!double.TryParse(EditPriceText, numberStyles, culture, out var price) || price <= 0)
-            {
-                EditStatusMessage = "Prix invalide. Utilisez un format numérique (ex : 14,90).";
-                return;
-            }
-
-            if (!int.TryParse(EditStockText, NumberStyles.Integer, culture, out var quantity) || quantity < 0)
-            {
-                EditStatusMessage = "Quantité invalide. Renseignez un entier positif.";
-                return;
-            }
-
-            var categoryName = SelectedCategory?.Name?.Trim()
-                ?? (string.IsNullOrWhiteSpace(EditCategory) ? string.Empty : EditCategory.Trim());
-
-            var imageList = string.IsNullOrWhiteSpace(_selectedImageUrl)
-                ? new List<string>()
-                : new List<string> { _selectedImageUrl };
-
-            var request = new ProductUpdateRequest
-            {
-                Id = SelectedProduct.Id,
-                Nom = EditProductName.Trim(),
-                Description = EditFullDescription.Trim(),
-                DescriptionCourte = EditShortDescription.Trim(),
-                Categorie = categoryName,
-                Prix = price,
-                Quantite = quantity,
-                Image = _selectedImageUrl,
-                Images = imageList,
-                LesImages = imageList
-            };
-
             var endpoint = $"/api/produits/{SelectedProduct.Id}";
-            var success = await _apis.PutBoolAsync(endpoint, request).ConfigureAwait(false);
+            var success = await _apis.PutBoolAsync(endpoint, request);
 
             if (success)
             {
