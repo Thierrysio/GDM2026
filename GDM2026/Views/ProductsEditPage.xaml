@@ -41,7 +41,8 @@
         <CollectionView Grid.Row="1"
                         ItemsSource="{Binding VisibleProducts}"
                         SelectionMode="Single"
-                        SelectedItem="{Binding SelectedProduct}"
+                        SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
+                        SelectionChangedCommand="{Binding ProductSelectionChangedCommand}"
                         RemainingItemsThreshold="3"
                         RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
             <CollectionView.ItemsLayout>
