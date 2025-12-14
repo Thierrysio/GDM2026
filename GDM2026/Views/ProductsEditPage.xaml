@@ -2,15 +2,21 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="GDM2026.ProductsEditPage"
-             x:Name="ProductsEditPageRoot"
-             BackgroundColor="#0B0B0B">
+             BackgroundColor="#0B0B0B"
+             Title="Modifier un produit">
+
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
         <Color x:Key="CardBackground">#151515</Color>
     </ContentPage.Resources>
 
-    <Grid Padding="24" RowSpacing="16" RowDefinitions="Auto,*,Auto">
+    <Grid Padding="24"
+          RowSpacing="16"
+          RowDefinitions="Auto,*,Auto">
+
+        <!-- ================= HEADER ================= -->
         <VerticalStackLayout Grid.Row="0" Spacing="16">
+
             <Label Text="Modifier un produit"
                    FontSize="28"
                    FontAttributes="Bold"
@@ -22,177 +28,188 @@
                            Placeholder="Rechercher un produit"
                            Text="{Binding SearchText}"
                            SearchCommand="{Binding SearchProductsCommand}"
-                           CancelButtonColor="{StaticResource GoldText}"
                            TextColor="{StaticResource GoldText}"
                            PlaceholderColor="#7E7030"
                            BackgroundColor="#111" />
+
                 <Button Grid.Column="1"
                         Text="🔍"
                         Command="{Binding SearchProductsCommand}"
                         BackgroundColor="#C18F1A"
-                        TextColor="{StaticResource GoldText}" />
+                        TextColor="#0B0B0B" />
             </Grid>
 
             <Label Text="{Binding StatusMessage}"
-                   TextColor="{StaticResource GoldText}"
                    FontSize="13"
+                   TextColor="{StaticResource GoldText}"
                    Opacity="0.85" />
+
         </VerticalStackLayout>
 
+        <!-- ================= LISTE PRODUITS ================= -->
         <CollectionView Grid.Row="1"
                         ItemsSource="{Binding VisibleProducts}"
                         SelectionMode="Single"
                         SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
-                        SelectionChangedCommand="{Binding ProductSelectionChangedCommand}"
                         RemainingItemsThreshold="3"
                         RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
+
             <CollectionView.ItemsLayout>
-                <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                <LinearItemsLayout Orientation="Vertical"
+                                   ItemSpacing="12" />
             </CollectionView.ItemsLayout>
+
             <CollectionView.EmptyView>
                 <Label Text="Aucun produit à afficher."
-                       TextColor="{StaticResource GoldText}"
-                       HorizontalTextAlignment="Center" />
+                       HorizontalTextAlignment="Center"
+                       TextColor="{StaticResource GoldText}" />
             </CollectionView.EmptyView>
+
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Frame Padding="14"
-                           BackgroundColor="{StaticResource CardBackground}"
-                           CornerRadius="16"
-                           HasShadow="False"
-                           BorderColor="#000">
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup x:Name="CommonStates">
-                                <VisualState x:Name="Normal">
-                                    <VisualState.Setters>
-                                        <Setter Property="BorderColor" Value="#000" />
-                                        <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                                <VisualState x:Name="Selected">
-                                    <VisualState.Setters>
-                                        <Setter Property="BorderColor" Value="#C18F1A" />
-                                        <Setter Property="BackgroundColor" Value="#1A1406" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
-                        <Frame.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding BindingContext.SelectProductCommand, Source={x:Reference ProductsEditPageRoot}}"
-                                                 CommandParameter="{Binding .}" />
-                        </Frame.GestureRecognizers>
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                            <Border WidthRequest="90"
-                                    HeightRequest="90"
-                                    BackgroundColor="#111"
-                                    Stroke="#333">
-                                <Image Source="{Binding PrimaryImageFullUrl}"
-                                       Aspect="AspectFill"
-                                       WidthRequest="90"
-                                       HeightRequest="90" />
-                            </Border>
-                            <VerticalStackLayout Grid.Column="1" Spacing="4">
-                                <Label Text="{Binding DisplayName}"
-                                       FontAttributes="Bold"
-                                       FontSize="16"
-                                       TextColor="{StaticResource GoldText}" />
-                                <Label Text="{Binding Description}"
-                                       TextColor="{StaticResource GoldText}"
-                                       FontSize="13"
-                                       Opacity="0.8"
-                                       LineBreakMode="TailTruncation" />
-                                <Label Text="{Binding DisplayPrice}"
-                                       FontAttributes="Bold"
-                                       FontSize="14"
-                                       TextColor="{StaticResource GoldText}" />
-                                <Label Text="{Binding StockLabel}"
-                                       FontSize="12"
-                                       TextColor="{StaticResource GoldText}" />
-                            </VerticalStackLayout>
-                        </Grid>
-                    </Frame>
+
+                    <!-- RACINE NON TRANSPARENTE -->
+                    <Grid>
+
+                        <!-- CONTENU TRANSPARENT -->
+                        <Frame Padding="14"
+                               CornerRadius="16"
+                               BackgroundColor="{StaticResource CardBackground}"
+                               BorderColor="#000"
+                               HasShadow="False"
+                               InputTransparent="True">
+
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal" />
+                                    <VisualState x:Name="Selected">
+                                        <VisualState.Setters>
+                                            <Setter Property="BorderColor" Value="#C18F1A" />
+                                            <Setter Property="BackgroundColor" Value="#1A1406" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+
+                            <Grid ColumnDefinitions="Auto,*"
+                                  ColumnSpacing="12"
+                                  InputTransparent="True">
+
+                                <Border WidthRequest="90"
+                                        HeightRequest="90"
+                                        Stroke="#333"
+                                        BackgroundColor="#111"
+                                        InputTransparent="True">
+                                    <Image Source="{Binding PrimaryImageFullUrl}"
+                                           Aspect="AspectFill"
+                                           InputTransparent="True" />
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1"
+                                                     Spacing="4"
+                                                     InputTransparent="True">
+
+                                    <Label Text="{Binding DisplayName}"
+                                           FontAttributes="Bold"
+                                           FontSize="16"
+                                           TextColor="{StaticResource GoldText}"
+                                           InputTransparent="True" />
+
+                                    <Label Text="{Binding Description}"
+                                           FontSize="13"
+                                           TextColor="{StaticResource GoldText}"
+                                           Opacity="0.8"
+                                           LineBreakMode="TailTruncation"
+                                           InputTransparent="True" />
+
+                                    <Label Text="{Binding DisplayPrice}"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource GoldText}"
+                                           InputTransparent="True" />
+
+                                    <Label Text="{Binding StockLabel}"
+                                           FontSize="12"
+                                           TextColor="{StaticResource GoldText}"
+                                           InputTransparent="True" />
+
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Frame>
+                    </Grid>
+
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
+
+        <!-- ================= FORMULAIRE ================= -->
         <Frame Grid.Row="2"
                IsVisible="{Binding IsEditFormVisible}"
                Padding="18"
+               CornerRadius="18"
                BackgroundColor="{StaticResource CardBackground}"
-               BorderColor="#000000"
-               CornerRadius="18">
-                <VerticalStackLayout Spacing="12">
-                    <Label Text="Modification du produit"
-                           FontAttributes="Bold"
-                           FontSize="18"
-                           TextColor="{StaticResource GoldText}" />
+               BorderColor="#000">
 
-                    <Label Text="{Binding EditStatusMessage}"
-                           FontSize="13"
+            <VerticalStackLayout Spacing="12">
+
+                <Label Text="Modification du produit"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource GoldText}" />
+
+                <Label Text="{Binding EditStatusMessage}"
+                       FontSize="13"
+                       TextColor="{StaticResource GoldText}"
+                       Opacity="0.85" />
+
+                <Entry Text="{Binding EditProductName}"
+                       Placeholder="Nom du produit"
+                       TextColor="{StaticResource GoldText}"
+                       BackgroundColor="#111" />
+
+                <Editor Text="{Binding EditShortDescription}"
+                        Placeholder="Description courte"
+                        HeightRequest="70"
+                        TextColor="{StaticResource GoldText}"
+                        BackgroundColor="#111" />
+
+                <Editor Text="{Binding EditFullDescription}"
+                        Placeholder="Description longue"
+                        HeightRequest="120"
+                        TextColor="{StaticResource GoldText}"
+                        BackgroundColor="#111" />
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Entry Grid.Column="0"
+                           Text="{Binding EditPriceText}"
+                           Placeholder="Prix"
+                           Keyboard="Numeric"
                            TextColor="{StaticResource GoldText}"
-                           Opacity="0.85" />
+                           BackgroundColor="#111" />
+                    <Entry Grid.Column="1"
+                           Text="{Binding EditStockText}"
+                           Placeholder="Stock"
+                           Keyboard="Numeric"
+                           TextColor="{StaticResource GoldText}"
+                           BackgroundColor="#111" />
+                </Grid>
 
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="Nom"
-                               TextColor="{StaticResource GoldText}" />
-                        <Entry Text="{Binding EditProductName}"
-                               Placeholder="Nom du produit"
-                               TextColor="{StaticResource GoldText}" />
-                    </VerticalStackLayout>
+                <Entry Text="{Binding EditCategory}"
+                       Placeholder="Catégorie"
+                       TextColor="{StaticResource GoldText}"
+                       BackgroundColor="#111" />
 
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="Description courte"
-                               TextColor="{StaticResource GoldText}" />
-                        <Editor Text="{Binding EditShortDescription}"
-                                Placeholder="Résumé"
-                                HeightRequest="70"
-                                TextColor="{StaticResource GoldText}" />
-                    </VerticalStackLayout>
+                <Button Text="Enregistrer les modifications"
+                        Command="{Binding SaveChangesCommand}"
+                        BackgroundColor="#C18F1A"
+                        TextColor="#0B0B0B" />
 
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="Description longue"
-                               TextColor="{StaticResource GoldText}" />
-                        <Editor Text="{Binding EditFullDescription}"
-                                Placeholder="Description détaillée"
-                                HeightRequest="120"
-                                TextColor="{StaticResource GoldText}" />
-                    </VerticalStackLayout>
+                <ActivityIndicator IsRunning="{Binding IsSaving}"
+                                   IsVisible="{Binding IsSaving}"
+                                   Color="{StaticResource GoldText}" />
 
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                        <VerticalStackLayout Spacing="4" Grid.Column="0">
-                            <Label Text="Prix"
-                                   TextColor="{StaticResource GoldText}" />
-                            <Entry Text="{Binding EditPriceText}"
-                                   Keyboard="Numeric"
-                                   Placeholder="Prix"
-                                   TextColor="{StaticResource GoldText}" />
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Spacing="4" Grid.Column="1">
-                            <Label Text="Stock"
-                                   TextColor="{StaticResource GoldText}" />
-                            <Entry Text="{Binding EditStockText}"
-                                   Keyboard="Numeric"
-                                   Placeholder="Quantité disponible"
-                                   TextColor="{StaticResource GoldText}" />
-                        </VerticalStackLayout>
-                    </Grid>
-
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="Catégorie"
-                               TextColor="{StaticResource GoldText}" />
-                        <Entry Text="{Binding EditCategory}"
-                               Placeholder="Catégorie"
-                               TextColor="{StaticResource GoldText}" />
-                    </VerticalStackLayout>
-
-                    <Button Text="Enregistrer les modifications"
-                            Command="{Binding SaveChangesCommand}"
-                            BackgroundColor="#C18F1A"
-                            TextColor="{StaticResource GoldText}" />
-
-                    <ActivityIndicator IsRunning="{Binding IsSaving}"
-                                       IsVisible="{Binding IsSaving}"
-                                       Color="{StaticResource GoldText}" />
-                </VerticalStackLayout>
+            </VerticalStackLayout>
         </Frame>
+
     </Grid>
 </ContentPage>
