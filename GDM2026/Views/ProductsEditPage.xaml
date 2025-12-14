@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="GDM2026.ProductsEditPage"
-             x:Name="ProductsEditPage"
+             x:Name="ProductsEditPageRoot"
              BackgroundColor="#0B0B0B">
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
@@ -78,7 +78,7 @@
                             </VisualStateGroup>
                         </VisualStateManager.VisualStateGroups>
                         <Frame.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding BindingContext.SelectProductCommand, Source={x:Reference ProductsEditPage}}"
+                            <TapGestureRecognizer Command="{Binding BindingContext.SelectProductCommand, Source={x:Reference ProductsEditPageRoot}}"
                                                  CommandParameter="{Binding .}" />
                         </Frame.GestureRecognizers>
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
