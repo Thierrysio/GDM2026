@@ -25,7 +25,7 @@ public class ProductsViewModel : BaseViewModel
     private bool _sessionPrepared;
     private bool _hasLoaded;
     private bool _isRefreshing;
-    private string _statusMessage = "Chargement du catalogue";
+    private string _statusMessage = "Chargement du catalogue";
     private string _searchText = string.Empty;
 
     private bool _isFormVisible;
@@ -353,7 +353,7 @@ public class ProductsViewModel : BaseViewModel
         {
             IsBusy = true;
             IsRefreshing = forceRefresh;
-            StatusMessage = forceRefresh ? "Actualisation du catalogue" : "Chargement du catalogue";
+            StatusMessage = forceRefresh ? "Actualisation du catalogue" : "Chargement du catalogue";
 
             var items = await FetchProductsAsync().ConfigureAwait(false);
 
@@ -564,7 +564,7 @@ public class ProductsViewModel : BaseViewModel
         try
         {
             IsImageLibraryLoading = true;
-            ImageLibraryMessage = "Chargement de la bibliothèque d'images";
+            ImageLibraryMessage = "Chargement de la bibliothèque d'images";
 
             var images = await _apis.GetListAsync<AdminImage>("/api/crud/images/list").ConfigureAwait(false);
 
@@ -691,7 +691,7 @@ public class ProductsViewModel : BaseViewModel
             _isSubmittingProduct = true;
             RefreshSubmitAvailability();
             CreationStatusColor = Colors.Gold;
-            CreationStatusMessage = "Création du produit en cours";
+            CreationStatusMessage = "Création du produit en cours";
 
             var request = new ProductCreateRequest
             {
