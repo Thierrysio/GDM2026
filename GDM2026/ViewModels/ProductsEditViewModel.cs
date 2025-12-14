@@ -44,6 +44,8 @@ public class ProductsEditViewModel : BaseViewModel
         VisibleProducts = new ObservableCollection<ProductCatalogItem>();
         SearchProductsCommand = new Command(async () => await SearchAsync());
         LoadMoreCommand = new Command(async () => await LoadMoreAsync());
+        ProductSelectionChangedCommand = new Command<SelectionChangedEventArgs>(OnProductSelectionChanged);
+        SelectProductCommand = new Command<ProductCatalogItem?>(SelectProduct);
         SaveChangesCommand = new Command(async () => await SaveSelectionAsync(), CanSaveSelection);
     }
 
@@ -52,6 +54,10 @@ public class ProductsEditViewModel : BaseViewModel
     public ICommand SearchProductsCommand { get; }
 
     public ICommand LoadMoreCommand { get; }
+
+    public ICommand ProductSelectionChangedCommand { get; }
+
+    public ICommand SelectProductCommand { get; }
 
     public ICommand SaveChangesCommand { get; }
 
@@ -394,6 +400,22 @@ public class ProductsEditViewModel : BaseViewModel
         {
             IsSaving = false;
         }
+    }
+
+    private void OnProductSelectionChanged(SelectionChangedEventArgs? args)
+    {
+        if (args?.CurrentSelection?.FirstOrDefault() is ProductCatalogItem selected)
+        {
+            SelectedProduct = selected;
+            return;
+        }
+
+        SelectedProduct = null;
+    }
+
+    private void SelectProduct(ProductCatalogItem? product)
+    {
+        SelectedProduct = product;
     }
 
     private void PrepareEditForm(ProductCatalogItem? product)

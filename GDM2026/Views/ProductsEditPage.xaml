@@ -2,47 +2,50 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="GDM2026.ProductsEditPage"
+             x:Name="ProductsEditPage"
              BackgroundColor="#0B0B0B">
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
         <Color x:Key="CardBackground">#151515</Color>
     </ContentPage.Resources>
 
-    <ScrollView>
-        <VerticalStackLayout Padding="24" Spacing="16">
-        <Label Text="Modifier un produit"
-               FontSize="28"
-               FontAttributes="Bold"
-               HorizontalTextAlignment="Center"
-               TextColor="{StaticResource GoldText}" />
+    <Grid Padding="24" RowSpacing="16" RowDefinitions="Auto,*,Auto">
+        <VerticalStackLayout Grid.Row="0" Spacing="16">
+            <Label Text="Modifier un produit"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{StaticResource GoldText}" />
 
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-            <SearchBar Grid.Column="0"
-                       Placeholder="Rechercher un produit"
-                       Text="{Binding SearchText}"
-                       SearchCommand="{Binding SearchProductsCommand}"
-                       CancelButtonColor="{StaticResource GoldText}"
-                       TextColor="{StaticResource GoldText}"
-                       PlaceholderColor="#7E7030"
-                       BackgroundColor="#111" />
-            <Button Grid.Column="1"
-                    Text="🔍"
-                    Command="{Binding SearchProductsCommand}"
-                    BackgroundColor="#C18F1A"
-                    TextColor="{StaticResource GoldText}" />
-        </Grid>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <SearchBar Grid.Column="0"
+                           Placeholder="Rechercher un produit"
+                           Text="{Binding SearchText}"
+                           SearchCommand="{Binding SearchProductsCommand}"
+                           CancelButtonColor="{StaticResource GoldText}"
+                           TextColor="{StaticResource GoldText}"
+                           PlaceholderColor="#7E7030"
+                           BackgroundColor="#111" />
+                <Button Grid.Column="1"
+                        Text="🔍"
+                        Command="{Binding SearchProductsCommand}"
+                        BackgroundColor="#C18F1A"
+                        TextColor="{StaticResource GoldText}" />
+            </Grid>
 
-        <Label Text="{Binding StatusMessage}"
-               TextColor="{StaticResource GoldText}"
-               FontSize="13"
-               Opacity="0.85" />
+            <Label Text="{Binding StatusMessage}"
+                   TextColor="{StaticResource GoldText}"
+                   FontSize="13"
+                   Opacity="0.85" />
+        </VerticalStackLayout>
 
-        <CollectionView ItemsSource="{Binding VisibleProducts}"
+        <CollectionView Grid.Row="1"
+                        ItemsSource="{Binding VisibleProducts}"
                         SelectionMode="Single"
-                        SelectedItem="{Binding SelectedProduct}"
+                        SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
+                        SelectionChangedCommand="{Binding ProductSelectionChangedCommand}"
                         RemainingItemsThreshold="3"
-                        RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}"
-                        VerticalOptions="FillAndExpand">
+                        RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
             <CollectionView.ItemsLayout>
                 <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
             </CollectionView.ItemsLayout>
@@ -58,6 +61,26 @@
                            CornerRadius="16"
                            HasShadow="False"
                            BorderColor="#000">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal">
+                                    <VisualState.Setters>
+                                        <Setter Property="BorderColor" Value="#000" />
+                                        <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Selected">
+                                    <VisualState.Setters>
+                                        <Setter Property="BorderColor" Value="#C18F1A" />
+                                        <Setter Property="BackgroundColor" Value="#1A1406" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                        <Frame.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding BindingContext.SelectProductCommand, Source={x:Reference ProductsEditPage}}"
+                                                 CommandParameter="{Binding .}" />
+                        </Frame.GestureRecognizers>
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
                             <Border WidthRequest="90"
                                     HeightRequest="90"
@@ -91,11 +114,12 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-            <Frame IsVisible="{Binding IsEditFormVisible}"
-                   Padding="18"
-                   BackgroundColor="{StaticResource CardBackground}"
-                   BorderColor="#000000"
-                   CornerRadius="18">
+        <Frame Grid.Row="2"
+               IsVisible="{Binding IsEditFormVisible}"
+               Padding="18"
+               BackgroundColor="{StaticResource CardBackground}"
+               BorderColor="#000000"
+               CornerRadius="18">
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Modification du produit"
                            FontAttributes="Bold"
@@ -169,7 +193,6 @@
                                        IsVisible="{Binding IsSaving}"
                                        Color="{StaticResource GoldText}" />
                 </VerticalStackLayout>
-            </Frame>
-        </VerticalStackLayout>
-    </ScrollView>
+        </Frame>
+    </Grid>
 </ContentPage>
