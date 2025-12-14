@@ -5,6 +5,12 @@
              BackgroundColor="#0B0B0B"
              Title="Modifier un produit">
 
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Retour"
+                     Priority="0"
+                     Command="{Binding GoBackCommand}" />
+    </ContentPage.ToolbarItems>
+
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
         <Color x:Key="CardBackground">#151515</Color>

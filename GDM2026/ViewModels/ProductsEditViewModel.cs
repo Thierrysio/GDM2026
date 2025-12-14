@@ -65,6 +65,7 @@ public class ProductsEditViewModel : BaseViewModel
         SelectProductCommand = new Command<ProductCatalogItem?>(SelectProduct);
         SaveChangesCommand = new Command(async () => await SaveSelectionAsync(), CanSaveSelection);
         ResetFormCommand = new Command(ResetFormToSelection);
+        GoBackCommand = new Command(async () => await NavigateBackAsync());
     }
 
     public ObservableCollection<ProductCatalogItem> VisibleProducts { get; }
@@ -86,6 +87,8 @@ public class ProductsEditViewModel : BaseViewModel
     public ICommand SaveChangesCommand { get; }
 
     public ICommand ResetFormCommand { get; }
+
+    public ICommand GoBackCommand { get; }
 
     public string SearchText
     {
@@ -657,47 +660,81 @@ public class ProductsEditViewModel : BaseViewModel
         }
 
         IsSaving = true;
+        RefreshSaveAvailability();
 
         try
         {
             var culture = CultureInfo.GetCultureInfo("fr-FR");
             var numberStyles = NumberStyles.AllowDecimalPoint | NumberStyles.AllowThousands;
 
-            var price = double.TryParse(EditPriceText, numberStyles, culture, out var parsedPrice)
-                ? parsedPrice
-                : 0d;
-
-            int? stock = null;
-            if (int.TryParse(EditStockText, NumberStyles.Integer, culture, out var parsedStock))
+            if (!double.TryParse(EditPriceText, numberStyles, culture, out var price) || price <= 0)
             {
-                stock = parsedStock;
+                EditStatusMessage = "Prix invalide. Utilisez un format numérique (ex : 14,90).";
+                return;
             }
 
-            SelectedProduct.Nom = EditProductName.Trim();
-            SelectedProduct.DescriptionCourte = EditShortDescription;
-            SelectedProduct.DescriptionLongue = EditFullDescription;
-            SelectedProduct.Categorie = SelectedCategory?.Name
-                ?? (string.IsNullOrWhiteSpace(EditCategory) ? SelectedProduct.Categorie : EditCategory);
-            SelectedProduct.Prix = price;
-            SelectedProduct.Stock = stock;
-
-            if (!string.IsNullOrWhiteSpace(_selectedImageUrl))
+            if (!int.TryParse(EditStockText, NumberStyles.Integer, culture, out var quantity) || quantity < 0)
             {
-                SelectedProduct.ImageUrl = _selectedImageUrl;
-                SelectedProduct.Images = new List<string> { _selectedImageUrl };
+                EditStatusMessage = "Quantité invalide. Renseignez un entier positif.";
+                return;
             }
 
-            EditStatusMessage = "Modifications prêtes à être envoyées (sauvegarde locale uniquement).";
-            StatusMessage = $"Produit #{SelectedProduct.Id} prêt pour modification.";
+            var categoryName = SelectedCategory?.Name?.Trim()
+                ?? (string.IsNullOrWhiteSpace(EditCategory) ? string.Empty : EditCategory.Trim());
+
+            var imageList = string.IsNullOrWhiteSpace(_selectedImageUrl)
+                ? new List<string>()
+                : new List<string> { _selectedImageUrl };
+
+            var request = new ProductUpdateRequest
+            {
+                Id = SelectedProduct.Id,
+                Nom = EditProductName.Trim(),
+                Description = EditFullDescription.Trim(),
+                DescriptionCourte = EditShortDescription.Trim(),
+                Categorie = categoryName,
+                Prix = price,
+                Quantite = quantity,
+                Image = _selectedImageUrl,
+                Images = imageList,
+                LesImages = imageList
+            };
+
+            var success = await _apis.PostBoolAsync("/produits/update", request).ConfigureAwait(false);
+
+            if (success)
+            {
+                SelectedProduct.Nom = request.Nom;
+                SelectedProduct.DescriptionCourte = request.DescriptionCourte;
+                SelectedProduct.DescriptionLongue = request.Description;
+                SelectedProduct.Categorie = request.Categorie;
+                SelectedProduct.Prix = request.Prix;
+                SelectedProduct.Stock = request.Quantite;
+
+                if (!string.IsNullOrWhiteSpace(_selectedImageUrl))
+                {
+                    SelectedProduct.ImageUrl = _selectedImageUrl;
+                    SelectedProduct.Images = new List<string>(imageList);
+                }
+
+                EditStatusMessage = "Produit mis à jour avec succès.";
+                StatusMessage = $"Produit #{SelectedProduct.Id} mis à jour.";
+            }
+            else
+            {
+                EditStatusMessage = "La mise à jour du produit a échoué.";
+            }
+
         }
         catch (Exception ex)
         {
-            EditStatusMessage = "Erreur lors de la préparation des modifications.";
+            EditStatusMessage = "Erreur lors de la mise à jour du produit.";
             Debug.WriteLine($"[PRODUCTS_EDIT] save error: {ex}");
         }
         finally
         {
             IsSaving = false;
+            RefreshSaveAvailability();
         }
     }
 
@@ -788,6 +825,14 @@ public class ProductsEditViewModel : BaseViewModel
     private void ResetFormToSelection()
     {
         PrepareEditForm(SelectedProduct);
+    }
+
+    private static async Task NavigateBackAsync()
+    {
+        if (Shell.Current != null)
+        {
+            await Shell.Current.GoToAsync("..", animate: true);
+        }
     }
 
     private static IEnumerable<ProductCatalogItem> FilterProducts(IEnumerable<ProductCatalogItem> products, string? query)
