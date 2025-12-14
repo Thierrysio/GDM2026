@@ -327,6 +327,8 @@ public class ProductsEditViewModel : BaseViewModel
 
     private async Task SearchAsync()
     {
+        var query = SearchText?.Trim() ?? string.Empty;
+
         if (_isSearching)
         {
             return;
@@ -336,22 +338,18 @@ public class ProductsEditViewModel : BaseViewModel
 
         try
         {
-            VisibleProducts.Clear();
-            HasMore = false;
-
-            if (string.IsNullOrWhiteSpace(SearchText))
-            {
-                StatusMessage = "Saisissez du texte puis appuyez sur la loupe pour lancer une recherche.";
-                return;
-            }
-
-            StatusMessage = $"Recherche pour '{SearchText}'";
+            StatusMessage = string.IsNullOrEmpty(query)
+                ? "Chargement des produits..."
+                : $"Recherche pour '{SearchText}'";
 
             var products = await EnsureProductsCacheAsync().ConfigureAwait(false);
-            var filtered = FilterProducts(products, SearchText).ToList();
+            var filtered = FilterProducts(products, query).ToList();
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
+                VisibleProducts.Clear();
+                HasMore = false;
+
                 foreach (var item in filtered)
                 {
                     VisibleProducts.Add(item);
@@ -359,7 +357,9 @@ public class ProductsEditViewModel : BaseViewModel
 
                 StatusMessage = VisibleProducts.Count == 0
                     ? "Aucun produit trouvé."
-                    : $"{VisibleProducts.Count} produit(s) trouvé(s).";
+                    : string.IsNullOrEmpty(query)
+                        ? $"{VisibleProducts.Count} produit(s) disponible(s)."
+                        : $"{VisibleProducts.Count} produit(s) trouvé(s).";
             });
         }
         catch (HttpRequestException ex)
