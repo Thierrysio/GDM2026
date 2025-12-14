@@ -327,6 +327,12 @@ public class ProductsEditViewModel : BaseViewModel
 
     private async Task SearchAsync()
     {
+        if (string.IsNullOrWhiteSpace(SearchText))
+        {
+            StatusMessage = "Saisissez du texte puis appuyez sur la loupe pour lancer une recherche.";
+            return;
+        }
+
         if (_isSearching)
         {
             return;
@@ -338,12 +344,6 @@ public class ProductsEditViewModel : BaseViewModel
         {
             VisibleProducts.Clear();
             HasMore = false;
-
-            if (string.IsNullOrWhiteSpace(SearchText))
-            {
-                StatusMessage = "Saisissez du texte puis appuyez sur la loupe pour lancer une recherche.";
-                return;
-            }
 
             StatusMessage = $"Recherche pour '{SearchText}'";
 
