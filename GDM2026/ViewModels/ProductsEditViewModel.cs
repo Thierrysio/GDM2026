@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -15,27 +16,35 @@ namespace GDM2026.ViewModels;
 
 public class ProductsEditViewModel : BaseViewModel
 {
-    private const int PageSize = 10;
-
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
 
     private bool _sessionLoaded;
     private bool _isSearching;
-    private bool _hasMore = true;
+    private bool _hasMore = false;
     private string _searchText = string.Empty;
-    private string _statusMessage = "Entrez un nom pour rechercher ou faites défiler pour charger plus.";
+    private string _statusMessage = "Saisissez du texte puis appuyez sur la loupe pour lancer une recherche.";
 
-    private int _currentPage = 0;
     private bool _productsLoaded;
     private bool _isLoadingProducts;
     private readonly List<ProductCatalogItem> _productCache = new();
+
+    private ProductCatalogItem? _selectedProduct;
+    private string _editProductName = string.Empty;
+    private string _editShortDescription = string.Empty;
+    private string _editFullDescription = string.Empty;
+    private string _editCategory = string.Empty;
+    private string _editPriceText = string.Empty;
+    private string _editStockText = string.Empty;
+    private string _editStatusMessage = "Sélectionnez un produit pour afficher le formulaire de modification.";
+    private bool _isSaving;
 
     public ProductsEditViewModel()
     {
         VisibleProducts = new ObservableCollection<ProductCatalogItem>();
         SearchProductsCommand = new Command(async () => await SearchAsync());
-        LoadMoreCommand = new Command(async () => await LoadNextPageAsync());
+        LoadMoreCommand = new Command(async () => await LoadMoreAsync());
+        SaveChangesCommand = new Command(async () => await SaveSelectionAsync(), CanSaveSelection);
     }
 
     public ObservableCollection<ProductCatalogItem> VisibleProducts { get; }
@@ -44,16 +53,12 @@ public class ProductsEditViewModel : BaseViewModel
 
     public ICommand LoadMoreCommand { get; }
 
+    public ICommand SaveChangesCommand { get; }
+
     public string SearchText
     {
         get => _searchText;
-        set
-        {
-            if (SetProperty(ref _searchText, value))
-            {
-                _ = SearchAsync(auto: true);
-            }
-        }
+        set => SetProperty(ref _searchText, value);
     }
 
     public string StatusMessage
@@ -68,29 +73,103 @@ public class ProductsEditViewModel : BaseViewModel
         set => SetProperty(ref _hasMore, value);
     }
 
-    public async Task InitializeAsync()
+    public ProductCatalogItem? SelectedProduct
     {
-        if (!_sessionLoaded)
+        get => _selectedProduct;
+        set
         {
-            await _sessionService.LoadAsync().ConfigureAwait(false);
-            _apis.SetBearerToken(_sessionService.AuthToken);
-            _sessionLoaded = true;
-        }
-
-        if (VisibleProducts.Count == 0)
-        {
-            await LoadNextPageAsync();
+            if (SetProperty(ref _selectedProduct, value))
+            {
+                PrepareEditForm(value);
+                OnPropertyChanged(nameof(IsEditFormVisible));
+                RefreshSaveAvailability();
+            }
         }
     }
 
-    private async Task SearchAsync(bool auto = false)
+    public bool IsEditFormVisible => SelectedProduct is not null;
+
+    public string EditProductName
     {
-        if (_isSearching)
+        get => _editProductName;
+        set
+        {
+            if (SetProperty(ref _editProductName, value))
+            {
+                RefreshSaveAvailability();
+            }
+        }
+    }
+
+    public string EditShortDescription
+    {
+        get => _editShortDescription;
+        set => SetProperty(ref _editShortDescription, value);
+    }
+
+    public string EditFullDescription
+    {
+        get => _editFullDescription;
+        set => SetProperty(ref _editFullDescription, value);
+    }
+
+    public string EditCategory
+    {
+        get => _editCategory;
+        set => SetProperty(ref _editCategory, value);
+    }
+
+    public string EditPriceText
+    {
+        get => _editPriceText;
+        set
+        {
+            if (SetProperty(ref _editPriceText, value))
+            {
+                RefreshSaveAvailability();
+            }
+        }
+    }
+
+    public string EditStockText
+    {
+        get => _editStockText;
+        set => SetProperty(ref _editStockText, value);
+    }
+
+    public string EditStatusMessage
+    {
+        get => _editStatusMessage;
+        set => SetProperty(ref _editStatusMessage, value);
+    }
+
+    public bool IsSaving
+    {
+        get => _isSaving;
+        set
+        {
+            if (SetProperty(ref _isSaving, value))
+            {
+                RefreshSaveAvailability();
+            }
+        }
+    }
+
+    public async Task InitializeAsync()
+    {
+        if (_sessionLoaded)
         {
             return;
         }
 
-        if (auto && string.IsNullOrWhiteSpace(SearchText))
+        await _sessionService.LoadAsync().ConfigureAwait(false);
+        _apis.SetBearerToken(_sessionService.AuthToken);
+        _sessionLoaded = true;
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_isSearching)
         {
             return;
         }
@@ -99,19 +178,16 @@ public class ProductsEditViewModel : BaseViewModel
 
         try
         {
-            StatusMessage = string.IsNullOrWhiteSpace(SearchText)
-                ? "Chargement des produits"
-                : $"Recherche pour '{SearchText}'";
-
             VisibleProducts.Clear();
-            _currentPage = 0;
-            HasMore = true;
+            HasMore = false;
 
             if (string.IsNullOrWhiteSpace(SearchText))
             {
-                await LoadNextPageAsync();
+                StatusMessage = "Saisissez du texte puis appuyez sur la loupe pour lancer une recherche.";
                 return;
             }
+
+            StatusMessage = $"Recherche pour '{SearchText}'";
 
             var products = await EnsureProductsCacheAsync().ConfigureAwait(false);
             var filtered = FilterProducts(products, SearchText).ToList();
@@ -123,10 +199,9 @@ public class ProductsEditViewModel : BaseViewModel
                     VisibleProducts.Add(item);
                 }
 
-                HasMore = false;
-                StatusMessage = filtered.Count == 0
+                StatusMessage = VisibleProducts.Count == 0
                     ? "Aucun produit trouvé."
-                    : $"{filtered.Count} résultat(s).";
+                    : $"{VisibleProducts.Count} produit(s) trouvé(s).";
             });
         }
         catch (HttpRequestException ex)
@@ -145,7 +220,7 @@ public class ProductsEditViewModel : BaseViewModel
         }
     }
 
-    private async Task LoadNextPageAsync()
+    private async Task LoadMoreAsync()
     {
         if (!HasMore || IsBusy)
         {
@@ -162,8 +237,7 @@ public class ProductsEditViewModel : BaseViewModel
             IsBusy = true;
             StatusMessage = "Chargement supplémentaire";
 
-            var skip = _currentPage * PageSize;
-            var products = await FetchPagedProductsAsync(skip, PageSize).ConfigureAwait(false);
+            var products = await EnsureProductsCacheAsync().ConfigureAwait(false);
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -172,14 +246,7 @@ public class ProductsEditViewModel : BaseViewModel
                     VisibleProducts.Add(item);
                 }
 
-                if (products.Count < PageSize)
-                {
-                    HasMore = false;
-                }
-                else
-                {
-                    _currentPage++;
-                }
+                HasMore = false;
 
                 StatusMessage = VisibleProducts.Count == 0
                     ? "Aucun produit n'est disponible."
@@ -200,12 +267,6 @@ public class ProductsEditViewModel : BaseViewModel
         {
             IsBusy = false;
         }
-    }
-
-    private async Task<List<ProductCatalogItem>> FetchPagedProductsAsync(int skip, int take)
-    {
-        var products = await EnsureProductsCacheAsync().ConfigureAwait(false);
-        return products.Skip(skip).Take(take).ToList();
     }
 
     private async Task<List<ProductCatalogItem>> EnsureProductsCacheAsync()
@@ -282,6 +343,93 @@ public class ProductsEditViewModel : BaseViewModel
         }
 
         return new List<ProductCatalogItem>();
+    }
+
+    private async Task SaveSelectionAsync()
+    {
+        if (SelectedProduct is null)
+        {
+            return;
+        }
+
+        if (!CanSaveSelection())
+        {
+            EditStatusMessage = "Renseignez au moins le nom et le prix du produit.";
+            return;
+        }
+
+        IsSaving = true;
+
+        try
+        {
+            var culture = CultureInfo.GetCultureInfo("fr-FR");
+            var numberStyles = NumberStyles.AllowDecimalPoint | NumberStyles.AllowThousands;
+
+            var price = double.TryParse(EditPriceText, numberStyles, culture, out var parsedPrice)
+                ? parsedPrice
+                : 0d;
+
+            int? stock = null;
+            if (int.TryParse(EditStockText, NumberStyles.Integer, culture, out var parsedStock))
+            {
+                stock = parsedStock;
+            }
+
+            SelectedProduct.Nom = EditProductName.Trim();
+            SelectedProduct.DescriptionCourte = EditShortDescription;
+            SelectedProduct.DescriptionLongue = EditFullDescription;
+            SelectedProduct.Categorie = string.IsNullOrWhiteSpace(EditCategory) ? SelectedProduct.Categorie : EditCategory;
+            SelectedProduct.Prix = price;
+            SelectedProduct.Stock = stock;
+
+            EditStatusMessage = "Modifications prêtes à être envoyées (sauvegarde locale uniquement).";
+            StatusMessage = $"Produit #{SelectedProduct.Id} prêt pour modification.";
+        }
+        catch (Exception ex)
+        {
+            EditStatusMessage = "Erreur lors de la préparation des modifications.";
+            Debug.WriteLine($"[PRODUCTS_EDIT] save error: {ex}");
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private void PrepareEditForm(ProductCatalogItem? product)
+    {
+        if (product is null)
+        {
+            EditProductName = string.Empty;
+            EditShortDescription = string.Empty;
+            EditFullDescription = string.Empty;
+            EditCategory = string.Empty;
+            EditPriceText = string.Empty;
+            EditStockText = string.Empty;
+            EditStatusMessage = "Sélectionnez un produit pour afficher le formulaire de modification.";
+            return;
+        }
+
+        EditProductName = product.Nom ?? string.Empty;
+        EditShortDescription = product.DescriptionCourte ?? string.Empty;
+        EditFullDescription = product.DescriptionLongue ?? string.Empty;
+        EditCategory = product.Categorie ?? string.Empty;
+        EditPriceText = product.Prix > 0 ? product.Prix.ToString("0.##", CultureInfo.GetCultureInfo("fr-FR")) : string.Empty;
+        EditStockText = product.Stock?.ToString() ?? string.Empty;
+        EditStatusMessage = $"Modification de {product.DisplayName}.";
+    }
+
+    private bool CanSaveSelection()
+    {
+        return SelectedProduct is not null
+            && !IsSaving
+            && !string.IsNullOrWhiteSpace(EditProductName)
+            && !string.IsNullOrWhiteSpace(EditPriceText);
+    }
+
+    private void RefreshSaveAvailability()
+    {
+        (SaveChangesCommand as Command)?.ChangeCanExecute();
     }
 
     private static IEnumerable<ProductCatalogItem> FilterProducts(IEnumerable<ProductCatalogItem> products, string? query)
