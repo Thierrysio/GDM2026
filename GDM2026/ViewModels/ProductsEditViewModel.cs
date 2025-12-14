@@ -674,22 +674,6 @@ public class ProductsEditViewModel : BaseViewModel
             return;
         }
 
-        if (Shell.Current != null)
-        {
-            var confirmed = await MainThread.InvokeOnMainThreadAsync(async () =>
-                await Shell.Current.DisplayAlert(
-                    "Confirmer la mise à jour",
-                    $"Mettre à jour le produit \"{EditProductName.Trim()}\" ?",
-                    "Oui",
-                    "Annuler"));
-
-            if (!confirmed)
-            {
-                EditStatusMessage = "Mise à jour annulée.";
-                return;
-            }
-        }
-
         var categoryName = SelectedCategory?.Name?.Trim()
             ?? (string.IsNullOrWhiteSpace(EditCategory) ? string.Empty : EditCategory.Trim());
 
@@ -736,10 +720,28 @@ public class ProductsEditViewModel : BaseViewModel
 
                 EditStatusMessage = "Produit mis à jour avec succès.";
                 StatusMessage = $"Produit #{SelectedProduct.Id} mis à jour.";
+
+                if (Shell.Current != null)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                        await Shell.Current.DisplayAlert(
+                            "Mise à jour",
+                            $"Le produit \"{EditProductName.Trim()}\" a été mis à jour avec succès.",
+                            "OK"));
+                }
             }
             else
             {
                 EditStatusMessage = "La mise à jour du produit a échoué.";
+
+                if (Shell.Current != null)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                        await Shell.Current.DisplayAlert(
+                            "Mise à jour",
+                            "La mise à jour du produit a échoué.",
+                            "OK"));
+                }
             }
 
         }
@@ -747,6 +749,15 @@ public class ProductsEditViewModel : BaseViewModel
         {
             EditStatusMessage = "Erreur lors de la mise à jour du produit.";
             Debug.WriteLine($"[PRODUCTS_EDIT] save error: {ex}");
+
+            if (Shell.Current != null)
+            {
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                    await Shell.Current.DisplayAlert(
+                        "Mise à jour",
+                        "Une erreur est survenue pendant la mise à jour.",
+                        "OK"));
+            }
         }
         finally
         {
@@ -848,7 +859,7 @@ public class ProductsEditViewModel : BaseViewModel
     {
         if (Shell.Current != null)
         {
-            await Shell.Current.GoToAsync("..", animate: true);
+            await Shell.Current.GoToAsync("//HomePage", animate: true);
         }
     }
 
