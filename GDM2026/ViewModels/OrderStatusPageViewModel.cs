@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace GDM2026.ViewModels;
@@ -15,6 +17,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 {
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
+
     private readonly IReadOnlyList<string> _availableStatuses =
     [
         "Confirmée",
@@ -28,6 +31,10 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     private readonly Dictionary<OrderStatusEntry, string> _lastKnownStatuses = [];
     private readonly HashSet<OrderStatusEntry> _statusUpdatesInProgress = [];
     private readonly List<OrderStatusEntry> _allOrders = [];
+
+    // ✅ FIX : bon type de delegate pour PropertyChanged
+    private readonly Dictionary<OrderStatusEntry, System.ComponentModel.PropertyChangedEventHandler> _statusHandlers = [];
+
     private DateTime _startDate = DateTime.Today;
     private DateTime _endDate = DateTime.Today;
     private bool _hasLoaded;
@@ -36,18 +43,28 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     private string _pageTitle = string.Empty;
     private string _subtitle = string.Empty;
     private string _searchQuery = string.Empty;
+
     private bool _isShowingLimitedOrders = true;
     private bool _canShowMore;
+
     private ObservableCollection<OrderStatusEntry> _orders = [];
+
+    // PERF : debounce recherche
+    private CancellationTokenSource? _searchCts;
+
+    // PERF : évite plusieurs chargements simultanés
+    private readonly SemaphoreSlim _loadSemaphore = new(1, 1);
 
     public OrderStatusPageViewModel()
     {
         Orders = [];
+
         RevertStatusCommand = new Command<OrderStatusEntry>(async order => await RevertStatusAsync(order));
         ToggleOrderDetailsCommand = new Command<OrderStatusEntry>(async order => await ToggleOrderDetailsAsync(order));
         MarkLineTreatedCommand = new Command<OrderLine>(async line => await MarkLineTreatedAsync(line));
         MarkLineDeliveredCommand = new Command<OrderLine>(async line => await MarkLineDeliveredAsync(line));
         ShowMoreCommand = new Command(ShowMoreOrders);
+
         SelectReservationStatusCommand = new Command<ReservationStatusDisplay>(async status => await OnReservationStatusSelectedAsync(status));
         ApplyReservationFiltersCommand = new Command(async () => await ReloadWithFiltersAsync());
         DeleteReservationCommand = new Command<OrderStatusEntry>(async order => await ConfirmAndDeleteReservationAsync(order));
@@ -64,19 +81,12 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     public IReadOnlyList<string> AvailableStatuses => _availableStatuses;
 
     public ICommand RevertStatusCommand { get; }
-
     public ICommand ToggleOrderDetailsCommand { get; }
-
     public ICommand MarkLineTreatedCommand { get; }
-
     public ICommand MarkLineDeliveredCommand { get; }
-
     public ICommand ShowMoreCommand { get; }
-
     public ICommand SelectReservationStatusCommand { get; }
-
     public ICommand ApplyReservationFiltersCommand { get; }
-
     public ICommand DeleteReservationCommand { get; }
 
     public string? Status
@@ -99,6 +109,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             if (SetProperty(ref _startDate, value))
             {
                 EnsureValidDateRange();
+                if (IsReservationMode) _ = DebouncedApplyFiltersAsync();
             }
         }
     }
@@ -111,6 +122,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             if (SetProperty(ref _endDate, value))
             {
                 EnsureValidDateRange();
+                if (IsReservationMode) _ = DebouncedApplyFiltersAsync();
             }
         }
     }
@@ -144,15 +156,15 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         get => _searchQuery;
         set
         {
-            if (SetProperty(ref _searchQuery, value))
-            {
-                if (string.IsNullOrWhiteSpace(_searchQuery))
-                {
-                    _isShowingLimitedOrders = true;
-                }
+            if (!SetProperty(ref _searchQuery, value))
+                return;
 
-                ApplyFilters();
+            if (string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                _isShowingLimitedOrders = true;
             }
+
+            _ = DebouncedApplyFiltersAsync();
         }
     }
 
@@ -165,16 +177,13 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     public async Task InitializeAsync()
     {
         if (_hasLoaded)
-        {
             return;
-        }
 
         if (string.IsNullOrWhiteSpace(Status))
-        {
             return;
-        }
 
         _hasLoaded = true;
+
         await EnsureSessionAsync().ConfigureAwait(false);
         EnsureReservationStatuses();
         await LoadStatusAsync().ConfigureAwait(false);
@@ -188,17 +197,19 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private async Task LoadStatusAsync()
     {
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            IsBusy = true;
-            PageTitle = IsReservationMode ? $"Réservations : {Status}" : $"Commandes : {Status}";
-            Subtitle = IsReservationMode
-                ? $"{Status} · période du {StartDate:dd/MM/yyyy} au {EndDate:dd/MM/yyyy}"
-                : "Commandes : en cours de chargement...";
-        });
+        await _loadSemaphore.WaitAsync().ConfigureAwait(false);
 
         try
         {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                IsBusy = true;
+                PageTitle = IsReservationMode ? $"Réservations : {Status}" : $"Commandes : {Status}";
+                Subtitle = IsReservationMode
+                    ? $"{Status} · période du {StartDate:dd/MM/yyyy} au {EndDate:dd/MM/yyyy}"
+                    : "Commandes : en cours de chargement...";
+            });
+
             List<OrderByStatus> orders;
 
             if (IsReservationMode)
@@ -228,6 +239,9 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                     .ConfigureAwait(false) ?? new List<OrderByStatus>();
             }
 
+            // Nettoyage handlers pour éviter accumulation
+            DetachAllStatusHandlers();
+
             _allOrders.Clear();
 
             var items = (orders ?? new List<OrderByStatus>())
@@ -239,7 +253,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                 })
                 .ToList();
 
-            var statusMap = new Dictionary<OrderStatusEntry, string>();
+            var statusMap = new Dictionary<OrderStatusEntry, string>(items.Count);
 
             foreach (var item in items)
             {
@@ -251,15 +265,13 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 _lastKnownStatuses.Clear();
+                foreach (var (order, st) in statusMap)
+                    _lastKnownStatuses[order] = st;
 
-                foreach (var (order, status) in statusMap)
-                {
-                    _lastKnownStatuses[order] = status;
-                }
                 _isShowingLimitedOrders = true;
             });
 
-            ApplyFilters();
+            await ApplyFiltersAsync().ConfigureAwait(false);
             UpdateSelectedReservationCount();
         }
         catch (TaskCanceledException)
@@ -277,31 +289,47 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         finally
         {
             await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+            _loadSemaphore.Release();
         }
     }
 
     private void AttachStatusHandler(OrderStatusEntry order)
     {
-        order.PropertyChanged += (_, args) =>
+        if (_statusHandlers.ContainsKey(order))
+            return;
+
+        System.ComponentModel.PropertyChangedEventHandler handler = (_, args) =>
         {
             if (args.PropertyName == nameof(OrderStatusEntry.CurrentStatus))
             {
                 _ = OnOrderStatusChangedAsync(order);
             }
         };
+
+        _statusHandlers[order] = handler;
+        order.PropertyChanged += handler;
+    }
+
+    private void DetachAllStatusHandlers()
+    {
+        foreach (var kvp in _statusHandlers.ToList())
+        {
+            kvp.Key.PropertyChanged -= kvp.Value;
+        }
+
+        _statusHandlers.Clear();
     }
 
     private async Task OnOrderStatusChangedAsync(OrderStatusEntry order)
     {
         if (_statusUpdatesInProgress.Contains(order))
-        {
             return;
-        }
 
         var newStatus = order.CurrentStatus;
         var previousStatus = _lastKnownStatuses.TryGetValue(order, out var last) ? last : string.Empty;
 
-        if (string.IsNullOrWhiteSpace(newStatus) || string.Equals(newStatus, previousStatus, StringComparison.Ordinal))
+        if (string.IsNullOrWhiteSpace(newStatus) ||
+            string.Equals(newStatus, previousStatus, StringComparison.Ordinal))
         {
             return;
         }
@@ -312,9 +340,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     private async Task RevertStatusAsync(OrderStatusEntry? order)
     {
         if (order?.PreviousStatus == null)
-        {
             return;
-        }
 
         await UpdateOrderStatusAsync(order, order.PreviousStatus, isReverting: true);
     }
@@ -322,28 +348,18 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     private async Task<bool> UpdateOrderStatusAsync(OrderStatusEntry order, string newStatus, bool isReverting)
     {
         if (string.IsNullOrWhiteSpace(newStatus))
-        {
             return false;
-        }
 
         var previousStatus = _lastKnownStatuses.TryGetValue(order, out var last) ? last : order.CurrentStatus;
 
         if (string.Equals(previousStatus, newStatus, StringComparison.Ordinal))
         {
-            if (isReverting)
-            {
-                order.ClearPreviousStatus();
-            }
-
+            if (isReverting) order.ClearPreviousStatus();
             return false;
         }
 
         var endpoint = "https://dantecmarket.com/api/mobile/updateEtat";
-        var request = new UpdateOrderStatusRequest
-        {
-            Id = order.OrderId,
-            Etat = newStatus
-        };
+        var request = new UpdateOrderStatusRequest { Id = order.OrderId, Etat = newStatus };
 
         var orderStateEndpoint = "https://dantecmarket.com/api/mobile/updateEtat";
         var normalizedState = NormalizeOrderStateForApi(newStatus);
@@ -354,7 +370,6 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         try
         {
             var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
-
             if (!success)
             {
                 await ShowLoadErrorAsync("Impossible de modifier l'état de cette commande.");
@@ -364,12 +379,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
             if (!string.IsNullOrEmpty(normalizedState))
             {
-                var orderStateRequest = new ChangeOrderStateRequest
-                {
-                    Id = order.OrderId,
-                    Etat = normalizedState
-                };
-
+                var orderStateRequest = new ChangeOrderStateRequest { Id = order.OrderId, Etat = normalizedState };
                 updatedOrder = await _apis
                     .PostAsync<ChangeOrderStateRequest, OrderDetailsResponse>(orderStateEndpoint, orderStateRequest)
                     .ConfigureAwait(false);
@@ -384,14 +394,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                if (isReverting)
-                {
-                    order.ClearPreviousStatus();
-                }
-                else
-                {
-                    order.RememberPreviousStatus(previousStatus);
-                }
+                if (isReverting) order.ClearPreviousStatus();
+                else order.RememberPreviousStatus(previousStatus);
 
                 SetOrderStatusSilently(order, newStatus);
                 _lastKnownStatuses[order] = newStatus;
@@ -426,10 +430,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         return false;
     }
 
-    private async Task ResetOrderStatusAsync(OrderStatusEntry order, string status)
-    {
-        await MainThread.InvokeOnMainThreadAsync(() => SetOrderStatusSilently(order, status));
-    }
+    private Task ResetOrderStatusAsync(OrderStatusEntry order, string status)
+        => MainThread.InvokeOnMainThreadAsync(() => SetOrderStatusSilently(order, status));
 
     private void SetOrderStatusSilently(OrderStatusEntry order, string status)
     {
@@ -440,19 +442,14 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private async Task ToggleOrderDetailsAsync(OrderStatusEntry? order)
     {
-        if (order is null)
-        {
-            return;
-        }
+        if (order is null) return;
+
         try
         {
             var isOpening = !order.IsExpanded;
             order.IsExpanded = isOpening;
 
-            if (!isOpening)
-            {
-                return;
-            }
+            if (!isOpening) return;
 
             var isAlreadyInProgress = string.Equals(order.CurrentStatus, "En cours de traitement", StringComparison.OrdinalIgnoreCase);
             var isAlreadyCompleted = string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase);
@@ -478,9 +475,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     private async Task LoadOrderDetailsAsync(OrderStatusEntry order)
     {
         if (order.IsLoadingDetails || order.HasLoadedDetails)
-        {
             return;
-        }
 
         order.IsLoadingDetails = true;
         order.DetailsError = null;
@@ -489,12 +484,12 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         {
             var endpoint = "https://dantecmarket.com/api/mobile/commandeDetails";
             var request = new OrderDetailsRequest { Id = order.OrderId };
+
             var details = await _apis
                 .PostAsync<OrderDetailsRequest, OrderDetailsResponse>(endpoint, request)
                 .ConfigureAwait(false);
 
             var lines = details?.LesCommandes ?? new List<OrderLine>();
-
             var isDeliveredOrder = string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase);
 
             await MainThread.InvokeOnMainThreadAsync(() =>
@@ -522,24 +517,15 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         }
         catch (TaskCanceledException)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                order.DetailsError = "Le chargement des détails a expiré.";
-            });
+            await MainThread.InvokeOnMainThreadAsync(() => order.DetailsError = "Le chargement des détails a expiré.");
         }
         catch (HttpRequestException)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                order.DetailsError = "Impossible de récupérer les détails de cette commande.";
-            });
+            await MainThread.InvokeOnMainThreadAsync(() => order.DetailsError = "Impossible de récupérer les détails de cette commande.");
         }
         catch (Exception)
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                order.DetailsError = "Une erreur inattendue empêche l'affichage des détails.";
-            });
+            await MainThread.InvokeOnMainThreadAsync(() => order.DetailsError = "Une erreur inattendue empêche l'affichage des détails.");
         }
         finally
         {
@@ -549,17 +535,10 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private async Task MarkLineTreatedAsync(OrderLine? line)
     {
-        if (line is null || line.Traite)
-        {
-            return;
-        }
+        if (line is null || line.Traite) return;
 
         var order = Orders.FirstOrDefault(o => o.OrderId == line.OrderId);
-
-        if (order is null)
-        {
-            return;
-        }
+        if (order is null) return;
 
         var endpoint = "https://dantecmarket.com/api/mobile/changerEtatCommander";
         var request = new ChangeOrderLineStateRequest
@@ -571,7 +550,6 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         try
         {
             var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
-
             if (!success)
             {
                 await ShowLoadErrorAsync("Impossible de marquer ce produit comme traité.");
@@ -597,17 +575,10 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private async Task MarkLineDeliveredAsync(OrderLine? line)
     {
-        if (line is null || line.Livree)
-        {
-            return;
-        }
+        if (line is null || line.Livree) return;
 
         var order = Orders.FirstOrDefault(o => o.OrderId == line.OrderId);
-
-        if (order is null)
-        {
-            return;
-        }
+        if (order is null) return;
 
         var endpoint = "https://dantecmarket.com/api/mobile/changerEtatCommander";
         var request = new ChangeOrderLineStateRequest
@@ -619,7 +590,6 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         try
         {
             var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
-
             if (!success)
             {
                 await ShowLoadErrorAsync("Impossible de marquer ce produit comme livré.");
@@ -651,91 +621,92 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private async Task CheckAndUpdateOrderCompletionAsync(OrderStatusEntry order)
     {
-        if (order.OrderLines.Count == 0)
-        {
-            return;
-        }
+        if (order.OrderLines.Count == 0) return;
+        if (!order.OrderLines.All(l => l.Traite)) return;
 
-        if (!order.OrderLines.All(line => line.Traite))
-        {
-            return;
-        }
-
-        if (string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        if (string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
+        if (string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase)) return;
+        if (string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase)) return;
 
         await UpdateOrderStatusAsync(order, "Traitée", isReverting: false);
     }
 
     private async Task CheckAndUpdateOrderDeliveryAsync(OrderStatusEntry order)
     {
-        if (order.OrderLines.Count == 0)
-        {
-            return;
-        }
+        if (order.OrderLines.Count == 0) return;
+        if (!order.OrderLines.All(l => l.Livree)) return;
 
-        if (!order.OrderLines.All(line => line.Livree))
-        {
-            return;
-        }
-
-        if (string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
+        if (string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase)) return;
 
         await UpdateOrderStatusAsync(order, "Livrée", isReverting: false);
     }
 
-    private void ApplyFilters()
+    private Task DebouncedApplyFiltersAsync()
     {
-        IEnumerable<OrderStatusEntry> filteredOrders = _allOrders;
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+        var token = _searchCts.Token;
 
-        var query = SearchQuery?.Trim();
-
-        if (!string.IsNullOrWhiteSpace(query))
+        return Task.Run(async () =>
         {
-            filteredOrders = filteredOrders.Where(order => order.MatchesQuery(query));
-            CanShowMore = false;
+            try
+            {
+                await Task.Delay(300, token).ConfigureAwait(false);
+                if (token.IsCancellationRequested) return;
+
+                await ApplyFiltersAsync().ConfigureAwait(false);
+            }
+            catch { /* ignore */ }
+        });
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        var query = (SearchQuery ?? string.Empty).Trim();
+        var isQuery = !string.IsNullOrWhiteSpace(query);
+
+        List<OrderStatusEntry> finalOrders;
+
+        if (isQuery)
+        {
+            finalOrders = _allOrders.Where(o => o.MatchesQuery(query)).ToList();
+            await MainThread.InvokeOnMainThreadAsync(() => CanShowMore = false);
         }
         else if (IsReservationMode)
         {
-            filteredOrders = filteredOrders
-                .Where(order =>
-                    !order.PickupDate.HasValue
-                    || (order.PickupDate.Value.Date >= StartDate.Date
-                        && order.PickupDate.Value.Date <= EndDate.Date))
-                .OrderByDescending(order => order.OrderDate);
+            var start = StartDate.Date;
+            var end = EndDate.Date;
 
-            CanShowMore = false;
+            finalOrders = _allOrders
+                .Where(o => !o.PickupDate.HasValue || (o.PickupDate.Value.Date >= start && o.PickupDate.Value.Date <= end))
+                .OrderByDescending(o => o.OrderDate)
+                .ToList();
+
+            await MainThread.InvokeOnMainThreadAsync(() => CanShowMore = false);
         }
         else
         {
             var today = DateTime.Today;
-            var todaysOrders = filteredOrders
-                .Where(order => order.PickupDate?.Date == today)
-                .OrderByDescending(order => order.OrderDate)
+
+            var todaysOrders = _allOrders
+                .Where(o => o.PickupDate?.Date == today)
+                .OrderByDescending(o => o.OrderDate)
                 .ToList();
 
-            CanShowMore = _isShowingLimitedOrders && todaysOrders.Count > 3;
+            var canShowMore = _isShowingLimitedOrders && todaysOrders.Count > 3;
 
-            filteredOrders = _isShowingLimitedOrders
-                ? todaysOrders.Take(3)
+            finalOrders = _isShowingLimitedOrders
+                ? todaysOrders.Take(3).ToList()
                 : todaysOrders;
+
+            await MainThread.InvokeOnMainThreadAsync(() => CanShowMore = canShowMore);
         }
 
-        var finalOrders = filteredOrders.ToList();
-
-        MainThread.BeginInvokeOnMainThread(() =>
+        await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            Orders = new ObservableCollection<OrderStatusEntry>(finalOrders);
+            Orders.Clear();
+            foreach (var o in finalOrders)
+                Orders.Add(o);
+
             Subtitle = IsReservationMode
                 ? $"Réservations : {finalOrders.Count}"
                 : $"Commandes : {finalOrders.Count}";
@@ -744,51 +715,31 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private void ShowMoreOrders()
     {
-        if (!CanShowMore)
-        {
-            return;
-        }
-
+        if (!CanShowMore) return;
         _isShowingLimitedOrders = false;
-        ApplyFilters();
+        _ = ApplyFiltersAsync();
     }
 
     private static string? NormalizeOrderStateForApi(string status)
     {
-        if (string.Equals(status, "Traitée", StringComparison.OrdinalIgnoreCase))
-        {
-            return "traite";
-        }
-
-        if (string.Equals(status, "Livrée", StringComparison.OrdinalIgnoreCase))
-        {
-            return "livre";
-        }
-
+        if (string.Equals(status, "Traitée", StringComparison.OrdinalIgnoreCase)) return "traite";
+        if (string.Equals(status, "Livrée", StringComparison.OrdinalIgnoreCase)) return "livre";
         return null;
     }
 
     private async Task ConfirmAndDeleteReservationAsync(OrderStatusEntry? order)
     {
-        if (order is null || !IsReservationMode)
-        {
-            return;
-        }
+        if (order is null || !IsReservationMode) return;
 
         var isConfirmed = await RequestReservationDeletionAsync(order.OrderId).ConfigureAwait(false);
+        if (!isConfirmed) return;
 
-        if (!isConfirmed)
-        {
-            return;
-        }
-
-        const string endpoint = "/reserver/commades/supprimer";
+        const string endpoint = "/reserver/commandes/supprimer";
         var request = new DeleteReservationRequest { Id = order.OrderId };
 
         try
         {
             var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
-
             if (!success)
             {
                 await ShowLoadErrorAsync("Impossible de supprimer cette réservation.");
@@ -861,43 +812,29 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private void EnsureReservationStatuses()
     {
-        if (!IsReservationMode || ReservationStatuses.Count > 0)
-        {
-            return;
-        }
+        if (!IsReservationMode || ReservationStatuses.Count > 0) return;
 
         foreach (var status in _availableStatuses)
-        {
             ReservationStatuses.Add(new ReservationStatusDisplay(status));
-        }
     }
 
     private async Task OnReservationStatusSelectedAsync(ReservationStatusDisplay? status)
     {
-        if (status is null)
-        {
-            return;
-        }
+        if (status is null) return;
 
         foreach (var tile in ReservationStatuses)
-        {
             tile.IsSelected = ReferenceEquals(tile, status);
-        }
 
         Status = status.Status;
 
         if (_hasLoaded)
-        {
             await ReloadWithFiltersAsync().ConfigureAwait(false);
-        }
     }
 
     public Task ReloadWithFiltersAsync()
     {
         if (string.IsNullOrWhiteSpace(Status))
-        {
             return Task.CompletedTask;
-        }
 
         return LoadStatusAsync();
     }
@@ -905,9 +842,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     private void EnsureValidDateRange()
     {
         if (EndDate < StartDate)
-        {
             EndDate = StartDate;
-        }
     }
 
     private static OrderByStatus MapReservationOrder(ReservationOrder order, string? fallbackStatus)
@@ -941,18 +876,12 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private void UpdateSelectedReservationCount()
     {
-        if (!IsReservationMode)
-        {
-            return;
-        }
+        if (!IsReservationMode) return;
 
         var selected = ReservationStatuses.FirstOrDefault(t => t.IsSelected)
                        ?? ReservationStatuses.FirstOrDefault(t => string.Equals(t.Status, Status, StringComparison.OrdinalIgnoreCase));
 
-        if (selected is null)
-        {
-            return;
-        }
+        if (selected is null) return;
 
         selected.Count = Orders?.Count ?? 0;
     }
@@ -960,9 +889,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     private static DateTime TryParseDate(string? dateText)
     {
         if (DateTime.TryParse(dateText, out var parsed))
-        {
             return parsed;
-        }
 
         return DateTime.Now;
     }
@@ -974,5 +901,4 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             await DialogService.DisplayAlertAsync("Erreur", message, "OK");
         });
     }
-
 }

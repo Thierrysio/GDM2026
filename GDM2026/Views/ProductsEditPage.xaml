@@ -36,7 +36,7 @@
                 <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
             </CollectionView.ItemsLayout>
             <CollectionView.EmptyView>
-                <Label Text="Aucun produit à afficher."
+                <Label Text="Aucun produit ï¿½ afficher."
                        TextColor="{StaticResource GoldText}"
                        HorizontalTextAlignment="Center" />
             </CollectionView.EmptyView>

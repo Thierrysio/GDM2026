@@ -11,6 +11,7 @@
         <Color x:Key="GoldText">#D4AF37</Color>
         <Color x:Key="CardBackground">#0B0B0B</Color>
         <Color x:Key="CardBorder">#000000</Color>
+
         <Style TargetType="Label">
             <Setter Property="TextColor" Value="{StaticResource GoldText}" />
         </Style>
@@ -29,6 +30,7 @@
 
     <ScrollView>
         <VerticalStackLayout Padding="24" Spacing="16">
+
             <Border
                 Background="{StaticResource CardBackground}"
                 Stroke="{StaticResource CardBorder}"
@@ -130,6 +132,7 @@
                         <Label Text="Aucune réservation trouvée pour ces critères." TextColor="{StaticResource GoldText}" />
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
+
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Border
@@ -141,18 +144,22 @@
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="16" />
                             </Border.StrokeShape>
+
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer
                                     Command="{Binding BindingContext.ToggleOrderDetailsCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
                                     CommandParameter="{Binding .}" />
                             </Border.GestureRecognizers>
+
                             <Border.Triggers>
                                 <DataTrigger Binding="{Binding IsExpanded}" TargetType="Border" Value="True">
                                     <Setter Property="StrokeThickness" Value="2.5" />
                                     <Setter Property="BackgroundColor" Value="#121212" />
                                 </DataTrigger>
                             </Border.Triggers>
+
                             <VerticalStackLayout Spacing="10">
+
                                 <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto,auto" ColumnSpacing="8">
                                     <Label
                                         Grid.Row="0"
@@ -161,6 +168,7 @@
                                         FontSize="16"
                                         FontAttributes="Bold"
                                         TextColor="{StaticResource GoldText}" />
+
                                     <Label
                                         Grid.Row="0"
                                         Grid.Column="1"
@@ -168,6 +176,7 @@
                                         FontSize="15"
                                         TextColor="{StaticResource GoldText}"
                                         HorizontalOptions="End" />
+
                                     <Label
                                         Grid.Row="1"
                                         Grid.Column="0"
@@ -175,6 +184,7 @@
                                         FontSize="13"
                                         Opacity="0.7"
                                         TextColor="{StaticResource GoldText}" />
+
                                     <Label
                                         Grid.Row="2"
                                         Grid.Column="0"
@@ -185,6 +195,7 @@
                                         TextColor="{StaticResource GoldText}"
                                         HorizontalOptions="Start"
                                         IsVisible="{Binding HasPickupDate}" />
+
                                     <Border
                                         Grid.Row="1"
                                         Grid.Column="1"
@@ -204,10 +215,11 @@
                                     </Border>
                                 </Grid>
 
-                                <Grid ColumnDefinitions="*,auto" ColumnSpacing="12" RowDefinitions="auto">
-                                    <VerticalStackLayout Spacing="4" Grid.Column="0">
+                                <!-- ✅ ACTIONS : Picker à gauche, boutons à droite (Annuler + Supprimer) -->
+                                <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto" ColumnSpacing="12" RowSpacing="6">
+
+                                    <VerticalStackLayout Spacing="4" Grid.Row="0" Grid.Column="0">
                                         <Picker
-                                            Grid.Column="0"
                                             ItemsSource="{Binding BindingContext.AvailableStatuses, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
                                             SelectedItem="{Binding SelectedStatusOption, Mode=TwoWay}"
                                             BackgroundColor="#121212"
@@ -216,22 +228,49 @@
                                             TextColor="{StaticResource GoldText}"
                                             TitleColor="{StaticResource GoldText}" />
                                     </VerticalStackLayout>
-                                    <Button
-                                        Grid.Column="1"
-                                        Text="Annuler"
-                                        Command="{Binding BindingContext.RevertStatusCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
-                                        CommandParameter="{Binding .}"
-                                        IsVisible="{Binding CanRevert}"
-                                        BackgroundColor="Transparent"
-                                        BorderColor="{StaticResource GoldText}"
-                                        BorderWidth="1.5"
-                                        CornerRadius="10"
-                                        TextColor="{StaticResource GoldText}" />
+
+                                    <FlexLayout
+                                        Grid.Row="1"
+                                        Grid.Column="0"
+                                        Grid.ColumnSpan="2"
+                                        Wrap="Wrap"
+                                        JustifyContent="End"
+                                        AlignItems="Start"
+                                        AlignContent="Start">
+
+                                        <Button
+                                            Text="Annuler"
+                                            Command="{Binding BindingContext.RevertStatusCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding CanRevert}"
+                                            BackgroundColor="Transparent"
+                                            BorderColor="{StaticResource GoldText}"
+                                            BorderWidth="1.5"
+                                            CornerRadius="10"
+                                            WidthRequest="110"
+                                            Margin="5,5,0,0"
+                                            TextColor="{StaticResource GoldText}" />
+
+                                        <Button
+                                            Text="Supprimer"
+                                            Command="{Binding BindingContext.DeleteReservationCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="Transparent"
+                                            BorderColor="Tomato"
+                                            BorderWidth="1.5"
+                                            CornerRadius="10"
+                                            WidthRequest="110"
+                                            Margin="5,5,0,0"
+                                            TextColor="Tomato" />
+
+                                    </FlexLayout>
+
                                 </Grid>
 
                                 <VerticalStackLayout Spacing="10" IsVisible="{Binding IsExpanded}">
                                     <Border BackgroundColor="#0D0D0D" Padding="10" StrokeThickness="0">
                                         <VerticalStackLayout Spacing="6">
+
                                             <Grid ColumnDefinitions="auto,*" ColumnSpacing="8" IsVisible="{Binding IsLoadingDetails}">
                                                 <ActivityIndicator Grid.Column="0" IsVisible="True" IsRunning="True" />
                                                 <Label Grid.Column="1" Text="Chargement des détails..." Opacity="0.8" />
@@ -249,6 +288,7 @@
                                                 <CollectionView.EmptyView>
                                                     <Label Text="Aucun détail trouvé pour cette commande." />
                                                 </CollectionView.EmptyView>
+
                                                 <CollectionView.ItemTemplate>
                                                     <DataTemplate>
                                                         <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto" Padding="8" ColumnSpacing="12">
@@ -256,9 +296,7 @@
                                                                 <Label Text="{Binding LeProduit.NomProduit}" FontAttributes="Bold" />
                                                                 <Label Text="{Binding Quantite, StringFormat='Quantité : {0}'}" Opacity="0.8" />
                                                                 <Label Text="{Binding PrixRetenu, StringFormat='Prix : {0:C}'}" Opacity="0.8" />
-                                                                <Label
-                                                                    Text="À traiter"
-                                                                    Opacity="0.8">
+                                                                <Label Text="À traiter" Opacity="0.8">
                                                                     <Label.Triggers>
                                                                         <DataTrigger TargetType="Label" Binding="{Binding Livree}" Value="True">
                                                                             <Setter Property="Text" Value="Livré" />
@@ -269,17 +307,6 @@
                                                                             <Setter Property="Text" Value="Traité" />
                                                                             <Setter Property="TextColor" Value="#5BE35B" />
                                                                             <Setter Property="Opacity" Value="1" />
-                                                                        </DataTrigger>
-                                                                    </Label.Triggers>
-                                                                </Label>
-                                                                <Label
-                                                                    Text="Livré"
-                                                                    TextColor="#5BE35B"
-                                                                    Opacity="1"
-                                                                    IsVisible="False">
-                                                                    <Label.Triggers>
-                                                                        <DataTrigger TargetType="Label" Binding="{Binding Livree}" Value="True">
-                                                                            <Setter Property="IsVisible" Value="True" />
                                                                         </DataTrigger>
                                                                     </Label.Triggers>
                                                                 </Label>
@@ -351,9 +378,11 @@
                                                     </DataTemplate>
                                                 </CollectionView.ItemTemplate>
                                             </CollectionView>
+
                                         </VerticalStackLayout>
                                     </Border>
                                 </VerticalStackLayout>
+
                             </VerticalStackLayout>
                         </Border>
                     </DataTemplate>
@@ -371,6 +400,7 @@
                 TextColor="{StaticResource GoldText}"
                 Padding="14,10"
                 HorizontalOptions="Center" />
+
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
