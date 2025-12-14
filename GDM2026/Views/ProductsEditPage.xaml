@@ -5,11 +5,9 @@
              BackgroundColor="#0B0B0B"
              Title="Modifier un produit">
 
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Retour"
-                     Priority="0"
-                     Command="{Binding GoBackCommand}" />
-    </ContentPage.ToolbarItems>
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior Command="{Binding GoBackCommand}" />
+    </Shell.BackButtonBehavior>
 
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>

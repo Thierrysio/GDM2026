@@ -674,6 +674,22 @@ public class ProductsEditViewModel : BaseViewModel
             return;
         }
 
+        if (Shell.Current != null)
+        {
+            var confirmed = await MainThread.InvokeOnMainThreadAsync(async () =>
+                await Shell.Current.DisplayAlert(
+                    "Confirmer la mise à jour",
+                    $"Mettre à jour le produit \"{EditProductName.Trim()}\" ?",
+                    "Oui",
+                    "Annuler"));
+
+            if (!confirmed)
+            {
+                EditStatusMessage = "Mise à jour annulée.";
+                return;
+            }
+        }
+
         var categoryName = SelectedCategory?.Name?.Trim()
             ?? (string.IsNullOrWhiteSpace(EditCategory) ? string.Empty : EditCategory.Trim());
 
