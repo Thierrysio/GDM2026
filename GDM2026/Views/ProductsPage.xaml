@@ -84,6 +84,39 @@
                            TextColor="{StaticResource GoldText}"
                            FontAttributes="Bold" />
 
+                    <CollectionView ItemsSource="{Binding SelectedImages}"
+                                    SelectionMode="None"
+                                    HeightRequest="110"
+                                    IsVisible="{Binding HasSelectedImages}">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border BackgroundColor="#111"
+                                        Stroke="#333"
+                                        Padding="6"
+                                        StrokeThickness="1"
+                                        WidthRequest="90"
+                                        HeightRequest="100">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="6">
+                                        <Image Source="{Binding FullUrl}"
+                                               Aspect="AspectFill"
+                                               HeightRequest="60" />
+                                        <Label Text="{Binding DisplayName}"
+                                               FontSize="11"
+                                               LineBreakMode="TailTruncation"
+                                               HorizontalTextAlignment="Center"
+                                               TextColor="{StaticResource GoldText}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
                     <Border BackgroundColor="#1B1B1B"
                             Stroke="#2D2D2D"
                             Padding="12">
@@ -105,8 +138,8 @@
                                                Color="{StaticResource GoldText}" />
 
                             <CollectionView ItemsSource="{Binding FilteredImageLibrary}"
-                                            SelectionMode="Single"
-                                            SelectedItem="{Binding SelectedLibraryImage}"
+                                            SelectionMode="Multiple"
+                                            SelectedItems="{Binding SelectedLibraryImages}"
                                             HeightRequest="200">
                                 <CollectionView.ItemsLayout>
                                     <GridItemsLayout Orientation="Vertical" Span="3" />
