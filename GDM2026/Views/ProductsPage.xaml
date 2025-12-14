@@ -73,12 +73,29 @@
                         </VerticalStackLayout>
                     </Grid>
 
-                    <Label Text="Cat�gorie"
-                           TextColor="{StaticResource GoldText}"
-                           FontAttributes="Bold" />
-                    <Entry Placeholder="Cat�gorie du produit"
-                           Text="{Binding NewProductCategory}"
-                           TextColor="{StaticResource GoldText}" />
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Cat�gorie"
+                               TextColor="{StaticResource GoldText}"
+                               FontAttributes="Bold" />
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                            <ActivityIndicator Grid.Column="0"
+                                               IsRunning="{Binding IsCategoriesLoading}"
+                                               IsVisible="{Binding IsCategoriesLoading}"
+                                               Color="{StaticResource GoldText}" />
+                            <Picker Grid.Column="1"
+                                    Title="S�lectionnez une cat�gorie"
+                                    ItemsSource="{Binding Categories}"
+                                    ItemDisplayBinding="{Binding DisplayName}"
+                                    SelectedItem="{Binding SelectedCategory}"
+                                    TextColor="{StaticResource GoldText}"
+                                    TitleColor="#7E7030"
+                                    BackgroundColor="#111" />
+                        </Grid>
+                        <Label Text="{Binding CategoryStatusMessage}"
+                               FontSize="12"
+                               TextColor="{StaticResource GoldText}"
+                               Opacity="0.8" />
+                    </VerticalStackLayout>
 
                     <Label Text="{Binding SelectedImageName}"
                            TextColor="{StaticResource GoldText}"
@@ -173,7 +190,9 @@
                     <Button Text="Cr�er le produit"
                             Command="{Binding SubmitProductCommand}"
                             BackgroundColor="#C18F1A"
-                            TextColor="{StaticResource GoldText}" />
+                            TextColor="{StaticResource GoldText}"
+                            Margin="0,6,0,0"
+                            ZIndex="2" />
 
                     <Label Text="{Binding CreationStatusMessage}"
                            TextColor="{Binding CreationStatusColor}"

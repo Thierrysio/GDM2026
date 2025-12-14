@@ -46,6 +46,11 @@ public class ProductsViewModel : BaseViewModel
     private string _selectedImageName = "Aucune image sélectionnée.";
     private List<string> _selectedImageUrls = new();
 
+    private bool _categoriesLoaded;
+    private bool _isCategoriesLoading;
+    private string _categoryStatusMessage = "Choisissez une catégorie pour le produit.";
+    private SubCategory? _selectedCategory;
+
     public ProductsViewModel()
     {
         Products = new ObservableCollection<ProductCatalogItem>();
@@ -53,6 +58,7 @@ public class ProductsViewModel : BaseViewModel
         ImageLibrary = new ObservableCollection<AdminImage>();
         FilteredImageLibrary = new ObservableCollection<AdminImage>();
         SelectedImages = new ObservableCollection<AdminImage>();
+        Categories = new ObservableCollection<SubCategory>();
 
         RefreshCommand = new Command(async () => await LoadProductsAsync(forceRefresh: true));
         ToggleFormCommand = new Command(async () => await ToggleFormAsync());
@@ -68,6 +74,8 @@ public class ProductsViewModel : BaseViewModel
     public ObservableCollection<AdminImage> FilteredImageLibrary { get; }
 
     public ObservableCollection<AdminImage> SelectedImages { get; }
+
+    public ObservableCollection<SubCategory> Categories { get; }
 
     public ICommand RefreshCommand { get; }
 
@@ -107,6 +115,7 @@ public class ProductsViewModel : BaseViewModel
             if (SetProperty(ref _isFormVisible, value) && value)
             {
                 _ = EnsureImageLibraryLoadedAsync();
+                _ = EnsureCategoriesLoadedAsync();
             }
         }
     }
@@ -240,6 +249,34 @@ public class ProductsViewModel : BaseViewModel
 
     public bool HasSelectedImages => SelectedImages.Any();
 
+    public bool IsCategoriesLoading
+    {
+        get => _isCategoriesLoading;
+        set => SetProperty(ref _isCategoriesLoading, value);
+    }
+
+    public string CategoryStatusMessage
+    {
+        get => _categoryStatusMessage;
+        set => SetProperty(ref _categoryStatusMessage, value);
+    }
+
+    public SubCategory? SelectedCategory
+    {
+        get => _selectedCategory;
+        set
+        {
+            if (SetProperty(ref _selectedCategory, value))
+            {
+                NewProductCategory = value?.DisplayName ?? string.Empty;
+                CategoryStatusMessage = value is null
+                    ? "Choisissez une catégorie pour le produit."
+                    : $"Catégorie sélectionnée : {value.DisplayName}";
+                RefreshSubmitAvailability();
+            }
+        }
+    }
+
     public async Task InitializeAsync()
     {
         if (!_sessionPrepared)
@@ -250,6 +287,11 @@ public class ProductsViewModel : BaseViewModel
         if (!_hasLoaded)
         {
             await LoadProductsAsync();
+        }
+
+        if (!_categoriesLoaded)
+        {
+            await EnsureCategoriesLoadedAsync();
         }
     }
 
@@ -423,6 +465,7 @@ public class ProductsViewModel : BaseViewModel
         if (IsFormVisible)
         {
             await EnsureImageLibraryLoadedAsync();
+            await EnsureCategoriesLoadedAsync();
         }
     }
 
@@ -434,6 +477,16 @@ public class ProductsViewModel : BaseViewModel
         }
 
         await LoadImageLibraryAsync();
+    }
+
+    private async Task EnsureCategoriesLoadedAsync()
+    {
+        if (_categoriesLoaded || IsCategoriesLoading)
+        {
+            return;
+        }
+
+        await LoadCategoriesAsync();
     }
 
     private async Task LoadImageLibraryAsync()
@@ -473,6 +526,45 @@ public class ProductsViewModel : BaseViewModel
         finally
         {
             IsImageLibraryLoading = false;
+        }
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        try
+        {
+            IsCategoriesLoading = true;
+            CategoryStatusMessage = "Chargement des catégories…";
+
+            var categories = await _apis.GetListAsync<SubCategory>("/api/crud/categorie/list").ConfigureAwait(false);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                Categories.Clear();
+                foreach (var category in categories)
+                {
+                    Categories.Add(category);
+                }
+
+                _categoriesLoaded = true;
+                CategoryStatusMessage = Categories.Count == 0
+                    ? "Aucune catégorie disponible."
+                    : "Sélectionnez une catégorie pour ce produit.";
+            });
+        }
+        catch (HttpRequestException ex)
+        {
+            CategoryStatusMessage = "Impossible de charger les catégories.";
+            Debug.WriteLine($"[PRODUCTS] Erreur HTTP (categories) : {ex}");
+        }
+        catch (Exception ex)
+        {
+            CategoryStatusMessage = "Erreur lors du chargement des catégories.";
+            Debug.WriteLine($"[PRODUCTS] Erreur inattendue (categories) : {ex}");
+        }
+        finally
+        {
+            IsCategoriesLoading = false;
         }
     }
 
@@ -672,6 +764,7 @@ public class ProductsViewModel : BaseViewModel
         NewProductCategory = string.Empty;
         ProductPriceText = string.Empty;
         ProductQuantityText = string.Empty;
+        SelectedCategory = null;
         SelectedLibraryImages = null;
         _selectedImageUrls.Clear();
         SelectedImages.Clear();
