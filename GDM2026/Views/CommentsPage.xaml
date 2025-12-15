@@ -39,7 +39,7 @@
                            TextColor="{StaticResource GoldText}"
                            FontAttributes="Bold" />
                     <Editor HeightRequest="140"
-                            Placeholder="Rédigez votre commentaire"
+                            Placeholder="Rï¿½digez votre commentaire"
                             Text="{Binding CommentText}" />
 
                     <Label Text="Note"
@@ -57,16 +57,16 @@
                     <Label Text="Nom de l'utilisateur"
                            TextColor="{StaticResource GoldText}"
                            FontAttributes="Bold" />
-                    <Entry Placeholder="Nom et prénom"
+                    <Entry Placeholder="Nom et prï¿½nom"
                            Text="{Binding UserName}" />
 
-                    <Label Text="Produit concerné"
+                    <Label Text="Produit concernï¿½"
                            TextColor="{StaticResource GoldText}"
                            FontAttributes="Bold" />
                     <Entry Placeholder="Nom du produit"
                            Text="{Binding ProductName}" />
 
-                    <Button Text="Préparer le commentaire"
+                    <Button Text="Prï¿½parer le commentaire"
                             Command="{Binding SubmitCommand}"
                             BackgroundColor="#C18F1A"
                             TextColor="{StaticResource GoldText}" />
@@ -103,7 +103,7 @@
                                   IsSwipeEnabled="True"
                                   IndicatorView="CommentsIndicator">
                         <CarouselView.EmptyView>
-                            <Label Text="Aucun commentaire à afficher."
+                            <Label Text="Aucun commentaire ï¿½ afficher."
                                    HorizontalTextAlignment="Center"
                                    TextColor="{StaticResource GoldText}"
                                    Opacity="0.6" />
