@@ -48,19 +48,29 @@
                            FontAttributes="Bold"
                            TextColor="{StaticResource GoldText}" />
 
-                    <Label Text="Date de début (format ISO, ex: 2025-11-17T08:00:00Z)"
+                    <Label Text="Date de début"
                            FontSize="13"
                            TextColor="{StaticResource GoldText}" />
-                    <Entry Text="{Binding DateDebutText}"
-                           Placeholder="Date de début"
-                           TextColor="{StaticResource GoldText}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <DatePicker Grid.Column="0"
+                                    Date="{Binding DateDebutDate}"
+                                    TextColor="{StaticResource GoldText}" />
+                        <TimePicker Grid.Column="1"
+                                    Time="{Binding DateDebutTime}"
+                                    TextColor="{StaticResource GoldText}" />
+                    </Grid>
 
-                    <Label Text="Date de fin (format ISO, ex: 2025-11-21T04:01:00Z)"
+                    <Label Text="Date de fin"
                            FontSize="13"
                            TextColor="{StaticResource GoldText}" />
-                    <Entry Text="{Binding DateFinText}"
-                           Placeholder="Date de fin"
-                           TextColor="{StaticResource GoldText}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <DatePicker Grid.Column="0"
+                                    Date="{Binding DateFinDate}"
+                                    TextColor="{StaticResource GoldText}" />
+                        <TimePicker Grid.Column="1"
+                                    Time="{Binding DateFinTime}"
+                                    TextColor="{StaticResource GoldText}" />
+                    </Grid>
 
                     <Label Text="Prix remisé"
                            FontAttributes="Bold"

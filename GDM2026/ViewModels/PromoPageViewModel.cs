@@ -24,8 +24,10 @@ public class PromoPageViewModel : BaseViewModel
     private bool _categoriesLoaded;
 
     private string _statusMessage = "Chargez les promos pour commencer.";
-    private string _dateDebutText = string.Empty;
-    private string _dateFinText = string.Empty;
+    private DateTime _dateDebutDate = DateTime.Today;
+    private TimeSpan _dateDebutTime = TimeSpan.Zero;
+    private DateTime _dateFinDate = DateTime.Today;
+    private TimeSpan _dateFinTime = TimeSpan.Zero;
     private string _prixText = string.Empty;
     private string _productSearchText = string.Empty;
     private string _categorySearchText = string.Empty;
@@ -89,16 +91,44 @@ public class PromoPageViewModel : BaseViewModel
         set => SetProperty(ref _statusMessage, value);
     }
 
-    public string DateDebutText
+    public DateTime DateDebutDate
     {
-        get => _dateDebutText;
-        set => SetProperty(ref _dateDebutText, value);
+        get => _dateDebutDate;
+        set
+        {
+            if (SetProperty(ref _dateDebutDate, value))
+                RefreshCommands();
+        }
     }
 
-    public string DateFinText
+    public TimeSpan DateDebutTime
     {
-        get => _dateFinText;
-        set => SetProperty(ref _dateFinText, value);
+        get => _dateDebutTime;
+        set
+        {
+            if (SetProperty(ref _dateDebutTime, value))
+                RefreshCommands();
+        }
+    }
+
+    public DateTime DateFinDate
+    {
+        get => _dateFinDate;
+        set
+        {
+            if (SetProperty(ref _dateFinDate, value))
+                RefreshCommands();
+        }
+    }
+
+    public TimeSpan DateFinTime
+    {
+        get => _dateFinTime;
+        set
+        {
+            if (SetProperty(ref _dateFinTime, value))
+                RefreshCommands();
+        }
     }
 
     public string PrixText
@@ -527,21 +557,18 @@ public class PromoPageViewModel : BaseViewModel
         fin = default;
         prix = default;
 
-        if (!DateTime.TryParse(DateDebutText, out debut))
-        {
-            StatusMessage = "Date de début invalide.";
-            return false;
-        }
-
-        if (!DateTime.TryParse(DateFinText, out fin))
-        {
-            StatusMessage = "Date de fin invalide.";
-            return false;
-        }
+        debut = DateTime.SpecifyKind(DateDebutDate.Date + DateDebutTime, DateTimeKind.Local);
+        fin = DateTime.SpecifyKind(DateFinDate.Date + DateFinTime, DateTimeKind.Local);
 
         if (!double.TryParse(PrixText, out prix))
         {
             StatusMessage = "Prix invalide.";
+            return false;
+        }
+
+        if (fin < debut)
+        {
+            StatusMessage = "La date de fin doit être postérieure à la date de début.";
             return false;
         }
 
@@ -552,16 +579,20 @@ public class PromoPageViewModel : BaseViewModel
     {
         if (promo is null)
         {
-            DateDebutText = string.Empty;
-            DateFinText = string.Empty;
+            DateDebutDate = DateTime.Today;
+            DateFinDate = DateTime.Today;
+            DateDebutTime = TimeSpan.Zero;
+            DateFinTime = TimeSpan.Zero;
             PrixText = string.Empty;
             SelectedProduct = null;
             SelectedCategory = null;
             return;
         }
 
-        DateDebutText = promo.DateDebut?.ToString("o") ?? string.Empty;
-        DateFinText = promo.DateFin?.ToString("o") ?? string.Empty;
+        DateDebutDate = promo.DateDebut?.Date ?? DateTime.Today;
+        DateFinDate = promo.DateFin?.Date ?? DateTime.Today;
+        DateDebutTime = promo.DateDebut?.TimeOfDay ?? TimeSpan.Zero;
+        DateFinTime = promo.DateFin?.TimeOfDay ?? TimeSpan.Zero;
         PrixText = promo.Prix.ToString("0.##");
         SelectedProduct = promo.LeProduit;
         SelectedCategory = promo.LaCategoriePromo;
@@ -572,8 +603,6 @@ public class PromoPageViewModel : BaseViewModel
         return !IsBusy
             && SelectedProduct != null
             && SelectedCategory != null
-            && !string.IsNullOrWhiteSpace(DateDebutText)
-            && !string.IsNullOrWhiteSpace(DateFinText)
             && !string.IsNullOrWhiteSpace(PrixText);
     }
 
