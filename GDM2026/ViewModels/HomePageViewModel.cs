@@ -99,7 +99,6 @@ public partial class HomePageViewModel : BaseViewModel
             new("Partenaires", "Gestion des partenaires et fournisseurs."),
             new("Reservations", "Planning et suivi des réservations."),
             new("Produits", "Gérez le catalogue, les fiches et les stocks."),
-            new("Utilisateurs", "Comptes, rôles et informations des membres."),
             new("Commentaires", "Modération et suivi des avis."),
             new("Promo", "Codes promo, remises et campagnes."),
             new("Planning", "Calendrier et organisation des activités."),
@@ -195,11 +194,6 @@ public partial class HomePageViewModel : BaseViewModel
             || string.Equals(card.Title, "Catalogue", StringComparison.OrdinalIgnoreCase))
         {
             return Shell.Current.GoToAsync(nameof(ProductsPage), animate: false);
-        }
-
-        if (string.Equals(card.Title, "Utilisateurs", StringComparison.OrdinalIgnoreCase))
-        {
-            return Shell.Current.GoToAsync(nameof(UsersPage), animate: false);
         }
 
         if (string.Equals(card.Title, "Commentaires", StringComparison.OrdinalIgnoreCase))
