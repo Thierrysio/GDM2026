@@ -7,10 +7,6 @@
     Title="Planning"
     BackgroundColor="#0B0B0B">
 
-    <ContentPage.BindingContext>
-        <vm:PlanningViewModel />
-    </ContentPage.BindingContext>
-
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
         <Color x:Key="CardBackground">#101010</Color>

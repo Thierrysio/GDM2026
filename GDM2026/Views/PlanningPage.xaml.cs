@@ -4,17 +4,18 @@ namespace GDM2026
 {
     public partial class PlanningPage : ContentPage
     {
-        private PlanningViewModel ViewModel => (PlanningViewModel)BindingContext;
+        private readonly PlanningViewModel _viewModel = new();
 
         public PlanningPage()
         {
             InitializeComponent();
+            BindingContext = _viewModel;
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            await ViewModel.OnPageAppearingAsync();
+            await _viewModel.OnPageAppearingAsync();
         }
     }
 }
