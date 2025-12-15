@@ -18,6 +18,7 @@ namespace GDM2026.Services
         Task<TResponse> PostAsync<TRequest, TResponse>(string relativeUrl, TRequest body, CancellationToken ct = default);
         Task<bool> PostBoolAsync<TRequest>(string relativeUrl, TRequest body, CancellationToken ct = default);
         Task<bool> PutBoolAsync<TRequest>(string relativeUrl, TRequest body, CancellationToken ct = default);
+        Task<bool> DeleteAsync(string relativeUrl, CancellationToken ct = default);
 
         void SetBearerToken(string token);
     }
@@ -158,6 +159,18 @@ namespace GDM2026.Services
             if (resp.IsSuccessStatusCode) return true;
 
             await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
+            return false; // n’est jamais atteint si EnsureSuccess lève
+        }
+
+        // ---------- DELETE : bool succès/échec ----------
+        public async Task<bool> DeleteAsync(string relativeUrl, CancellationToken ct = default)
+        {
+            using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
+
+            using var resp = await _http.DeleteAsync(BuildUri(relativeUrl), reqCts.Token).ConfigureAwait(false);
+            if (resp.IsSuccessStatusCode) return true;
+
+            await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
             return false; // n’est jamais atteint si EnsureSuccess lève
         }
 

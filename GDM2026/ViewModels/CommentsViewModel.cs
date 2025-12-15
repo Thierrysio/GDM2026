@@ -2,11 +2,11 @@ using Microsoft.Maui.ApplicationModel;
 using GDM2026.Models;
 using GDM2026.Services;
 using Microsoft.Maui.Controls;
-using Microsoft.Maui.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -18,71 +18,23 @@ public class CommentsViewModel : BaseViewModel
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
 
-    private string _commentText = string.Empty;
-    private string _ratingText = string.Empty;
-    private DateTime _selectedDate = DateTime.Today;
-    private string _userName = string.Empty;
-    private string _productName = string.Empty;
-    private string _statusMessage = "Entrez un commentaire puis validez.";
-    private Color _statusColor = Colors.Gold;
-    private string _commentsStatusMessage = "Chargement des commentairesÖ";
+    private string _commentsStatusMessage = "Chargement des commentaires‚Ä¶";
     private bool _isRefreshing;
     private bool _isCommentsLoading;
     private bool _commentsLoaded;
+    private bool _isDeleting;
 
     public CommentsViewModel()
     {
-        SubmitCommand = new Command(async () => await SubmitAsync(), () => !IsBusy);
         RefreshCommentsCommand = new Command(async () => await LoadCommentsAsync(forceRefresh: true));
+        DeleteCommentCommand = new Command<CommentEntry>(async entry => await DeleteCommentAsync(entry), CanDeleteComment);
     }
-
-    public ICommand SubmitCommand { get; }
 
     public ICommand RefreshCommentsCommand { get; }
 
+    public ICommand DeleteCommentCommand { get; }
+
     public ObservableCollection<CommentEntry> Comments { get; } = new();
-
-    public string CommentText
-    {
-        get => _commentText;
-        set => SetProperty(ref _commentText, value);
-    }
-
-    public string RatingText
-    {
-        get => _ratingText;
-        set => SetProperty(ref _ratingText, value);
-    }
-
-    public DateTime SelectedDate
-    {
-        get => _selectedDate;
-        set => SetProperty(ref _selectedDate, value);
-    }
-
-    public string UserName
-    {
-        get => _userName;
-        set => SetProperty(ref _userName, value);
-    }
-
-    public string ProductName
-    {
-        get => _productName;
-        set => SetProperty(ref _productName, value);
-    }
-
-    public string StatusMessage
-    {
-        get => _statusMessage;
-        set => SetProperty(ref _statusMessage, value);
-    }
-
-    public Color StatusColor
-    {
-        get => _statusColor;
-        set => SetProperty(ref _statusColor, value);
-    }
 
     public string CommentsStatusMessage
     {
@@ -102,47 +54,18 @@ public class CommentsViewModel : BaseViewModel
         set => SetProperty(ref _isCommentsLoading, value);
     }
 
+    public bool IsDeleting
+    {
+        get => _isDeleting;
+        private set => SetProperty(ref _isDeleting, value);
+    }
+
     public async Task InitializeAsync()
     {
         if (!_commentsLoaded)
         {
             await PrepareSessionAsync();
             await LoadCommentsAsync();
-        }
-    }
-
-    private async Task SubmitAsync()
-    {
-        if (IsBusy)
-        {
-            return;
-        }
-
-        IsBusy = true;
-        (SubmitCommand as Command)?.ChangeCanExecute();
-
-        try
-        {
-            if (string.IsNullOrWhiteSpace(UserName)
-                || string.IsNullOrWhiteSpace(ProductName)
-                || string.IsNullOrWhiteSpace(CommentText)
-                || string.IsNullOrWhiteSpace(RatingText))
-            {
-                StatusColor = Colors.OrangeRed;
-                StatusMessage = "Merci de renseigner toutes les informations.";
-                return;
-            }
-
-            StatusColor = Colors.LightGreen;
-            StatusMessage = "Commentaire prÍt ‡ Ítre envoyÈ (intÈgration API ‡ rÈaliser).";
-        }
-        finally
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                IsBusy = false;
-                (SubmitCommand as Command)?.ChangeCanExecute();
-            });
         }
     }
 
@@ -155,7 +78,7 @@ public class CommentsViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[COMMENTS] Session non prÈparÈe : {ex}");
+            Debug.WriteLine($"[COMMENTS] Session non pr√©par√©e : {ex}");
         }
     }
 
@@ -170,31 +93,31 @@ public class CommentsViewModel : BaseViewModel
         {
             IsCommentsLoading = true;
             IsRefreshing = forceRefresh;
-            CommentsStatusMessage = forceRefresh ? "Actualisation des commentairesÖ" : "Chargement des commentairesÖ";
+            CommentsStatusMessage = forceRefresh ? "Actualisation des commentaires‚Ä¶" : "Chargement des commentaires‚Ä¶";
 
             var items = await FetchCommentsAsync().ConfigureAwait(false);
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 Comments.Clear();
-                foreach (var item in items)
+                foreach (var item in GetLatestComments(items))
                 {
                     Comments.Add(item);
                 }
 
                 _commentsLoaded = true;
                 CommentsStatusMessage = Comments.Count == 0
-                    ? "Aucun commentaire ‡ afficher."
-                    : $"{Comments.Count} commentaire(s) chargÈ(s).";
+                    ? "Aucun commentaire √† afficher."
+                    : $"{Comments.Count} dernier(s) commentaire(s) charg√©(s).";
             });
         }
         catch (TaskCanceledException)
         {
-            CommentsStatusMessage = "Chargement annulÈ.";
+            CommentsStatusMessage = "Chargement annul√©.";
         }
         catch (HttpRequestException ex)
         {
-            CommentsStatusMessage = "Impossible de rÈcupÈrer les commentaires.";
+            CommentsStatusMessage = "Impossible de r√©cup√©rer les commentaires.";
             Debug.WriteLine($"[COMMENTS] Erreur HTTP : {ex}");
         }
         catch (Exception ex)
@@ -206,6 +129,7 @@ public class CommentsViewModel : BaseViewModel
         {
             IsCommentsLoading = false;
             IsRefreshing = false;
+            RefreshCommands();
         }
     }
 
@@ -232,15 +156,12 @@ public class CommentsViewModel : BaseViewModel
                     return items;
                 }
 
-                if (lastResult == null)
-                {
-                    lastResult = items;
-                }
+                lastResult ??= items;
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
             {
                 lastError = ex;
-                Debug.WriteLine($"[COMMENTS] Endpoint ÈchouÈ '{endpoint}': {ex.Message}");
+                Debug.WriteLine($"[COMMENTS] Endpoint √©chou√© '{endpoint}': {ex.Message}");
             }
         }
 
@@ -255,5 +176,74 @@ public class CommentsViewModel : BaseViewModel
         }
 
         return new List<CommentEntry>();
+    }
+
+    private List<CommentEntry> GetLatestComments(List<CommentEntry> items)
+    {
+        return items
+            .OrderByDescending(c => c.DateCommentaire ?? DateTime.MinValue)
+            .ThenByDescending(c => c.Id)
+            .Take(5)
+            .ToList();
+    }
+
+    private bool CanDeleteComment(CommentEntry? entry) => entry is not null && !IsCommentsLoading && !IsDeleting;
+
+    private void RefreshCommands()
+    {
+        (DeleteCommentCommand as Command<CommentEntry>)?.ChangeCanExecute();
+    }
+
+    private async Task DeleteCommentAsync(CommentEntry? entry)
+    {
+        if (entry is null || IsDeleting)
+        {
+            return;
+        }
+
+        var shell = Shell.Current;
+        if (shell is not null)
+        {
+            var confirmed = await shell.DisplayAlert(
+                "Suppression",
+                $"Supprimer d√©finitivement le commentaire #{entry.Id} ?",
+                "Supprimer",
+                "Annuler");
+
+            if (!confirmed)
+            {
+                return;
+            }
+        }
+
+        try
+        {
+            IsDeleting = true;
+            RefreshCommands();
+            CommentsStatusMessage = "Suppression en cours‚Ä¶";
+
+            await PrepareSessionAsync();
+
+            var deleted = await _apis.DeleteAsync($"/commentaires/{entry.Id}");
+            if (deleted)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() => Comments.Remove(entry));
+                CommentsStatusMessage = "Commentaire supprim√©.";
+            }
+            else
+            {
+                CommentsStatusMessage = "Impossible de supprimer le commentaire.";
+            }
+        }
+        catch (Exception ex)
+        {
+            CommentsStatusMessage = "Erreur lors de la suppression.";
+            Debug.WriteLine($"[COMMENTS] Suppression √©chou√©e : {ex}");
+        }
+        finally
+        {
+            IsDeleting = false;
+            RefreshCommands();
+        }
     }
 }
