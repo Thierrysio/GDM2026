@@ -201,6 +201,11 @@ public partial class HomePageViewModel : BaseViewModel
             return Shell.Current.GoToAsync(nameof(CommentsPage), animate: false);
         }
 
+        if (string.Equals(card.Title, "Promo", StringComparison.OrdinalIgnoreCase))
+        {
+            return Shell.Current.GoToAsync(nameof(PromoPage), animate: false);
+        }
+
         return Shell.Current.GoToAsync(nameof(CategoryDetailPage), animate: false, new Dictionary<string, object>
         {
             { "card", card }
