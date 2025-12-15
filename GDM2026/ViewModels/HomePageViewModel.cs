@@ -17,6 +17,8 @@ public partial class HomePageViewModel : BaseViewModel
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
     private string _welcomeText = "Bonjour!";
+    private bool _isProfileMenuVisible;
+    private string _loyaltyBalanceText = "👑 85 couronnes cumulées";
 
     public HomePageViewModel()
     {
@@ -25,6 +27,7 @@ public partial class HomePageViewModel : BaseViewModel
 
         CategorySelectedCommand = new Command<CategoryCard>(async card => await NavigateToCategoryAsync(card));
         OrderStatusSelectedCommand = new Command<OrderStatusDisplay>(async status => await NavigateToOrderStatusAsync(status));
+        ToggleProfileMenuCommand = new Command(() => IsProfileMenuVisible = !IsProfileMenuVisible);
 
         LoadCategories();
     }
@@ -37,10 +40,24 @@ public partial class HomePageViewModel : BaseViewModel
 
     public ICommand OrderStatusSelectedCommand { get; }
 
+    public ICommand ToggleProfileMenuCommand { get; }
+
     public string WelcomeText
     {
         get => _welcomeText;
         set => SetProperty(ref _welcomeText, value);
+    }
+
+    public bool IsProfileMenuVisible
+    {
+        get => _isProfileMenuVisible;
+        set => SetProperty(ref _isProfileMenuVisible, value);
+    }
+
+    public string LoyaltyBalanceText
+    {
+        get => _loyaltyBalanceText;
+        set => SetProperty(ref _loyaltyBalanceText, value);
     }
 
     public async Task InitializeAsync()
