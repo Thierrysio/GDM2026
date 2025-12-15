@@ -23,6 +23,7 @@ namespace GDM2026
             Routing.RegisterRoute(nameof(UsersPage), typeof(UsersPage));
             Routing.RegisterRoute(nameof(CommentsPage), typeof(CommentsPage));
             Routing.RegisterRoute(nameof(ProductsEditPage), typeof(ProductsEditPage));
+            Routing.RegisterRoute(nameof(PromoPage), typeof(PromoPage));
         }
     }
 }
