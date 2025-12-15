@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.Views.PromoPage"
+             x:Name="PromoPageRoot"
+             BackgroundColor="#0B0B0B"
+             Title="Promotions">
+
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+        <Color x:Key="CardBackground">#151515</Color>
+    </ContentPage.Resources>
+
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior Command="{Binding GoBackCommand}" />
+    </Shell.BackButtonBehavior>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16">
+
+            <Label Text="Gestion des promotions"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{StaticResource GoldText}" />
+
+            <Label Text="{Binding StatusMessage}"
+                   FontSize="14"
+                   Opacity="0.9"
+                   TextColor="{StaticResource GoldText}" />
+
+            <Button Text="🔄 Recharger les promotions"
+                    Command="{Binding RefreshPromosCommand}"
+                    BackgroundColor="#252525"
+                    TextColor="{StaticResource GoldText}" />
+
+            <Border BackgroundColor="{StaticResource CardBackground}"
+                    Stroke="#000"
+                    StrokeThickness="1.2"
+                    Padding="18">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Formulaire promotion"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource GoldText}" />
+
+                    <Label Text="Date de début"
+                           FontSize="13"
+                           TextColor="{StaticResource GoldText}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <DatePicker Grid.Column="0"
+                                    Date="{Binding DateDebutDate}"
+                                    TextColor="{StaticResource GoldText}" />
+                        <TimePicker Grid.Column="1"
+                                    Time="{Binding DateDebutTime}"
+                                    TextColor="{StaticResource GoldText}" />
+                    </Grid>
+
+                    <Label Text="Date de fin"
+                           FontSize="13"
+                           TextColor="{StaticResource GoldText}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <DatePicker Grid.Column="0"
+                                    Date="{Binding DateFinDate}"
+                                    TextColor="{StaticResource GoldText}" />
+                        <TimePicker Grid.Column="1"
+                                    Time="{Binding DateFinTime}"
+                                    TextColor="{StaticResource GoldText}" />
+                    </Grid>
+
+                    <Label Text="Prix remisé"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource GoldText}" />
+                    <Entry Text="{Binding PrixText}"
+                           Keyboard="Numeric"
+                           Placeholder="Prix de la promo"
+                           TextColor="{StaticResource GoldText}" />
+
+                    <Label Text="Sélection du produit"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource GoldText}" />
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <SearchBar Grid.Column="0"
+                                   Placeholder="Rechercher un produit"
+                                   Text="{Binding ProductSearchText}"
+                                   SearchCommand="{Binding SearchProductsCommand}"
+                                   TextColor="{StaticResource GoldText}"
+                                   PlaceholderColor="#7E7030"
+                                   BackgroundColor="#111" />
+                        <Button Grid.Column="1"
+                                Text="🔍"
+                                Command="{Binding SearchProductsCommand}"
+                                BackgroundColor="#C18F1A"
+                                TextColor="#0B0B0B" />
+                    </Grid>
+
+                    <Label Text="{Binding SelectedProductLabel}"
+                           FontSize="13"
+                           TextColor="{StaticResource GoldText}" />
+
+                    <CollectionView ItemsSource="{Binding ProductResults}"
+                                    SelectionMode="Single"
+                                    SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
+                                    HeightRequest="180">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.EmptyView>
+                            <Label Text="Aucun produit à afficher"
+                                   HorizontalTextAlignment="Center"
+                                   TextColor="{StaticResource GoldText}" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border BackgroundColor="#101010"
+                                        Stroke="#000"
+                                        StrokeThickness="1"
+                                        Padding="12">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="{Binding DisplayName}"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource GoldText}" />
+                                        <Label Text="{Binding DisplayDescription}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource GoldText}"
+                                               Opacity="0.9"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="2" />
+                                        <Label Text="{Binding DisplayPrice}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource GoldText}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <Label Text="Sélection de la catégorie promo"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource GoldText}" />
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <SearchBar Grid.Column="0"
+                                   Placeholder="Rechercher une catégorie"
+                                   Text="{Binding CategorySearchText}"
+                                   SearchCommand="{Binding SearchCategoriesCommand}"
+                                   TextColor="{StaticResource GoldText}"
+                                   PlaceholderColor="#7E7030"
+                                   BackgroundColor="#111" />
+                        <Button Grid.Column="1"
+                                Text="🔍"
+                                Command="{Binding SearchCategoriesCommand}"
+                                BackgroundColor="#C18F1A"
+                                TextColor="#0B0B0B" />
+                    </Grid>
+
+                    <Label Text="{Binding SelectedCategoryLabel}"
+                           FontSize="13"
+                           TextColor="{StaticResource GoldText}" />
+
+                    <CollectionView ItemsSource="{Binding CategoryResults}"
+                                    SelectionMode="Single"
+                                    SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
+                                    HeightRequest="140">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.EmptyView>
+                            <Label Text="Aucune catégorie à afficher"
+                                   HorizontalTextAlignment="Center"
+                                   TextColor="{StaticResource GoldText}" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border BackgroundColor="#101010"
+                                        Stroke="#000"
+                                        StrokeThickness="1"
+                                        Padding="12">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding DisplayName}"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource GoldText}" />
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Grid.Column="0"
+                                Text="Créer la promo"
+                                Command="{Binding CreatePromoCommand}"
+                                BackgroundColor="#C18F1A"
+                                TextColor="#0B0B0B" />
+                        <Button Grid.Column="1"
+                                Text="Mettre à jour"
+                                Command="{Binding UpdatePromoCommand}"
+                                BackgroundColor="#252525"
+                                TextColor="{StaticResource GoldText}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border BackgroundColor="{StaticResource CardBackground}"
+                    Stroke="#000"
+                    StrokeThickness="1.2"
+                    Padding="16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Promotions existantes"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource GoldText}" />
+
+                    <CollectionView ItemsSource="{Binding Promos}"
+                                    SelectionMode="Single"
+                                    SelectedItem="{Binding SelectedPromo, Mode=TwoWay}">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                        </CollectionView.ItemsLayout>
+
+                        <CollectionView.EmptyView>
+                            <Label Text="Aucune promotion pour le moment"
+                                   HorizontalTextAlignment="Center"
+                                   TextColor="{StaticResource GoldText}" />
+                        </CollectionView.EmptyView>
+
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border BackgroundColor="#101010"
+                                        Stroke="#000"
+                                        StrokeThickness="1"
+                                        Padding="12">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="{Binding DisplayPeriod}"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource GoldText}" />
+                                        <Label Text="{Binding DisplayPrix}"
+                                               FontSize="13"
+                                               TextColor="{StaticResource GoldText}" />
+                                        <Label Text="{Binding LeProduit.DisplayName}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource GoldText}" />
+                                        <Label Text="{Binding LaCategoriePromo.DisplayName}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource GoldText}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
