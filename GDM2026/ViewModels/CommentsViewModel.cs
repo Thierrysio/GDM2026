@@ -130,6 +130,8 @@ public class CommentsViewModel : BaseViewModel
                     Comments.Add(item);
 
                 _currentOffset += items.Count;
+
+                // Si on reçoit 5 éléments, on suppose qu’il y en a peut-être encore.
                 HasMoreComments = items.Count == PageSize;
                 _commentsLoaded = true;
 
@@ -224,7 +226,6 @@ public class CommentsViewModel : BaseViewModel
         {
             await _sessionService.LoadAsync();
 
-            // Important : évite un SetBearerToken(null) si ton service n’a rien chargé
             if (!string.IsNullOrWhiteSpace(_sessionService.AuthToken))
             {
                 _apis.SetBearerToken(_sessionService.AuthToken);
@@ -245,15 +246,14 @@ public class CommentsViewModel : BaseViewModel
     {
         var endpoint = $"/commentaires/getCommentaires?skip={skip}&take={take}";
 
-        // Tolérance : GetListAsync peut renvoyer null selon ton JSON / ta désérialisation
         var items = await _apis.GetListAsync<CommentEntry>(endpoint);
         items ??= new List<CommentEntry>();
 
         var sorted = OrderComments(items);
 
-        // On fait SIMPLE : si l’API gère skip/take, sorted contient déjà la page.
-        // Si l’API ignore les params et renvoie tout, on découpe côté client.
-        if (sorted.Count > take && skip >= 0)
+        // Si le backend applique skip/take, "sorted" est déjà la page (ou proche).
+        // Si le backend ignore skip/take et renvoie tout, on découpe ici :
+        if (sorted.Count > take)
             return sorted.Skip(skip).Take(take).ToList();
 
         return sorted.Take(take).ToList();
