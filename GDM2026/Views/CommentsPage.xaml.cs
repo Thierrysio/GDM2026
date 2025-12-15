@@ -26,7 +26,6 @@ public partial class CommentsPage : ContentPage
         catch (Exception ex)
         {
             Debug.WriteLine($"[COMMENTS_PAGE] Crash OnAppearing: {ex}");
-            // Evite un crash silencieux : on affiche un message
             await DisplayAlert("Erreur", "Impossible de charger les commentaires.", "OK");
         }
     }
