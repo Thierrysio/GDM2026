@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using GDM2026.ViewModels;
 
 namespace GDM2026
@@ -15,7 +16,15 @@ namespace GDM2026
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            await _viewModel.OnPageAppearingAsync();
+            try
+            {
+                await _viewModel.OnPageAppearingAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[PLANNING] OnAppearing crash: {ex}");
+                await DisplayAlert("Erreur", "Impossible de charger le planning.", "OK");
+            }
         }
     }
 }
