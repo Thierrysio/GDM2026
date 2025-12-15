@@ -39,6 +39,8 @@ public class PromoPageViewModel : BaseViewModel
     private List<PromoProduct> _allProducts = new();
     private List<PromoCategory> _allCategories = new();
 
+    public event EventHandler<string>? PromoSaved;
+
     private sealed class PromoListResponse
     {
         [JsonProperty("data")]
@@ -465,6 +467,8 @@ public class PromoPageViewModel : BaseViewModel
                     Promos.Insert(0, response.Data);
                     SelectedPromo = response.Data;
                 });
+
+                NotifyPromoSaved(response?.Message ?? "Promotion créée avec succès.");
             }
 
             StatusMessage = response?.Message ?? "Promotion créée avec succès.";
@@ -536,6 +540,8 @@ public class PromoPageViewModel : BaseViewModel
 
                     SelectedPromo = response.Data;
                 });
+
+                NotifyPromoSaved(response?.Message ?? "Promotion mise à jour.");
             }
 
             StatusMessage = response?.Message ?? "Promotion mise à jour.";
@@ -615,5 +621,10 @@ public class PromoPageViewModel : BaseViewModel
     {
         (CreatePromoCommand as Command)?.ChangeCanExecute();
         (UpdatePromoCommand as Command)?.ChangeCanExecute();
+    }
+
+    private void NotifyPromoSaved(string message)
+    {
+        MainThread.BeginInvokeOnMainThread(() => PromoSaved?.Invoke(this, message));
     }
 }
