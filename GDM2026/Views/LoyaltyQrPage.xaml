@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.Views.LoyaltyQrPage"
+             BackgroundColor="#0B0B0B">
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+        <Color x:Key="CardBackground">#151515</Color>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="18">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalOptions="Center">
+                <Label Text="🔳" FontSize="28" TextColor="{StaticResource GoldText}" />
+                <Label Grid.Column="1"
+                       Text="QR code Dantec Market"
+                       FontSize="26"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource GoldText}" />
+            </Grid>
+
+            <Border Background="{StaticResource CardBackground}"
+                    Stroke="#000000"
+                    StrokeThickness="1.5"
+                    Padding="22">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="16" HorizontalOptions="Center">
+                    <Border Padding="8" BackgroundColor="White" Stroke="#222" StrokeThickness="1" CornerRadius="12">
+                        <Image Source="{Binding QrImageUrl}"
+                               HeightRequest="264"
+                               WidthRequest="264"
+                               Aspect="AspectFit"
+                               Margin="0,4" />
+                    </Border>
+
+                    <Label Text="{Binding AccountLabel}"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"
+                           TextColor="{StaticResource GoldText}" />
+
+                    <Label Text="{Binding Description}"
+                           FontSize="16"
+                           HorizontalTextAlignment="Center"
+                           TextColor="{StaticResource GoldText}"
+                           Opacity="0.9" />
+
+                    <Label Text="{Binding EuroHint}"
+                           FontSize="14"
+                           HorizontalTextAlignment="Center"
+                           TextColor="{StaticResource GoldText}"
+                           Opacity="0.75" />
+
+                    <Button Text="Fermer"
+                            WidthRequest="180"
+                            BackgroundColor="#252525"
+                            TextColor="{StaticResource GoldText}"
+                            Clicked="OnCloseClicked" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

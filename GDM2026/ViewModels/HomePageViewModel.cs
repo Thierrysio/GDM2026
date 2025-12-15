@@ -28,6 +28,7 @@ public partial class HomePageViewModel : BaseViewModel
         CategorySelectedCommand = new Command<CategoryCard>(async card => await NavigateToCategoryAsync(card));
         OrderStatusSelectedCommand = new Command<OrderStatusDisplay>(async status => await NavigateToOrderStatusAsync(status));
         ToggleProfileMenuCommand = new Command(() => IsProfileMenuVisible = !IsProfileMenuVisible);
+        ShowLoyaltyQrCommand = new Command(async () => await ShowLoyaltyQrAsync());
 
         LoadCategories();
     }
@@ -41,6 +42,8 @@ public partial class HomePageViewModel : BaseViewModel
     public ICommand OrderStatusSelectedCommand { get; }
 
     public ICommand ToggleProfileMenuCommand { get; }
+
+    public ICommand ShowLoyaltyQrCommand { get; }
 
     public string WelcomeText
     {
@@ -218,5 +221,33 @@ public partial class HomePageViewModel : BaseViewModel
         {
             { "status", status.Status }
         });
+    }
+
+    private async Task ShowLoyaltyQrAsync()
+    {
+        if (Shell.Current == null)
+        {
+            return;
+        }
+
+        if (!_sessionService.IsAuthenticated)
+        {
+            var hasSession = await _sessionService.LoadAsync().ConfigureAwait(false);
+            if (!hasSession || _sessionService.CurrentUser == null)
+            {
+                if (Application.Current?.MainPage != null)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                        Application.Current.MainPage.DisplayAlert(
+                            "QR code fidélité",
+                            "Connectez-vous pour afficher le QR code de votre compte.",
+                            "OK"));
+                }
+
+                return;
+            }
+        }
+
+        await Shell.Current.GoToAsync(nameof(LoyaltyQrPage), animate: true);
     }
 }
