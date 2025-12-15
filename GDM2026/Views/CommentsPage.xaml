@@ -26,130 +26,78 @@
                    HorizontalTextAlignment="Center"
                    TextColor="{StaticResource GoldText}" />
 
-            <Border Background="{StaticResource CardBackground}"
-                    Stroke="#000000"
-                    StrokeThickness="1.5"
-                    Padding="20">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="18" />
-                </Border.StrokeShape>
+            <Label Text="{Binding CommentsStatusMessage}"
+                   FontSize="14"
+                   TextColor="{StaticResource GoldText}"
+                   Opacity="0.85" />
 
-                <VerticalStackLayout Spacing="14">
-                    <Label Text="Contenu du commentaire"
-                           TextColor="{StaticResource GoldText}"
-                           FontAttributes="Bold" />
-                    <Editor HeightRequest="140"
-                            Placeholder="R�digez votre commentaire"
-                            Text="{Binding CommentText}" />
+            <ActivityIndicator IsRunning="{Binding IsCommentsLoading}"
+                               IsVisible="{Binding IsCommentsLoading}"
+                               Color="{StaticResource GoldText}" />
 
-                    <Label Text="Note"
-                           TextColor="{StaticResource GoldText}"
-                           FontAttributes="Bold" />
-                    <Entry Placeholder="Entrez une note (ex: 4.5)"
-                           Keyboard="Numeric"
-                           Text="{Binding RatingText}" />
+            <RefreshView Command="{Binding RefreshCommentsCommand}"
+                         IsRefreshing="{Binding IsRefreshing}">
+                <CollectionView x:Name="CommentsCollection"
+                                 ItemsSource="{Binding Comments}"
+                                 SelectionMode="None"
+                                 ItemsLayout="VerticalGrid, 1"
+                                 Margin="0,8,0,0">
+                    <CollectionView.EmptyView>
+                        <Label Text="Aucun commentaire à afficher."
+                               HorizontalTextAlignment="Center"
+                               TextColor="{StaticResource GoldText}"
+                               Opacity="0.6" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="16"
+                                    Background="{StaticResource CardBackground}"
+                                    Stroke="#000000"
+                                    StrokeThickness="1.5"
+                                    Margin="0,0,0,12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="16" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="8">
+                                    <Label Text="{Binding DisplayComment}"
+                                           FontSize="16"
+                                           TextColor="{StaticResource GoldText}"
+                                           LineBreakMode="WordWrap" />
+                                    <Label Text="{Binding DisplayNote}"
+                                           FontSize="13"
+                                           TextColor="{StaticResource GoldText}"
+                                           Opacity="0.85" />
+                                    <Label Text="{Binding DisplayDate}"
+                                           FontSize="12"
+                                           TextColor="{StaticResource GoldText}"
+                                           Opacity="0.75" />
+                                    <Label Text="{Binding DisplayUser, StringFormat='Par : {0}'}"
+                                           FontSize="13"
+                                           TextColor="{StaticResource GoldText}"
+                                           Opacity="0.85" />
+                                    <Label Text="{Binding DisplayProduct, StringFormat='Produit : {0}'}"
+                                           FontSize="13"
+                                           TextColor="{StaticResource GoldText}"
+                                           Opacity="0.85" />
 
-                    <Label Text="Date du commentaire"
-                           TextColor="{StaticResource GoldText}"
-                           FontAttributes="Bold" />
-                    <DatePicker Date="{Binding SelectedDate}" />
+                                    <Button Text="Supprimer"
+                                            Command="{Binding BindingContext.DeleteCommentCommand, Source={x:Reference CommentsCollection}}"
+                                            CommandParameter="{Binding}"
+                                            BackgroundColor="#8B1A1A"
+                                            TextColor="{StaticResource GoldText}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
 
-                    <Label Text="Nom de l'utilisateur"
-                           TextColor="{StaticResource GoldText}"
-                           FontAttributes="Bold" />
-                    <Entry Placeholder="Nom et pr�nom"
-                           Text="{Binding UserName}" />
-
-                    <Label Text="Produit concern�"
-                           TextColor="{StaticResource GoldText}"
-                           FontAttributes="Bold" />
-                    <Entry Placeholder="Nom du produit"
-                           Text="{Binding ProductName}" />
-
-                    <Button Text="Pr�parer le commentaire"
-                            Command="{Binding SubmitCommand}"
-                            BackgroundColor="#C18F1A"
-                            TextColor="{StaticResource GoldText}" />
-
-                    <Label Text="{Binding StatusMessage}"
-                           TextColor="{Binding StatusColor}"
-                           FontSize="14"
-                           HorizontalTextAlignment="Center"
-                           LineBreakMode="WordWrap" />
-                </VerticalStackLayout>
-            </Border>
-
-            <Label Text="Commentaires existants"
-                   FontSize="24"
-                   FontAttributes="Bold"
-                   TextColor="{StaticResource GoldText}" />
-
-             <Label Text="{Binding CommentsStatusMessage}"
-                    FontSize="14"
-                    TextColor="{StaticResource GoldText}"
-                    Opacity="0.85" />
-
-             <ActivityIndicator IsRunning="{Binding IsCommentsLoading}"
-                                IsVisible="{Binding IsCommentsLoading}"
-                                Color="{StaticResource GoldText}" />
-
-             <RefreshView Command="{Binding RefreshCommentsCommand}"
-                          IsRefreshing="{Binding IsRefreshing}">
-                <VerticalStackLayout Spacing="12">
-                    <CarouselView ItemsSource="{Binding Comments}"
-                                  HeightRequest="220"
-                                  IsBounceEnabled="False"
-                                  Loop="False"
-                                  IsSwipeEnabled="True"
-                                  IndicatorView="CommentsIndicator">
-                        <CarouselView.EmptyView>
-                            <Label Text="Aucun commentaire � afficher."
-                                   HorizontalTextAlignment="Center"
-                                   TextColor="{StaticResource GoldText}"
-                                   Opacity="0.6" />
-                        </CarouselView.EmptyView>
-                        <CarouselView.ItemTemplate>
-                            <DataTemplate>
-                                <Border Padding="16"
-                                        Background="{StaticResource CardBackground}"
-                                        Stroke="#000000"
-                                        StrokeThickness="1.5">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="16" />
-                                    </Border.StrokeShape>
-                                    <VerticalStackLayout Spacing="6">
-                                        <Label Text="{Binding DisplayComment}"
-                                               FontSize="15"
-                                               TextColor="{StaticResource GoldText}"
-                                               LineBreakMode="WordWrap" />
-                                        <Label Text="{Binding DisplayNote}"
-                                               FontSize="13"
-                                               TextColor="{StaticResource GoldText}"
-                                               Opacity="0.85" />
-                                        <Label Text="{Binding DisplayDate}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource GoldText}"
-                                               Opacity="0.75" />
-                                        <Label Text="{Binding DisplayUser, StringFormat='Par : {0}'}"
-                                               FontSize="13"
-                                               TextColor="{StaticResource GoldText}"
-                                               Opacity="0.85" />
-                                        <Label Text="{Binding DisplayProduct, StringFormat='Produit : {0}'}"
-                                               FontSize="13"
-                                               TextColor="{StaticResource GoldText}"
-                                               Opacity="0.85" />
-                                    </VerticalStackLayout>
-                                </Border>
-                            </DataTemplate>
-                        </CarouselView.ItemTemplate>
-                    </CarouselView>
-
-                    <IndicatorView x:Name="CommentsIndicator"
-                                   HorizontalOptions="Center"
-                                   IndicatorColor="#555"
-                                   SelectedIndicatorColor="{StaticResource GoldText}" />
-                </VerticalStackLayout>
-             </RefreshView>
-         </VerticalStackLayout>
-     </ScrollView>
- </ContentPage>
+            <Button Text="Voir plus"
+                    Command="{Binding LoadMoreCommand}"
+                    IsVisible="{Binding HasMoreComments}"
+                    IsEnabled="{Binding CanLoadMore}"
+                    BackgroundColor="#C18F1A"
+                    TextColor="{StaticResource GoldText}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
