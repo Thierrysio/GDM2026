@@ -249,10 +249,9 @@ public class CommentsViewModel : BaseViewModel
 
         var endpoints = new[]
         {
-            $"/api/mobile/commentaires?skip={skip}&take={take}",
-            $"/api/mobile/getCommentaires?skip={skip}&take={take}",
-            $"/api/crud/commentaire/list?skip={skip}&take={take}",
-            $"/api/crud/commentaires/list?skip={skip}&take={take}"
+            
+            $"/commentaires/getCommentaires?skip={skip}&take={take}"
+            
         };
 
         foreach (var endpoint in endpoints)
