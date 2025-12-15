@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Globalization;
+using System.Linq;
 
 namespace GDM2026.Models;
 
@@ -54,6 +55,18 @@ public class CommentEntry
     [JsonProperty("date")]
     public DateTime? DateCommentaire { get; set; }
 
+    [JsonProperty("dateCommentaire")]
+    private DateTime? DateCommentaireDetail
+    {
+        set
+        {
+            if (!DateCommentaire.HasValue)
+            {
+                DateCommentaire = value;
+            }
+        }
+    }
+
     [JsonProperty("created_at")]
     private DateTime? CreatedAt
     {
@@ -81,6 +94,26 @@ public class CommentEntry
         }
     }
 
+    [JsonProperty("leUser")]
+    private CommentUser? LeUser
+    {
+        set
+        {
+            if (value is null)
+            {
+                return;
+            }
+
+            var fullName = string.Join(" ", new[] { value.Prenom, value.Nom }
+                .Where(part => !string.IsNullOrWhiteSpace(part)));
+
+            if (!string.IsNullOrWhiteSpace(fullName) && string.IsNullOrWhiteSpace(UserName))
+            {
+                UserName = fullName.Trim();
+            }
+        }
+    }
+
     [JsonProperty("produit")]
     public string? ProductName { get; set; }
 
@@ -96,9 +129,21 @@ public class CommentEntry
         }
     }
 
+    [JsonProperty("leProduit")]
+    private CommentProduct? LeProduit
+    {
+        set
+        {
+            if (value?.NomProduit != null && string.IsNullOrWhiteSpace(ProductName))
+            {
+                ProductName = value.NomProduit;
+            }
+        }
+    }
+
     public string DisplayUser => string.IsNullOrWhiteSpace(UserName) ? "Utilisateur inconnu" : UserName!;
 
-    public string DisplayProduct => string.IsNullOrWhiteSpace(ProductName) ? "Produit non renseigné" : ProductName!;
+    public string DisplayProduct => string.IsNullOrWhiteSpace(ProductName) ? "Produit non renseignÃ©" : ProductName!;
 
     public string DisplayDate => DateCommentaire?.ToString("dd MMM yyyy", CultureInfo.GetCultureInfo("fr-FR"))
         ?? "Date inconnue";
@@ -108,4 +153,25 @@ public class CommentEntry
     public string DisplayComment => string.IsNullOrWhiteSpace(Commentaire)
         ? "(Commentaire vide)"
         : Commentaire!;
+
+    private sealed class CommentUser
+    {
+        [JsonProperty("id")]
+        public int Id { get; set; }
+
+        [JsonProperty("nom")]
+        public string? Nom { get; set; }
+
+        [JsonProperty("prenom")]
+        public string? Prenom { get; set; }
+    }
+
+    private sealed class CommentProduct
+    {
+        [JsonProperty("id")]
+        public int Id { get; set; }
+
+        [JsonProperty("nomProduit")]
+        public string? NomProduit { get; set; }
+    }
 }
