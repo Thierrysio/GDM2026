@@ -260,7 +260,12 @@ public class CommentsViewModel : BaseViewModel
             {
                 var items = await _apis.GetListAsync<CommentEntry>(endpoint).ConfigureAwait(false);
                 var sorted = OrderComments(items);
-                var paged = sorted.Skip(skip).Take(take).ToList();
+
+                // Si l'API gère déjà le skip/take (compte <= PageSize), on n'applique
+                // pas une pagination supplémentaire qui masquerait les résultats.
+                var paged = (skip == 0 || sorted.Count > take)
+                    ? sorted.Skip(skip).Take(take).ToList()
+                    : sorted;
 
                 if (paged.Count > 0)
                 {
