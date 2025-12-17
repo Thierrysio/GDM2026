@@ -28,6 +28,8 @@ namespace GDM2026.Services
             {
                 _authToken = await RetrieveTokenAsync();
 
+                AppHttpClientFactory.SetBearerToken(_authToken);
+
                 // User (JSON en Preferences)
                 var userJson = Preferences.Get(KeyUser, null);
                 _currentUser = string.IsNullOrWhiteSpace(userJson) ? null : JsonConvert.DeserializeObject<User>(userJson);
@@ -51,6 +53,8 @@ namespace GDM2026.Services
 
             Preferences.Set(KeyUser, userJson);
 
+            AppHttpClientFactory.SetBearerToken(_authToken);
+
             await StoreTokenAsync(_authToken);
         }
 
@@ -62,6 +66,7 @@ namespace GDM2026.Services
             Preferences.Remove(KeyUser);
             SecureStorage.Remove(KeyToken);
             Preferences.Remove(KeyToken);
+            AppHttpClientFactory.SetAuthorization(null);
             await Task.CompletedTask;
         }
 

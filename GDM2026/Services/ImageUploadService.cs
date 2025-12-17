@@ -159,6 +159,7 @@ public class ImageUploadService
     private void SetAuthorization(AuthenticationHeaderValue? header)
     {
         _httpClient.DefaultRequestHeaders.Authorization = header;
+        AppHttpClientFactory.SetAuthorization(header);
     }
 
     private static string GetContentType(string fileName)
