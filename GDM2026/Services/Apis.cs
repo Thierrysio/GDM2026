@@ -27,11 +27,13 @@ namespace GDM2026.Services
         private readonly HttpClient _http;
         private readonly JsonSerializerSettings _json;
         private readonly Uri? _configuredBaseUri;
+        private readonly bool _ownsClient;
 
         public HttpClient HttpClient => _http;
 
         public Apis(HttpClient httpClient = null)
         {
+            _ownsClient = httpClient != null;
             _http = httpClient ?? AppHttpClientFactory.Create();
 
             if (_http.BaseAddress == null)
@@ -57,12 +59,22 @@ namespace GDM2026.Services
             };
         }
 
-        public void Dispose() => _http?.Dispose();
+        public void Dispose()
+        {
+            if (_ownsClient)
+            {
+                _http?.Dispose();
+            }
+        }
 
         public void SetBearerToken(string token)
         {
-            _http.DefaultRequestHeaders.Authorization =
-                string.IsNullOrWhiteSpace(token) ? null : new AuthenticationHeaderValue("Bearer", token);
+            var header = string.IsNullOrWhiteSpace(token)
+                ? null
+                : new AuthenticationHeaderValue("Bearer", token);
+
+            _http.DefaultRequestHeaders.Authorization = header;
+            AppHttpClientFactory.SetAuthorization(header);
         }
 
         private class ListResponse<T>

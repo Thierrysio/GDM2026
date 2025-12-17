@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 
 namespace GDM2026.Services;
 
@@ -18,6 +19,8 @@ public static class AppHttpClientFactory
     // afin de conserver la session (PHPSESSID/REMEMBERME) entre l'authentification
     // et les appels protégés comme /api/mobile/upload.
     private static readonly CookieContainer SharedCookies = new();
+    private static readonly object HeaderSync = new();
+    private static AuthenticationHeaderValue? _authorization;
 
     public static Uri? GetValidatedBaseAddress()
     {
@@ -55,8 +58,38 @@ public static class AppHttpClientFactory
             client.BaseAddress = baseUri;
         }
 
+        lock (HeaderSync)
+        {
+            ApplyAuthorization(client, _authorization);
+        }
+
         return client;
     });
 
     public static HttpClient Create() => SharedClient.Value;
+
+    public static void SetBearerToken(string token)
+    {
+        SetAuthorization(string.IsNullOrWhiteSpace(token)
+            ? null
+            : new AuthenticationHeaderValue("Bearer", token));
+    }
+
+    public static void SetAuthorization(AuthenticationHeaderValue? authorization)
+    {
+        lock (HeaderSync)
+        {
+            _authorization = authorization;
+
+            if (SharedClient.IsValueCreated)
+            {
+                ApplyAuthorization(SharedClient.Value, _authorization);
+            }
+        }
+    }
+
+    private static void ApplyAuthorization(HttpClient client, AuthenticationHeaderValue? authorization)
+    {
+        client.DefaultRequestHeaders.Authorization = authorization;
+    }
 }
