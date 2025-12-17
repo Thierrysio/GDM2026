@@ -39,7 +39,7 @@ public static class AppHttpClientFactory
         return baseUri;
     }
 
-    public static HttpClient Create()
+    private static readonly Lazy<HttpClient> SharedClient = new(() =>
     {
         var handler = new SocketsHttpHandler
         {
@@ -56,5 +56,7 @@ public static class AppHttpClientFactory
         }
 
         return client;
-    }
+    });
+
+    public static HttpClient Create() => SharedClient.Value;
 }
