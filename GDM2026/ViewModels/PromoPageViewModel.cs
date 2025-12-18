@@ -22,8 +22,14 @@ public class PromoPageViewModel : BaseViewModel
     private bool _sessionLoaded;
     private bool _productsLoaded;
     private bool _categoriesLoaded;
+    private bool _isUpdateMode;
+    private bool _isFormSectionVisible;
+    private bool _isPromosLoading;
 
-    private string _statusMessage = "Chargez les promos pour commencer.";
+    private string _statusMessage = "Choisissez un mode pour commencer.";
+    private string _formHeader = "Créer une promotion";
+    private string _formHelperMessage = "Renseignez la période, le prix et les sélections avant de valider.";
+    private string _promosStatusMessage = "Aucune promotion chargée.";
     private DateTime _dateDebutDate = DateTime.Today;
     private TimeSpan _dateDebutTime = TimeSpan.Zero;
     private DateTime _dateFinDate = DateTime.Today;
@@ -69,14 +75,20 @@ public class PromoPageViewModel : BaseViewModel
         CategoryResults = new ObservableCollection<PromoCategory>();
 
         GoBackCommand = new Command(async () => await NavigateBackAsync());
+        ShowCreatePanelCommand = new Command(ActivateCreateMode);
+        ShowUpdatePanelCommand = new Command(ActivateUpdateMode);
         RefreshPromosCommand = new Command(async () => await LoadPromosAsync());
         SearchProductsCommand = new Command(async () => await SearchProductsAsync());
         SearchCategoriesCommand = new Command(async () => await SearchCategoriesAsync());
         CreatePromoCommand = new Command(async () => await CreatePromoAsync(), CanCreatePromo);
         UpdatePromoCommand = new Command(async () => await UpdatePromoAsync(), CanUpdatePromo);
+
+        StatusMessage = "Choisissez un mode pour commencer.";
     }
 
     public ICommand GoBackCommand { get; }
+    public ICommand ShowCreatePanelCommand { get; }
+    public ICommand ShowUpdatePanelCommand { get; }
     public ObservableCollection<Promo> Promos { get; }
     public ObservableCollection<PromoProduct> ProductResults { get; }
     public ObservableCollection<PromoCategory> CategoryResults { get; }
@@ -91,6 +103,42 @@ public class PromoPageViewModel : BaseViewModel
     {
         get => _statusMessage;
         set => SetProperty(ref _statusMessage, value);
+    }
+
+    public string FormHeader
+    {
+        get => _formHeader;
+        set => SetProperty(ref _formHeader, value);
+    }
+
+    public string FormHelperMessage
+    {
+        get => _formHelperMessage;
+        set => SetProperty(ref _formHelperMessage, value);
+    }
+
+    public string PromosStatusMessage
+    {
+        get => _promosStatusMessage;
+        set => SetProperty(ref _promosStatusMessage, value);
+    }
+
+    public bool IsUpdateMode
+    {
+        get => _isUpdateMode;
+        set => SetProperty(ref _isUpdateMode, value);
+    }
+
+    public bool IsFormSectionVisible
+    {
+        get => _isFormSectionVisible;
+        set => SetProperty(ref _isFormSectionVisible, value);
+    }
+
+    public bool IsPromosLoading
+    {
+        get => _isPromosLoading;
+        set => SetProperty(ref _isPromosLoading, value);
     }
 
     public DateTime DateDebutDate
@@ -202,7 +250,37 @@ public class PromoPageViewModel : BaseViewModel
         ? "Aucune catégorie sélectionnée"
         : $"Catégorie #{SelectedCategory.Id} — {SelectedCategory.DisplayName}";
 
-    public Task InitializeAsync() => LoadPromosAsync();
+    public Task InitializeAsync()
+    {
+        if (Promos.Count == 0)
+            return LoadPromosAsync();
+
+        return Task.CompletedTask;
+    }
+
+    private void ActivateCreateMode()
+    {
+        IsUpdateMode = false;
+        IsFormSectionVisible = true;
+        FormHeader = "Créer une promotion";
+        FormHelperMessage = "Complétez le formulaire pour ajouter une nouvelle promotion.";
+        StatusMessage = "Choisissez un produit, une catégorie et une période.";
+        SelectedPromo = null;
+        RefreshCommands();
+    }
+
+    private void ActivateUpdateMode()
+    {
+        IsUpdateMode = true;
+        IsFormSectionVisible = true;
+        FormHeader = "Mettre à jour une promotion";
+        FormHelperMessage = "Sélectionnez une promotion puis ajustez ses informations.";
+        StatusMessage = "Choisissez une promotion à modifier.";
+        if (Promos.Count == 0)
+            _ = LoadPromosAsync();
+
+        RefreshCommands();
+    }
 
     private Task NavigateBackAsync()
     {
@@ -236,8 +314,10 @@ public class PromoPageViewModel : BaseViewModel
         try
         {
             IsBusy = true;
+            IsPromosLoading = true;
             StatusMessage = "Chargement des promotions…";
-
+            RefreshCommands();
+            
             if (!await EnsureSessionAsync())
                 return;
 
@@ -250,24 +330,29 @@ public class PromoPageViewModel : BaseViewModel
                 foreach (var promo in data.OrderByDescending(p => p.Id))
                     Promos.Add(promo);
 
-                StatusMessage = Promos.Count == 0
+                PromosStatusMessage = Promos.Count == 0
                     ? "Aucune promotion pour le moment."
                     : $"{Promos.Count} promotion(s) chargée(s).";
+                StatusMessage = PromosStatusMessage;
             });
         }
         catch (HttpRequestException ex)
         {
             Debug.WriteLine($"[PROMO] http error: {ex.Message}");
-            StatusMessage = "Impossible de joindre l'API des promotions.";
+            PromosStatusMessage = "Impossible de joindre l'API des promotions.";
+            StatusMessage = PromosStatusMessage;
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[PROMO] unexpected error: {ex}");
-            StatusMessage = "Erreur inattendue lors du chargement.";
+            PromosStatusMessage = "Erreur inattendue lors du chargement.";
+            StatusMessage = PromosStatusMessage;
         }
         finally
         {
             IsBusy = false;
+            IsPromosLoading = false;
+            RefreshCommands();
         }
     }
 
@@ -280,6 +365,7 @@ public class PromoPageViewModel : BaseViewModel
         {
             IsBusy = true;
             StatusMessage = "Recherche des produits…";
+            RefreshCommands();
 
             if (!await EnsureSessionAsync())
                 return;
@@ -317,6 +403,7 @@ public class PromoPageViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
+            RefreshCommands();
         }
     }
 
@@ -329,6 +416,7 @@ public class PromoPageViewModel : BaseViewModel
         {
             IsBusy = true;
             StatusMessage = "Recherche des catégories promo…";
+            RefreshCommands();
 
             if (!await EnsureSessionAsync())
                 return;
@@ -363,6 +451,7 @@ public class PromoPageViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
+            RefreshCommands();
         }
     }
 
@@ -449,6 +538,7 @@ public class PromoPageViewModel : BaseViewModel
         {
             IsBusy = true;
             StatusMessage = "Création de la promotion…";
+            RefreshCommands();
 
             var payload = new
             {
@@ -481,6 +571,7 @@ public class PromoPageViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
+            RefreshCommands();
         }
     }
 
@@ -511,6 +602,7 @@ public class PromoPageViewModel : BaseViewModel
         {
             IsBusy = true;
             StatusMessage = "Mise à jour de la promotion…";
+            RefreshCommands();
 
             var payload = new
             {
@@ -554,6 +646,7 @@ public class PromoPageViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
+            RefreshCommands();
         }
     }
 
