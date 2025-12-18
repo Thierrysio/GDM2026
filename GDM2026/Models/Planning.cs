@@ -19,10 +19,10 @@ public class Planning
     public string? HeureFin { get; set; }
 
     [JsonIgnore]
-    public TimeSpan? HeureDebutSpan => TimeSpan.TryParse(HeureDebut, out var span) ? span : null;
+    public TimeSpan? HeureDebutSpan => ParseTime(HeureDebut);
 
     [JsonIgnore]
-    public TimeSpan? HeureFinSpan => TimeSpan.TryParse(HeureFin, out var span) ? span : null;
+    public TimeSpan? HeureFinSpan => ParseTime(HeureFin);
 
     [JsonIgnore]
     public string DisplayDate => Jour?.ToString("dddd dd MMMM yyyy", new CultureInfo("fr-FR")) ?? "Date non définie";
@@ -36,5 +36,15 @@ public class Planning
             var fin = HeureFinSpan?.ToString(@"hh\:mm") ?? "--:--";
             return $"{debut} → {fin}";
         }
+    }
+
+    private static TimeSpan? ParseTime(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return TimeSpan.TryParse(value, out var span) ? span : null;
     }
 }
