@@ -173,13 +173,65 @@
                                     AutoSize="TextChanges"
                                     HeightRequest="120" />
 
-                                <Label Text="URL de l'image" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <Label Text="Image de l'histoire" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+
+                                <HorizontalStackLayout Spacing="8">
+                                    <Button
+                                        Text="📷 Prendre une photo"
+                                        Command="{Binding CapturePhotoCommand}"
+                                        BackgroundColor="#303030"
+                                        TextColor="{StaticResource GoldText}" />
+                                    <Button
+                                        Text="🖼️ Bibliothèque"
+                                        Command="{Binding PickFromLibraryCommand}"
+                                        BackgroundColor="#303030"
+                                        TextColor="{StaticResource GoldText}" />
+                                </HorizontalStackLayout>
+
+                                <Button
+                                    Text="⬆️ Envoyer l'image"
+                                    Command="{Binding UploadImageCommand}"
+                                    IsEnabled="{Binding HasLocalImageSelection}"
+                                    BackgroundColor="#C18F1A"
+                                    TextColor="{StaticResource GoldText}" />
+
+                                <ActivityIndicator
+                                    IsRunning="{Binding IsImageUploading}"
+                                    IsVisible="{Binding IsImageUploading}"
+                                    Color="{StaticResource GoldText}" />
+
+                                <Label
+                                    Text="{Binding SelectedImageLabel}"
+                                    TextColor="{StaticResource GoldText}"
+                                    FontSize="13"
+                                    Opacity="0.85" />
+
+                                <Label
+                                    Text="{Binding ImageStatusMessage}"
+                                    TextColor="{StaticResource GoldText}"
+                                    FontSize="13"
+                                    Opacity="0.75" />
+
+                                <Border
+                                    Background="#111"
+                                    Stroke="#2D2D2D"
+                                    StrokeThickness="1"
+                                    Padding="10"
+                                    IsVisible="{Binding HasLocalImageSelection}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Image Source="{Binding SelectedImagePreview}" Aspect="AspectFit" HeightRequest="200" />
+                                </Border>
+
+                                <Label Text="URL générée" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
                                 <Entry
-                                    Placeholder="https://..."
+                                    Placeholder="images/nom-image.jpg"
                                     Text="{Binding UrlImage}"
                                     TextColor="{StaticResource GoldText}"
                                     PlaceholderColor="#777"
-                                    BackgroundColor="#121212" />
+                                    BackgroundColor="#121212"
+                                    IsReadOnly="True" />
 
                                 <Label Text="Date de l'histoire" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
                                 <Entry

@@ -1,6 +1,7 @@
 using GDM2026.Models;
 using GDM2026.Services;
 using GDM2026.Views;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Newtonsoft.Json;
 using System;
@@ -8,6 +9,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -47,6 +49,7 @@ public class HistoireViewModel : BaseViewModel
 
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
+    private readonly ImageUploadService _uploadService = new();
 
     private bool _sessionReady;
     private HistoireFormMode _currentMode;
@@ -55,12 +58,18 @@ public class HistoireViewModel : BaseViewModel
     private string _formHeader = "Formulaire";
     private string _formHelperMessage = string.Empty;
     private string _histoiresStatusMessage = "Les histoires ne sont pas encore chargées.";
+    private string _imageStatusMessage = "Aucune image sélectionnée.";
 
     private Histoire? _selectedHistoire;
     private string _titre = string.Empty;
     private string _texte = string.Empty;
     private string _urlImage = string.Empty;
     private string _dateHistoireText = string.Empty;
+
+    private ImageSource? _selectedImagePreview;
+    private string? _selectedLocalFile;
+    private string _selectedImageLabel = "Aucune image locale.";
+    private bool _isImageUploading;
 
     public HistoireViewModel()
     {
@@ -73,6 +82,10 @@ public class HistoireViewModel : BaseViewModel
         UpdateHistoireCommand = new Command(async () => await UpdateHistoireAsync(), CanUpdateHistoire);
         DeleteHistoireCommand = new Command(async () => await DeleteHistoireAsync(), CanDeleteHistoire);
         GoBackCommand = new Command(async () => await NavigateBackAsync());
+
+        CapturePhotoCommand = new Command(async () => await PickPhotoAsync(fromCamera: true));
+        PickFromLibraryCommand = new Command(async () => await PickPhotoAsync(fromCamera: false));
+        UploadImageCommand = new Command(async () => await UploadSelectedImageAsync(), () => HasLocalImageSelection && !_isImageUploading);
     }
 
     public ObservableCollection<Histoire> Histoires { get; }
@@ -84,6 +97,9 @@ public class HistoireViewModel : BaseViewModel
     public ICommand UpdateHistoireCommand { get; }
     public ICommand DeleteHistoireCommand { get; }
     public ICommand GoBackCommand { get; }
+    public ICommand CapturePhotoCommand { get; }
+    public ICommand PickFromLibraryCommand { get; }
+    public ICommand UploadImageCommand { get; }
 
     public string StatusMessage
     {
@@ -198,6 +214,38 @@ public class HistoireViewModel : BaseViewModel
         }
     }
 
+    public ImageSource? SelectedImagePreview
+    {
+        get => _selectedImagePreview;
+        set => SetProperty(ref _selectedImagePreview, value);
+    }
+
+    public string SelectedImageLabel
+    {
+        get => _selectedImageLabel;
+        set => SetProperty(ref _selectedImageLabel, value);
+    }
+
+    public string ImageStatusMessage
+    {
+        get => _imageStatusMessage;
+        set => SetProperty(ref _imageStatusMessage, value);
+    }
+
+    public bool IsImageUploading
+    {
+        get => _isImageUploading;
+        set
+        {
+            if (SetProperty(ref _isImageUploading, value))
+            {
+                (UploadImageCommand as Command)?.ChangeCanExecute();
+            }
+        }
+    }
+
+    public bool HasLocalImageSelection => !string.IsNullOrWhiteSpace(_selectedLocalFile);
+
     public bool HasHistoireSelection => SelectedHistoire is not null;
 
     public async Task OnPageAppearingAsync()
@@ -218,6 +266,7 @@ public class HistoireViewModel : BaseViewModel
         {
             var hasSession = await _sessionService.LoadAsync();
             _apis.SetBearerToken(hasSession ? _sessionService.AuthToken : string.Empty);
+            _uploadService.SetBearerToken(hasSession ? _sessionService.AuthToken : string.Empty);
             _sessionReady = true;
         }
         catch (Exception ex)
@@ -270,6 +319,7 @@ public class HistoireViewModel : BaseViewModel
         UrlImage = string.Empty;
         DateHistoireText = string.Empty;
         SelectedHistoire = null;
+        ClearLocalImageSelection();
     }
 
     private void ApplySelection(Histoire? selected)
@@ -385,6 +435,190 @@ public class HistoireViewModel : BaseViewModel
             IsBusy = false;
             RefreshCommands();
         }
+    }
+
+    private async Task PickPhotoAsync(bool fromCamera)
+    {
+        if (IsBusy || IsImageUploading)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            ImageStatusMessage = fromCamera
+                ? "Ouverture de l'appareil photo…"
+                : "Ouverture de la bibliothèque…";
+
+            if (!await EnsurePermissionsAsync(fromCamera))
+            {
+                ImageStatusMessage = "Autorisez l'accès aux photos pour continuer.";
+                return;
+            }
+
+            FileResult? fileResult;
+            if (fromCamera)
+            {
+                if (!MediaPicker.Default.IsCaptureSupported)
+                {
+                    ImageStatusMessage = "La capture photo n'est pas supportée sur cet appareil.";
+                    return;
+                }
+
+                fileResult = await MediaPicker.Default.CapturePhotoAsync(new MediaPickerOptions
+                {
+                    Title = $"histoire-{DateTimeOffset.Now:yyyyMMddHHmmss}"
+                });
+            }
+            else
+            {
+                var photos = await MediaPicker.Default.PickPhotosAsync();
+                fileResult = photos?.FirstOrDefault();
+            }
+
+            if (fileResult is null)
+            {
+                ImageStatusMessage = "Sélection annulée.";
+                return;
+            }
+
+            _selectedLocalFile = fileResult.FullPath;
+            SelectedImagePreview = ImageSource.FromFile(_selectedLocalFile);
+            SelectedImageLabel = Path.GetFileName(_selectedLocalFile);
+            ImageStatusMessage = "Image prête à être envoyée.";
+            OnPropertyChanged(nameof(HasLocalImageSelection));
+        }
+        catch (FeatureNotSupportedException)
+        {
+            ImageStatusMessage = "Fonctionnalité photo non supportée sur cet appareil.";
+        }
+        catch (PermissionException)
+        {
+            ImageStatusMessage = "Autorisez l'accès à l'appareil photo ou aux images.";
+        }
+        catch (TaskCanceledException)
+        {
+            ImageStatusMessage = "Sélection annulée.";
+        }
+        catch (Exception ex)
+        {
+            ImageStatusMessage = "Impossible de sélectionner la photo.";
+            Debug.WriteLine($"[HISTOIRE] Sélection image échouée : {ex}");
+        }
+        finally
+        {
+            IsBusy = false;
+            (UploadImageCommand as Command)?.ChangeCanExecute();
+        }
+    }
+
+    private async Task UploadSelectedImageAsync()
+    {
+        if (!HasLocalImageSelection || IsImageUploading)
+        {
+            return;
+        }
+
+        try
+        {
+            IsImageUploading = true;
+            ImageStatusMessage = "Envoi de l'image…";
+
+            await EnsureSessionAsync();
+            if (string.IsNullOrWhiteSpace(_selectedLocalFile))
+            {
+                ImageStatusMessage = "Aucune image locale à envoyer.";
+                return;
+            }
+
+            var result = await _uploadService.UploadAsync(_selectedLocalFile, "images");
+            UrlImage = $"images/{result.FileName}";
+            ImageStatusMessage = "Image envoyée. L'URL a été préremplie.";
+            StatusMessage = "Image envoyée et associée à l'histoire.";
+        }
+        catch (HttpRequestException httpEx)
+        {
+            ImageStatusMessage = "Impossible d'envoyer l'image.";
+            Debug.WriteLine($"[HISTOIRE] Upload HTTP error: {httpEx}");
+        }
+        catch (Exception ex)
+        {
+            ImageStatusMessage = "Erreur inattendue pendant l'envoi.";
+            Debug.WriteLine($"[HISTOIRE] Upload error: {ex}");
+        }
+        finally
+        {
+            IsImageUploading = false;
+            (UploadImageCommand as Command)?.ChangeCanExecute();
+            OnPropertyChanged(nameof(HasLocalImageSelection));
+            RefreshCommands();
+        }
+    }
+
+    private static async Task<bool> EnsurePermissionsAsync(bool fromCamera)
+    {
+        try
+        {
+            if (fromCamera)
+            {
+                var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
+                if (cameraStatus != PermissionStatus.Granted)
+                {
+                    cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+                }
+
+                var writeStatus = await Permissions.CheckStatusAsync<Permissions.StorageWrite>();
+                if (writeStatus != PermissionStatus.Granted)
+                {
+                    writeStatus = await Permissions.RequestAsync<Permissions.StorageWrite>();
+                }
+
+                var readStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
+                if (readStatus != PermissionStatus.Granted)
+                {
+                    readStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
+                }
+
+                return cameraStatus == PermissionStatus.Granted
+                    && writeStatus == PermissionStatus.Granted
+                    && readStatus == PermissionStatus.Granted;
+            }
+
+            var photosStatus = await Permissions.CheckStatusAsync<Permissions.Photos>();
+            if (photosStatus != PermissionStatus.Granted)
+            {
+                photosStatus = await Permissions.RequestAsync<Permissions.Photos>();
+            }
+
+            if (photosStatus == PermissionStatus.Granted)
+            {
+                return true;
+            }
+
+            var storageStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
+            if (storageStatus != PermissionStatus.Granted)
+            {
+                storageStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
+            }
+
+            return storageStatus == PermissionStatus.Granted;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[HISTOIRE] Permissions error: {ex}");
+            return false;
+        }
+    }
+
+    private void ClearLocalImageSelection()
+    {
+        _selectedLocalFile = null;
+        SelectedImagePreview = null;
+        SelectedImageLabel = "Aucune image locale.";
+        ImageStatusMessage = "Aucune image sélectionnée.";
+        (UploadImageCommand as Command)?.ChangeCanExecute();
+        OnPropertyChanged(nameof(HasLocalImageSelection));
     }
 
     private async Task UpdateHistoireAsync()
@@ -533,6 +767,7 @@ public class HistoireViewModel : BaseViewModel
         (CreateHistoireCommand as Command)?.ChangeCanExecute();
         (UpdateHistoireCommand as Command)?.ChangeCanExecute();
         (DeleteHistoireCommand as Command)?.ChangeCanExecute();
+        (UploadImageCommand as Command)?.ChangeCanExecute();
         OnPropertyChanged(nameof(IsFormActionEnabled));
     }
 }
