@@ -231,9 +231,18 @@ public class PlanningViewModel : BaseViewModel
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 Plannings.Clear();
-                foreach (var item in items.OrderBy(p => p.Jour ?? DateTime.MaxValue))
+
+                if (items != null)
                 {
-                    Plannings.Add(item);
+                    foreach (var item in items.OrderBy(p => p?.Jour ?? DateTime.MaxValue))
+                    {
+                        if (item is null)
+                        {
+                            continue;
+                        }
+
+                        Plannings.Add(item);
+                    }
                 }
 
                 StatusMessage = Plannings.Count == 0
