@@ -37,12 +37,14 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private DateTime _startDate = DateTime.Today;
     private DateTime _endDate = DateTime.Today;
-    private bool _hasLoaded;
+    private bool _hasInitialized;
     private bool _isReservationMode;
     private string? _status;
     private string _pageTitle = string.Empty;
     private string _subtitle = string.Empty;
     private string _searchQuery = string.Empty;
+
+    private bool _hasAppliedFilters;
 
     private bool _isShowingLimitedOrders = true;
     private bool _canShowMore;
@@ -94,10 +96,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         get => _status;
         set
         {
-            if (SetProperty(ref _status, value) && !_hasLoaded)
-            {
-                _ = InitializeAsync();
-            }
+            if (SetProperty(ref _status, value))
+                MarkFiltersPending();
         }
     }
 
@@ -109,7 +109,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             if (SetProperty(ref _startDate, value))
             {
                 EnsureValidDateRange();
-                if (IsReservationMode) _ = DebouncedApplyFiltersAsync();
+                MarkFiltersPending();
             }
         }
     }
@@ -122,7 +122,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             if (SetProperty(ref _endDate, value))
             {
                 EnsureValidDateRange();
-                if (IsReservationMode) _ = DebouncedApplyFiltersAsync();
+                MarkFiltersPending();
             }
         }
     }
@@ -176,17 +176,19 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     public async Task InitializeAsync()
     {
-        if (_hasLoaded)
+        if (_hasInitialized)
             return;
 
-        if (string.IsNullOrWhiteSpace(Status))
-            return;
-
-        _hasLoaded = true;
+        _hasInitialized = true;
 
         await EnsureSessionAsync().ConfigureAwait(false);
         EnsureReservationStatuses();
-        await LoadStatusAsync().ConfigureAwait(false);
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            PageTitle = "Réservations";
+            Subtitle = "Choisissez une période et un état puis lancez le chargement.";
+        });
     }
 
     private async Task EnsureSessionAsync()
@@ -209,6 +211,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                     ? $"{Status} · période du {StartDate:dd/MM/yyyy} au {EndDate:dd/MM/yyyy}"
                     : "Commandes : en cours de chargement...";
             });
+
+            _hasAppliedFilters = true;
 
             List<OrderByStatus> orders;
 
@@ -668,7 +672,11 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         if (isQuery)
         {
-            finalOrders = _allOrders.Where(o => o.MatchesQuery(query)).ToList();
+            finalOrders = _allOrders
+                .Where(o => o.MatchesQuery(query))
+                .OrderByDescending(o => o.OrderDate)
+                .Take(5)
+                .ToList();
             await MainThread.InvokeOnMainThreadAsync(() => CanShowMore = false);
         }
         else if (IsReservationMode)
@@ -679,6 +687,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             finalOrders = _allOrders
                 .Where(o => !o.PickupDate.HasValue || (o.PickupDate.Value.Date >= start && o.PickupDate.Value.Date <= end))
                 .OrderByDescending(o => o.OrderDate)
+                .Take(5)
                 .ToList();
 
             await MainThread.InvokeOnMainThreadAsync(() => CanShowMore = false);
@@ -708,7 +717,9 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                 Orders.Add(o);
 
             Subtitle = IsReservationMode
-                ? $"Réservations : {finalOrders.Count}"
+                ? _hasAppliedFilters
+                    ? $"Réservations affichées : {finalOrders.Count} (max 5)"
+                    : "Choisissez une période, un état puis lancez la recherche"
                 : $"Commandes : {finalOrders.Count}";
         });
     }
@@ -826,9 +837,6 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             tile.IsSelected = ReferenceEquals(tile, status);
 
         Status = status.Status;
-
-        if (_hasLoaded)
-            await ReloadWithFiltersAsync().ConfigureAwait(false);
     }
 
     public Task ReloadWithFiltersAsync()
@@ -836,7 +844,24 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         if (string.IsNullOrWhiteSpace(Status))
             return Task.CompletedTask;
 
-        return LoadStatusAsync();
+        return EnsureInitializedAndLoadAsync();
+    }
+
+    private async Task EnsureInitializedAndLoadAsync()
+    {
+        if (!_hasInitialized)
+            await InitializeAsync().ConfigureAwait(false);
+
+        await LoadStatusAsync().ConfigureAwait(false);
+    }
+
+    private void MarkFiltersPending()
+    {
+        _hasAppliedFilters = false;
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            Subtitle = "Choisissez une période, un état puis lancez la recherche";
+        });
     }
 
     private void EnsureValidDateRange()
