@@ -74,7 +74,8 @@
                            Opacity="0.95" />
 
                     <CollectionView ItemsSource="{Binding VisibleProducts}"
-                                    SelectionMode="None"
+                                    SelectionMode="Single"
+                                    SelectionChangedCommand="{Binding ProductSelectionChangedCommand}"
                                     RemainingItemsThreshold="3"
                                     RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
 
@@ -100,12 +101,6 @@
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="16" />
                                     </Border.StrokeShape>
-
-                                    <Border.GestureRecognizers>
-                                        <TapGestureRecognizer
-                                            Command="{Binding BindingContext.SelectProductCommand, Source={x:Reference EditPage}}"
-                                            CommandParameter="{Binding .}" />
-                                    </Border.GestureRecognizers>
 
                                     <Grid Padding="14"
                                           ColumnDefinitions="Auto,*"

@@ -862,24 +862,22 @@ public class ProductsEditViewModel : BaseViewModel
             return;
         }
 
-        // Préférence : revenir en arrière si une page précédente est disponible.
-        var navigation = Shell.Current.Navigation;
-        if (navigation?.NavigationStack?.Count > 1)
-        {
-            await navigation.PopAsync(animated: true);
-            return;
-        }
-
-        // Si la pile est vide ou invalide (cas rencontré dans le crash), on revient d'abord à l'accueil
-        // puis on recharge la page Produits via une navigation simple pour éviter les routes ambiguës.
         try
         {
-            await Shell.Current.GoToAsync($"///{nameof(HomePage)}", animate: true);
-            await Shell.Current.GoToAsync(nameof(ProductsPage), animate: false);
+            // Préférence : revenir en arrière si une page précédente est disponible.
+            var navigation = Shell.Current.Navigation;
+            if (navigation?.NavigationStack?.Count > 1)
+            {
+                await navigation.PopAsync(animated: true);
+                return;
+            }
+
+            // Navigation absolue vers Produits pour éviter les routes Shell en double.
+            await Shell.Current.GoToAsync($"//{nameof(HomePage)}/{nameof(ProductsPage)}", animate: true);
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[PRODUCTS EDIT] Navigation de secours échouée : {ex}");
+            Debug.WriteLine($"[PRODUCTS EDIT] Navigation vers Produits échouée : {ex}");
         }
     }
 
