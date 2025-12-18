@@ -864,7 +864,7 @@ public class ProductsEditViewModel : BaseViewModel
 
         try
         {
-            // Préférence : revenir en arrière si une page précédente est disponible.
+            // Si une page précédente existe dans la pile, on revient simplement en arrière.
             var navigation = Shell.Current.Navigation;
             if (navigation?.NavigationStack?.Count > 1)
             {
@@ -872,12 +872,23 @@ public class ProductsEditViewModel : BaseViewModel
                 return;
             }
 
-            // Navigation absolue vers Produits pour éviter les routes Shell en double.
-            await Shell.Current.GoToAsync($"//{nameof(HomePage)}/{nameof(ProductsPage)}", animate: true);
+            // Sinon, on tente la navigation Shell relative vers la page précédente.
+            await Shell.Current.GoToAsync("..", animate: true);
+            return;
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[PRODUCTS EDIT] Navigation vers Produits échouée : {ex}");
+        }
+
+        // Repli minimal vers l'accueil en cas d'échec de navigation.
+        try
+        {
+            await Shell.Current.GoToAsync($"//{nameof(HomePage)}", animate: true);
+        }
+        catch (Exception fallbackEx)
+        {
+            Debug.WriteLine($"[PRODUCTS EDIT] Repli vers l'accueil échoué : {fallbackEx}");
         }
     }
 

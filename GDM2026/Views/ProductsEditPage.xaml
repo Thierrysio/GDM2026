@@ -75,6 +75,7 @@
 
                     <CollectionView ItemsSource="{Binding VisibleProducts}"
                                     SelectionMode="Single"
+                                    SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
                                     SelectionChangedCommand="{Binding ProductSelectionChangedCommand}"
                                     RemainingItemsThreshold="3"
                                     RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
