@@ -17,21 +17,26 @@ namespace GDM2026.ViewModels;
 
 public class PartnersViewModel : BaseViewModel
 {
+    private enum PartnerFormMode
+    {
+        None,
+        Create,
+        Update
+    }
+
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
 
     private bool _sessionPrepared;
 
+    private PartnerFormMode _currentMode;
     private bool _isLoading;
     private string _statusMessage = "Cliquez sur « Charger / Recharger les partenaires ».";
 
     private Partner? _selectedPartner;
 
-    private string _newPartnerName = string.Empty;
-    private string _newPartnerWebsite = string.Empty;
-
-    private string _editPartnerName = string.Empty;
-    private string _editPartnerWebsite = string.Empty;
+    private string _partnerName = string.Empty;
+    private string _partnerWebsite = string.Empty;
 
     // ====== Image library / logo ======
     private bool _imageLibraryLoaded;
@@ -52,6 +57,9 @@ public class PartnersViewModel : BaseViewModel
         LoadPartnersCommand = new Command(async () => await LoadPartnersAsync(forceReload: true),
             () => !IsLoading && !IsBusy);
 
+        ShowCreatePanelCommand = new Command(async () => await SetModeAsync(PartnerFormMode.Create));
+        ShowUpdatePanelCommand = new Command(async () => await SetModeAsync(PartnerFormMode.Update));
+
         CreateCommand = new Command(async () => await CreateAsync(), CanCreate);
         UpdateCommand = new Command(async () => await UpdateAsync(), CanUpdate);
         DeleteCommand = new Command(async () => await DeleteAsync(), CanDelete);
@@ -68,6 +76,8 @@ public class PartnersViewModel : BaseViewModel
 
         StatusMessage = "Cliquez sur « Charger / Recharger les partenaires ».";
         _ = EnsureImageLibraryLoadedAsync();
+        _currentMode = PartnerFormMode.None;
+        OnModeChanged();
         RefreshCommands();
     }
 
@@ -83,6 +93,10 @@ public class PartnersViewModel : BaseViewModel
      *  COMMANDES
      * ======================= */
 
+    public ICommand ShowCreatePanelCommand { get; }
+
+    public ICommand ShowUpdatePanelCommand { get; }
+
     public ICommand LoadPartnersCommand { get; }
     public ICommand CreateCommand { get; }
     public ICommand UpdateCommand { get; }
@@ -93,6 +107,37 @@ public class PartnersViewModel : BaseViewModel
     /* =======================
      *  ETATS
      * ======================= */
+
+    public bool IsCreateMode => _currentMode == PartnerFormMode.Create;
+
+    public bool IsUpdateMode => _currentMode == PartnerFormMode.Update;
+
+    public bool IsFormSectionVisible => _currentMode == PartnerFormMode.Create || _currentMode == PartnerFormMode.Update;
+
+    public bool IsFormInputEnabled => _currentMode == PartnerFormMode.Create || SelectedPartner is not null;
+
+    public string FormHeader => _currentMode switch
+    {
+        PartnerFormMode.Create => "Créer un partenaire",
+        PartnerFormMode.Update => "Mettre à jour un partenaire",
+        _ => "Gestion des partenaires"
+    };
+
+    public string FormHelperMessage => _currentMode switch
+    {
+        PartnerFormMode.Create => "Renseignez les informations du partenaire.",
+        PartnerFormMode.Update when SelectedPartner is null => "Sélectionnez d'abord un partenaire ci-dessous.",
+        PartnerFormMode.Update when SelectedPartner is not null => $"Modification de « {SelectedPartner.DisplayName} ».",
+        _ => string.Empty
+    };
+
+    public string FormActionButtonText => _currentMode == PartnerFormMode.Update
+        ? "Mettre à jour le partenaire"
+        : "Créer le partenaire";
+
+    public ICommand FormActionCommand => _currentMode == PartnerFormMode.Update
+        ? UpdateCommand
+        : CreateCommand;
 
     public bool IsLoading
     {
@@ -121,13 +166,14 @@ public class PartnersViewModel : BaseViewModel
         {
             if (SetProperty(ref _selectedPartner, value))
             {
-                EditPartnerName = value?.DisplayName ?? string.Empty;
-                EditPartnerWebsite = value?.Website ?? string.Empty;
-
-                // ✅ IMPORTANT : prévisualiser le logo existant
                 ApplyExistingLogo(value);
+                UpdateFormFromSelection();
 
                 OnPropertyChanged(nameof(SelectedPartnerLabel));
+                OnPropertyChanged(nameof(HasPartnerSelection));
+                OnPropertyChanged(nameof(IsFormInputEnabled));
+                OnPropertyChanged(nameof(FormHelperMessage));
+                OnPropertyChanged(nameof(FormActionCommand));
                 RefreshCommands();
             }
         }
@@ -138,28 +184,30 @@ public class PartnersViewModel : BaseViewModel
             ? "Aucun partenaire sélectionné."
             : $"#{SelectedPartner.Id} — {SelectedPartner.DisplayName}";
 
+    public bool HasPartnerSelection => SelectedPartner is not null;
+
     /* =======================
-     *  CHAMPS CREATE
+     *  CHAMPS FORMULAIRE
      * ======================= */
 
-    public string NewPartnerName
+    public string PartnerName
     {
-        get => _newPartnerName;
+        get => _partnerName;
         set
         {
-            if (SetProperty(ref _newPartnerName, value))
+            if (SetProperty(ref _partnerName, value))
                 RefreshCommands();
         }
     }
 
-    public string NewPartnerWebsite
+    public string PartnerWebsite
     {
-        get => _newPartnerWebsite;
-        set => SetProperty(ref _newPartnerWebsite, value);
+        get => _partnerWebsite;
+        set => SetProperty(ref _partnerWebsite, value);
     }
 
     private bool CanCreate() =>
-        !IsBusy && !IsLoading && !string.IsNullOrWhiteSpace(NewPartnerName);
+        !IsBusy && !IsLoading && IsCreateMode && !string.IsNullOrWhiteSpace(PartnerName);
 
     private async Task CreateAsync()
     {
@@ -179,8 +227,8 @@ public class PartnersViewModel : BaseViewModel
 
             var payload = new
             {
-                nom = NewPartnerName.Trim(),
-                url = string.IsNullOrWhiteSpace(NewPartnerWebsite) ? null : NewPartnerWebsite.Trim(),
+                nom = PartnerName.Trim(),
+                url = string.IsNullOrWhiteSpace(PartnerWebsite) ? null : PartnerWebsite.Trim(),
                 // logo : envoie ce que tu veux côté API (chemin relatif conseillé)
                 logo = _selectedImageUrlOrPath
             };
@@ -191,8 +239,8 @@ public class PartnersViewModel : BaseViewModel
 
             if (ok)
             {
-                NewPartnerName = string.Empty;
-                NewPartnerWebsite = string.Empty;
+                PartnerName = string.Empty;
+                PartnerWebsite = string.Empty;
                 ClearSelectedLogo();
                 await LoadPartnersAsync(forceReload: true);
             }
@@ -214,24 +262,8 @@ public class PartnersViewModel : BaseViewModel
      *  CHAMPS EDIT
      * ======================= */
 
-    public string EditPartnerName
-    {
-        get => _editPartnerName;
-        set
-        {
-            if (SetProperty(ref _editPartnerName, value))
-                RefreshCommands();
-        }
-    }
-
-    public string EditPartnerWebsite
-    {
-        get => _editPartnerWebsite;
-        set => SetProperty(ref _editPartnerWebsite, value);
-    }
-
     private bool CanUpdate() =>
-        !IsBusy && !IsLoading && SelectedPartner is not null && !string.IsNullOrWhiteSpace(EditPartnerName);
+        !IsBusy && !IsLoading && IsUpdateMode && SelectedPartner is not null && !string.IsNullOrWhiteSpace(PartnerName);
 
     private async Task UpdateAsync()
     {
@@ -256,8 +288,8 @@ public class PartnersViewModel : BaseViewModel
             var payload = new
             {
                 id = partner.Id,
-                nom = EditPartnerName.Trim(),
-                url = string.IsNullOrWhiteSpace(EditPartnerWebsite) ? null : EditPartnerWebsite.Trim(),
+                nom = PartnerName.Trim(),
+                url = string.IsNullOrWhiteSpace(PartnerWebsite) ? null : PartnerWebsite.Trim(),
                 logo = _selectedImageUrlOrPath ?? partner.ImagePath
             };
 
@@ -282,7 +314,7 @@ public class PartnersViewModel : BaseViewModel
     }
 
     private bool CanDelete() =>
-        !IsBusy && !IsLoading && SelectedPartner is not null;
+        !IsBusy && !IsLoading && IsUpdateMode && SelectedPartner is not null;
 
     private async Task DeleteAsync()
     {
@@ -328,6 +360,69 @@ public class PartnersViewModel : BaseViewModel
             IsLoading = false;
             RefreshCommands();
         }
+    }
+
+    private async Task SetModeAsync(PartnerFormMode mode)
+    {
+        if (_currentMode == mode)
+        {
+            _currentMode = PartnerFormMode.None;
+            OnModeChanged();
+            SelectedPartner = null;
+            PartnerName = string.Empty;
+            PartnerWebsite = string.Empty;
+            ClearSelectedLogo();
+            RefreshCommands();
+            return;
+        }
+
+        _currentMode = mode;
+        OnModeChanged();
+
+        switch (mode)
+        {
+            case PartnerFormMode.Create:
+                PrepareCreateForm();
+                await EnsureImageLibraryLoadedAsync();
+                break;
+            case PartnerFormMode.Update:
+                PrepareUpdateForm();
+                await EnsureImageLibraryLoadedAsync();
+                await LoadPartnersAsync(forceReload: true);
+                break;
+        }
+
+        RefreshCommands();
+    }
+
+    private void OnModeChanged()
+    {
+        OnPropertyChanged(nameof(IsCreateMode));
+        OnPropertyChanged(nameof(IsUpdateMode));
+        OnPropertyChanged(nameof(IsFormSectionVisible));
+        OnPropertyChanged(nameof(IsFormInputEnabled));
+        OnPropertyChanged(nameof(FormHeader));
+        OnPropertyChanged(nameof(FormHelperMessage));
+        OnPropertyChanged(nameof(FormActionButtonText));
+        OnPropertyChanged(nameof(FormActionCommand));
+    }
+
+    private void PrepareCreateForm()
+    {
+        SelectedPartner = null;
+        PartnerName = string.Empty;
+        PartnerWebsite = string.Empty;
+        SelectedLibraryImage = null;
+        ClearSelectedLogo();
+    }
+
+    private void PrepareUpdateForm()
+    {
+        SelectedPartner = null;
+        PartnerName = string.Empty;
+        PartnerWebsite = string.Empty;
+        SelectedLibraryImage = null;
+        ClearSelectedLogo();
     }
 
     /* =======================
@@ -492,6 +587,21 @@ public class PartnersViewModel : BaseViewModel
             _ when string.IsNullOrWhiteSpace(ImageSearchTerm) => "Sélectionnez un logo ou utilisez la recherche.",
             _ => $"{FilteredImageLibrary.Count} résultat(s) pour « {ImageSearchTerm} »."
         };
+    }
+
+    private void UpdateFormFromSelection()
+    {
+        if (IsUpdateMode && SelectedPartner is not null)
+        {
+            PartnerName = SelectedPartner.DisplayName;
+            PartnerWebsite = SelectedPartner.Website ?? string.Empty;
+        }
+        else if (IsUpdateMode)
+        {
+            PartnerName = string.Empty;
+            PartnerWebsite = string.Empty;
+            ClearSelectedLogo();
+        }
     }
 
     // ✅ Sélection d'une image : met à jour preview + valeur envoyée à l'API
