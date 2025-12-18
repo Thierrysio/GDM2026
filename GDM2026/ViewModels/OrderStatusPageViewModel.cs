@@ -181,7 +181,9 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         _hasInitialized = true;
 
-        await EnsureSessionAsync().ConfigureAwait(false);
+        if (!await EnsureSessionAsync().ConfigureAwait(false))
+            return;
+
         EnsureReservationStatuses();
 
         await MainThread.InvokeOnMainThreadAsync(() =>
@@ -191,10 +193,30 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         });
     }
 
-    private async Task EnsureSessionAsync()
+    private async Task<bool> EnsureSessionAsync()
     {
         var hasSession = await _sessionService.LoadAsync().ConfigureAwait(false);
-        _apis.SetBearerToken(hasSession ? _sessionService.AuthToken : string.Empty);
+
+        if (!hasSession || !_sessionService.IsAuthenticated || string.IsNullOrWhiteSpace(_sessionService.AuthToken))
+        {
+            await RedirectToLoginAsync().ConfigureAwait(false);
+            return false;
+        }
+
+        _apis.SetBearerToken(_sessionService.AuthToken);
+        return true;
+    }
+
+    private static Task RedirectToLoginAsync()
+    {
+        if (Shell.Current == null)
+            return Task.CompletedTask;
+
+        return MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            if (Shell.Current != null)
+                await Shell.Current.GoToAsync($"//{nameof(MainPage)}", animate: false);
+        });
     }
 
     private async Task LoadStatusAsync()
@@ -329,6 +351,9 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         if (_statusUpdatesInProgress.Contains(order))
             return;
 
+        if (IsReservationMode)
+            return;
+
         var newStatus = order.CurrentStatus;
         var previousStatus = _lastKnownStatuses.TryGetValue(order, out var last) ? last : string.Empty;
 
@@ -456,7 +481,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             if (!isOpening) return;
 
             var isAlreadyInProgress = string.Equals(order.CurrentStatus, "En cours de traitement", StringComparison.OrdinalIgnoreCase);
-            var isAlreadyCompleted = string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase);
+            var isAlreadyCompleted = string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase)
+                                     || string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase);
 
             if (!isAlreadyInProgress && !isAlreadyCompleted)
             {
@@ -606,6 +632,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                 line.Livree = true;
             });
 
+            await MarkRemainingLinesDeliveredIfOrderIsTreatedAsync(order).ConfigureAwait(false);
+
             await CheckAndUpdateOrderCompletionAsync(order).ConfigureAwait(false);
             await CheckAndUpdateOrderDeliveryAsync(order).ConfigureAwait(false);
         }
@@ -621,6 +649,27 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         {
             await ShowLoadErrorAsync("Une erreur inattendue empêche la mise à jour de ce produit.");
         }
+    }
+
+    private async Task MarkRemainingLinesDeliveredIfOrderIsTreatedAsync(OrderStatusEntry order)
+    {
+        if (order.OrderLines.Count == 0)
+            return;
+
+        if (!order.OrderLines.All(l => l.Traite))
+            return;
+
+        var pendingDeliveries = order.OrderLines.Where(l => !l.Livree).ToList();
+        if (pendingDeliveries.Count == 0)
+            return;
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            foreach (var pending in pendingDeliveries)
+            {
+                pending.Livree = true;
+            }
+        });
     }
 
     private async Task CheckAndUpdateOrderCompletionAsync(OrderStatusEntry order)
