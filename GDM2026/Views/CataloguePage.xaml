@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.Views.CataloguePage"
+             x:Name="CataloguePageRoot"
+             BackgroundColor="#0B0B0B"
+             Title="Catalogue">
+
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+        <Color x:Key="CardBackground">#151515</Color>
+    </ContentPage.Resources>
+
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior Command="{Binding GoBackCommand}" />
+    </Shell.BackButtonBehavior>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="18">
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="#000000"
+                StrokeThickness="1.5"
+                Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="16">
+                    <Label
+                        Text="Catalogue"
+                        FontSize="28"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
+
+                    <Label
+                        Text="Gérez la création et la mise à jour des catalogues PDF dans le même esprit que les Actualités."
+                        FontSize="16"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85" />
+
+                    <VerticalStackLayout Spacing="10">
+                        <Button
+                            Text="+ Nouveau catalogue"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowCreatePanelCommand}" />
+                        <Button
+                            Text="Mettre à jour un catalogue"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowUpdatePanelCommand}" />
+                        <Button
+                            Text="🔄 Charger / Recharger"
+                            BackgroundColor="#252525"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding RefreshCataloguesCommand}" />
+                    </VerticalStackLayout>
+
+                    <Frame
+                        IsVisible="{Binding IsUpdateMode}"
+                        BackgroundColor="#1E1E1E"
+                        Padding="14"
+                        HasShadow="False"
+                        CornerRadius="14"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="Sélectionnez un catalogue à modifier"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}" />
+
+                            <ActivityIndicator
+                                IsRunning="{Binding IsLoadingCatalogues}"
+                                IsVisible="{Binding IsLoadingCatalogues}"
+                                Color="{StaticResource GoldText}" />
+
+                            <CollectionView
+                                ItemsSource="{Binding Catalogues}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedCatalogue}"
+                                HeightRequest="220">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.EmptyView>
+                                    <Label
+                                        Text="Aucun catalogue n'a encore été chargé."
+                                        TextColor="{StaticResource GoldText}"
+                                        HorizontalTextAlignment="Center"
+                                        Opacity="0.6" />
+                                </CollectionView.EmptyView>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="10" Margin="0,4">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="12" />
+                                            </Border.StrokeShape>
+                                            <VerticalStackLayout Spacing="4">
+                                                <Label
+                                                    Text="{Binding DisplayPeriod}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontAttributes="Bold" />
+                                                <Label
+                                                    Text="{Binding DisplayUrl}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontSize="13"
+                                                    LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+
+                            <Label
+                                Text="{Binding CataloguesStatusMessage}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.85"
+                                HorizontalTextAlignment="Center" />
+
+                            <Button
+                                Text="Supprimer le catalogue sélectionné"
+                                Command="{Binding DeleteCatalogueCommand}"
+                                BackgroundColor="#4A1010"
+                                TextColor="{StaticResource GoldText}"
+                                IsEnabled="{Binding HasCatalogueSelection}" />
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <Frame
+                        IsVisible="{Binding IsFormSectionVisible}"
+                        BackgroundColor="#1E1E1E"
+                        Padding="14"
+                        HasShadow="False"
+                        CornerRadius="14"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="{Binding FormHeader}"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="20" />
+
+                            <Label
+                                Text="{Binding FormHelperMessage}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.8" />
+
+                            <VerticalStackLayout Spacing="10" IsEnabled="{Binding IsFormInputEnabled}">
+                                <Label Text="Mois" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <Entry
+                                    Placeholder="Mois du catalogue"
+                                    Text="{Binding Mois}"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    BackgroundColor="#121212" />
+
+                                <Label Text="Année" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <Entry
+                                    Placeholder="Année"
+                                    Keyboard="Numeric"
+                                    Text="{Binding AnneeText}"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    BackgroundColor="#121212" />
+
+                                <Label Text="URL du catalogue" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <Entry
+                                    Placeholder="https://..."
+                                    Text="{Binding Url}"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    BackgroundColor="#121212" />
+                            </VerticalStackLayout>
+
+                            <ActivityIndicator
+                                IsRunning="{Binding IsBusy}"
+                                IsVisible="{Binding IsBusy}"
+                                Color="{StaticResource GoldText}" />
+
+                            <Label
+                                Text="{Binding StatusMessage}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.85"
+                                HorizontalTextAlignment="Center" />
+
+                            <Button
+                                Text="{Binding FormActionButtonText}"
+                                Command="{Binding FormActionCommand}"
+                                BackgroundColor="#303030"
+                                TextColor="{StaticResource GoldText}"
+                                IsEnabled="{Binding IsFormActionEnabled}" />
+                        </VerticalStackLayout>
+                    </Frame>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
