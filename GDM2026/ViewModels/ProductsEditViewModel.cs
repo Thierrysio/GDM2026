@@ -863,7 +863,7 @@ public class ProductsEditViewModel : BaseViewModel
         }
 
         // Prefer a relative back navigation to return where the user came from (ex: reservations → produit → édition)
-        // and fall back to the home route only if the stack is unavailable.
+        // and fall back to the page produits si la pile est indisponible.
         var navigation = Shell.Current.Navigation;
         if (navigation?.NavigationStack?.Count > 1)
         {
@@ -871,7 +871,7 @@ public class ProductsEditViewModel : BaseViewModel
             return;
         }
 
-        await Shell.Current.GoToAsync("//HomePage", animate: true);
+        await Shell.Current.GoToAsync("//ProductsPage", animate: true);
     }
 
     private static IEnumerable<ProductCatalogItem> FilterProducts(IEnumerable<ProductCatalogItem> products, string? query)
