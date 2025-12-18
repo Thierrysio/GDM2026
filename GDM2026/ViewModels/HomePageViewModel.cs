@@ -190,10 +190,14 @@ public partial class HomePageViewModel : BaseViewModel
             return Shell.Current.GoToAsync(nameof(ReservationsPage), animate: false);
         }
 
-        if (string.Equals(card.Title, "Produits", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(card.Title, "Catalogue", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(card.Title, "Produits", StringComparison.OrdinalIgnoreCase))
         {
             return Shell.Current.GoToAsync(nameof(ProductsPage), animate: false);
+        }
+
+        if (string.Equals(card.Title, "Catalogue", StringComparison.OrdinalIgnoreCase))
+        {
+            return Shell.Current.GoToAsync(nameof(CataloguePage), animate: false);
         }
 
         if (string.Equals(card.Title, "Commentaires", StringComparison.OrdinalIgnoreCase))
@@ -209,6 +213,11 @@ public partial class HomePageViewModel : BaseViewModel
         if (string.Equals(card.Title, "Planning", StringComparison.OrdinalIgnoreCase))
         {
             return Shell.Current.GoToAsync(nameof(PlanningPage), animate: false);
+        }
+
+        if (string.Equals(card.Title, "Histoire", StringComparison.OrdinalIgnoreCase))
+        {
+            return Shell.Current.GoToAsync(nameof(HistoirePage), animate: false);
         }
 
         return Shell.Current.GoToAsync(nameof(CategoryDetailPage), animate: false, new Dictionary<string, object>
