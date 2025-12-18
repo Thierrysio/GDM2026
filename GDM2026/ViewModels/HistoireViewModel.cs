@@ -4,6 +4,8 @@ using GDM2026.Views;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
+using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Graphics.Platform;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -534,7 +536,14 @@ public class HistoireViewModel : BaseViewModel
             }
 
             var result = await _uploadService.UploadAsync(_selectedLocalFile, "images");
-            UrlImage = $"images/{result.FileName}";
+            var relativePath = string.IsNullOrWhiteSpace(result.RelativeUrl)
+                ? $"images/{result.FileName}"
+                : result.RelativeUrl.TrimStart('/')
+                    .Replace("\\", "/");
+
+            UrlImage = relativePath.StartsWith("images/", StringComparison.OrdinalIgnoreCase)
+                ? relativePath
+                : $"images/{Path.GetFileName(relativePath)}";
             ImageStatusMessage = "Image envoyée. L'URL a été préremplie.";
             StatusMessage = "Image envoyée et associée à l'histoire.";
         }
@@ -574,10 +583,40 @@ public class HistoireViewModel : BaseViewModel
         var localPath = Path.Combine(FileSystem.CacheDirectory, targetFileName);
 
         await using var source = await fileResult.OpenReadAsync();
-        await using var destination = File.Create(localPath);
-        await source.CopyToAsync(destination);
+
+        try
+        {
+            await SaveOptimizedImageAsync(source, localPath);
+        }
+        catch
+        {
+            source.Position = 0;
+            await using var destination = File.Create(localPath);
+            await source.CopyToAsync(destination);
+        }
 
         return localPath;
+    }
+
+    private static async Task SaveOptimizedImageAsync(Stream source, string destinationPath)
+    {
+        const int maxDimension = 1280;
+        const int quality = 80;
+
+        source.Position = 0;
+        using var platformImage = PlatformImage.FromStream(source);
+        if (platformImage is null)
+        {
+            throw new InvalidOperationException("Impossible de lire l'image pour optimisation.");
+        }
+
+        var scale = Math.Min(1d, Math.Min(maxDimension / platformImage.Width, maxDimension / platformImage.Height));
+        var targetWidth = Math.Max(1, (int)(platformImage.Width * scale));
+        var targetHeight = Math.Max(1, (int)(platformImage.Height * scale));
+
+        using var resized = platformImage.Downsize(targetWidth, targetHeight);
+        await using var destination = File.Create(destinationPath);
+        await resized.SaveAsync(destination, ImageFormat.Jpeg, quality);
     }
 
     private static async Task<bool> EnsurePermissionsAsync(bool fromCamera)
