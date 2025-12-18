@@ -480,11 +480,11 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
             if (!isOpening) return;
 
-            var isAlreadyInProgress = string.Equals(order.CurrentStatus, "En cours de traitement", StringComparison.OrdinalIgnoreCase);
-            var isAlreadyCompleted = string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase)
-                                     || string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase);
+            var statusAlreadyInProgress = string.Equals(order.CurrentStatus, "En cours de traitement", StringComparison.OrdinalIgnoreCase);
+            var statusAlreadyCompleted = string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase)
+                                      || string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase);
 
-            if (!isAlreadyInProgress && !isAlreadyCompleted)
+            if (!statusAlreadyInProgress && !statusAlreadyCompleted)
             {
                 var isAlreadyInProgress = string.Equals(order.CurrentStatus, "En cours de traitement", StringComparison.OrdinalIgnoreCase);
                 var isAlreadyCompleted = string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase);
