@@ -3,6 +3,7 @@ using GDM2026.Services;
 using GDM2026.Views;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Storage;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -483,7 +484,7 @@ public class HistoireViewModel : BaseViewModel
                 return;
             }
 
-            _selectedLocalFile = fileResult.FullPath;
+            _selectedLocalFile = await SaveFileToLocalAsync(fileResult);
             SelectedImagePreview = ImageSource.FromFile(_selectedLocalFile);
             SelectedImageLabel = Path.GetFileName(_selectedLocalFile);
             ImageStatusMessage = "Image prête à être envoyée.";
@@ -554,6 +555,29 @@ public class HistoireViewModel : BaseViewModel
             OnPropertyChanged(nameof(HasLocalImageSelection));
             RefreshCommands();
         }
+    }
+
+    private static async Task<string> SaveFileToLocalAsync(FileResult fileResult)
+    {
+        if (fileResult is null)
+        {
+            throw new ArgumentNullException(nameof(fileResult));
+        }
+
+        var extension = Path.GetExtension(fileResult.FileName);
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            extension = ".jpg";
+        }
+
+        var targetFileName = $"histoire-{DateTimeOffset.Now:yyyyMMddHHmmssfff}{extension}";
+        var localPath = Path.Combine(FileSystem.CacheDirectory, targetFileName);
+
+        await using var source = await fileResult.OpenReadAsync();
+        await using var destination = File.Create(localPath);
+        await source.CopyToAsync(destination);
+
+        return localPath;
     }
 
     private static async Task<bool> EnsurePermissionsAsync(bool fromCamera)
