@@ -16,257 +16,288 @@
     </Shell.BackButtonBehavior>
 
     <ScrollView>
-        <VerticalStackLayout Padding="24" Spacing="16">
-
-            <Label Text="Gestion des promotions"
-                   FontSize="28"
-                   FontAttributes="Bold"
-                   HorizontalTextAlignment="Center"
-                   TextColor="{StaticResource GoldText}" />
-
-            <Label Text="{Binding StatusMessage}"
-                   FontSize="14"
-                   Opacity="0.9"
-                   TextColor="{StaticResource GoldText}" />
-
-            <Button Text="🔄 Recharger les promotions"
-                    Command="{Binding RefreshPromosCommand}"
-                    BackgroundColor="#252525"
-                    TextColor="{StaticResource GoldText}" />
-
-            <Border BackgroundColor="{StaticResource CardBackground}"
-                    Stroke="#000"
-                    StrokeThickness="1.2"
-                    Padding="18">
+        <VerticalStackLayout Padding="24" Spacing="18">
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="#000000"
+                StrokeThickness="1.5"
+                Padding="20">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="18" />
                 </Border.StrokeShape>
 
-                <VerticalStackLayout Spacing="12">
-                    <Label Text="Formulaire promotion"
-                           FontSize="20"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource GoldText}" />
+                <VerticalStackLayout Spacing="16">
+                    <Label
+                        Text="Promotions"
+                        FontSize="28"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
 
-                    <Label Text="Date de début"
-                           FontSize="13"
-                           TextColor="{StaticResource GoldText}" />
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <DatePicker Grid.Column="0"
-                                    Date="{Binding DateDebutDate}"
-                                    TextColor="{StaticResource GoldText}" />
-                        <TimePicker Grid.Column="1"
-                                    Time="{Binding DateDebutTime}"
-                                    TextColor="{StaticResource GoldText}" />
-                    </Grid>
+                    <Label
+                        Text="Gérez la création et la mise à jour des promotions dans le même esprit que les Actualités."
+                        FontSize="16"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85" />
 
-                    <Label Text="Date de fin"
-                           FontSize="13"
-                           TextColor="{StaticResource GoldText}" />
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <DatePicker Grid.Column="0"
-                                    Date="{Binding DateFinDate}"
-                                    TextColor="{StaticResource GoldText}" />
-                        <TimePicker Grid.Column="1"
-                                    Time="{Binding DateFinTime}"
-                                    TextColor="{StaticResource GoldText}" />
-                    </Grid>
+                    <VerticalStackLayout Spacing="10">
+                        <Button
+                            Text="+ Nouvelle promotion"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowCreatePanelCommand}" />
+                        <Button
+                            Text="Mettre à jour une promotion"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowUpdatePanelCommand}" />
+                        <Button
+                            Text="🔄 Recharger les promotions"
+                            BackgroundColor="#252525"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding RefreshPromosCommand}" />
+                    </VerticalStackLayout>
 
-                    <Label Text="Prix remisé"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource GoldText}" />
-                    <Entry Text="{Binding PrixText}"
-                           Keyboard="Numeric"
-                           Placeholder="Prix de la promo"
-                           TextColor="{StaticResource GoldText}" />
-
-                    <Label Text="Sélection du produit"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource GoldText}" />
-
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <SearchBar Grid.Column="0"
-                                   Placeholder="Rechercher un produit"
-                                   Text="{Binding ProductSearchText}"
-                                   SearchCommand="{Binding SearchProductsCommand}"
-                                   TextColor="{StaticResource GoldText}"
-                                   PlaceholderColor="#7E7030"
-                                   BackgroundColor="#111" />
-                        <Button Grid.Column="1"
-                                Text="🔍"
-                                Command="{Binding SearchProductsCommand}"
-                                BackgroundColor="#C18F1A"
-                                TextColor="#0B0B0B" />
-                    </Grid>
-
-                    <Label Text="{Binding SelectedProductLabel}"
-                           FontSize="13"
-                           TextColor="{StaticResource GoldText}" />
-
-                    <CollectionView ItemsSource="{Binding ProductResults}"
-                                    SelectionMode="Single"
-                                    SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
-                                    HeightRequest="180">
-                        <CollectionView.ItemsLayout>
-                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
-                        </CollectionView.ItemsLayout>
-                        <CollectionView.EmptyView>
-                            <Label Text="Aucun produit à afficher"
-                                   HorizontalTextAlignment="Center"
-                                   TextColor="{StaticResource GoldText}" />
-                        </CollectionView.EmptyView>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate>
-                                <Border BackgroundColor="#101010"
-                                        Stroke="#000"
-                                        StrokeThickness="1"
-                                        Padding="12">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="12" />
-                                    </Border.StrokeShape>
-                                    <VerticalStackLayout Spacing="4">
-                                        <Label Text="{Binding DisplayName}"
-                                               FontAttributes="Bold"
-                                               TextColor="{StaticResource GoldText}" />
-                                        <Label Text="{Binding DisplayDescription}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource GoldText}"
-                                               Opacity="0.9"
-                                               LineBreakMode="TailTruncation"
-                                               MaxLines="2" />
-                                        <Label Text="{Binding DisplayPrice}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource GoldText}" />
-                                    </VerticalStackLayout>
-                                </Border>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
-
-                    <Label Text="Sélection de la catégorie promo"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource GoldText}" />
-
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <SearchBar Grid.Column="0"
-                                   Placeholder="Rechercher une catégorie"
-                                   Text="{Binding CategorySearchText}"
-                                   SearchCommand="{Binding SearchCategoriesCommand}"
-                                   TextColor="{StaticResource GoldText}"
-                                   PlaceholderColor="#7E7030"
-                                   BackgroundColor="#111" />
-                        <Button Grid.Column="1"
-                                Text="🔍"
-                                Command="{Binding SearchCategoriesCommand}"
-                                BackgroundColor="#C18F1A"
-                                TextColor="#0B0B0B" />
-                    </Grid>
-
-                    <Label Text="{Binding SelectedCategoryLabel}"
-                           FontSize="13"
-                           TextColor="{StaticResource GoldText}" />
-
-                    <CollectionView ItemsSource="{Binding CategoryResults}"
-                                    SelectionMode="Single"
-                                    SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
-                                    HeightRequest="140">
-                        <CollectionView.ItemsLayout>
-                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
-                        </CollectionView.ItemsLayout>
-                        <CollectionView.EmptyView>
-                            <Label Text="Aucune catégorie à afficher"
-                                   HorizontalTextAlignment="Center"
-                                   TextColor="{StaticResource GoldText}" />
-                        </CollectionView.EmptyView>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate>
-                                <Border BackgroundColor="#101010"
-                                        Stroke="#000"
-                                        StrokeThickness="1"
-                                        Padding="12">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="12" />
-                                    </Border.StrokeShape>
-                                    <Label Text="{Binding DisplayName}"
-                                           FontAttributes="Bold"
-                                           TextColor="{StaticResource GoldText}" />
-                                </Border>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
-
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Button Grid.Column="0"
-                                Text="Créer la promo"
-                                Command="{Binding CreatePromoCommand}"
-                                BackgroundColor="#C18F1A"
-                                TextColor="#0B0B0B" />
-                        <Button Grid.Column="1"
-                                Text="Mettre à jour"
-                                Command="{Binding UpdatePromoCommand}"
-                                BackgroundColor="#252525"
+                    <Frame
+                        IsVisible="{Binding IsUpdateMode}"
+                        BackgroundColor="#1E1E1E"
+                        Padding="14"
+                        HasShadow="False"
+                        CornerRadius="14"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="Sélectionnez une promotion à modifier"
+                                FontAttributes="Bold"
                                 TextColor="{StaticResource GoldText}" />
-                    </Grid>
-                </VerticalStackLayout>
-            </Border>
 
-            <Border BackgroundColor="{StaticResource CardBackground}"
-                    Stroke="#000"
-                    StrokeThickness="1.2"
-                    Padding="16">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="18" />
-                </Border.StrokeShape>
+                            <ActivityIndicator
+                                IsRunning="{Binding IsPromosLoading}"
+                                IsVisible="{Binding IsPromosLoading}"
+                                Color="{StaticResource GoldText}" />
 
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="Promotions existantes"
-                           FontSize="20"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource GoldText}" />
+                            <CollectionView
+                                ItemsSource="{Binding Promos}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedPromo}"
+                                HeightRequest="230">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.EmptyView>
+                                    <Label
+                                        Text="Aucune promotion n'a encore été chargée."
+                                        TextColor="{StaticResource GoldText}"
+                                        HorizontalTextAlignment="Center"
+                                        Opacity="0.6" />
+                                </CollectionView.EmptyView>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="10" Margin="0,4">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="12" />
+                                            </Border.StrokeShape>
+                                            <VerticalStackLayout Spacing="4">
+                                                <Label
+                                                    Text="{Binding DisplayPeriod}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontAttributes="Bold" />
+                                                <Label
+                                                    Text="{Binding DisplayPrix}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontSize="13" />
+                                                <Label
+                                                    Text="{Binding LeProduit.DisplayName}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontSize="12" />
+                                                <Label
+                                                    Text="{Binding LaCategoriePromo.DisplayName}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontSize="12" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
 
-                    <CollectionView ItemsSource="{Binding Promos}"
+                            <Label
+                                Text="{Binding PromosStatusMessage}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.85"
+                                HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <Frame
+                        IsVisible="{Binding IsFormSectionVisible}"
+                        BackgroundColor="#1E1E1E"
+                        Padding="14"
+                        HasShadow="False"
+                        CornerRadius="14"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="{Binding FormHeader}"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="20" />
+
+                            <Label
+                                Text="{Binding FormHelperMessage}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.8" />
+
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="Date de début" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <DatePicker Grid.Column="0"
+                                                Date="{Binding DateDebutDate}"
+                                                TextColor="{StaticResource GoldText}"
+                                                BackgroundColor="#121212" />
+                                    <TimePicker Grid.Column="1"
+                                                Time="{Binding DateDebutTime}"
+                                                TextColor="{StaticResource GoldText}"
+                                                BackgroundColor="#121212" />
+                                </Grid>
+
+                                <Label Text="Date de fin" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <DatePicker Grid.Column="0"
+                                                Date="{Binding DateFinDate}"
+                                                TextColor="{StaticResource GoldText}"
+                                                BackgroundColor="#121212" />
+                                    <TimePicker Grid.Column="1"
+                                                Time="{Binding DateFinTime}"
+                                                TextColor="{StaticResource GoldText}"
+                                                BackgroundColor="#121212" />
+                                </Grid>
+
+                                <Label Text="Prix remisé" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <Entry
+                                    Placeholder="Prix de la promotion"
+                                    Keyboard="Numeric"
+                                    Text="{Binding PrixText}"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    BackgroundColor="#121212" />
+
+                                <Label Text="Sélection du produit" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <SearchBar
+                                    Placeholder="Rechercher un produit"
+                                    Text="{Binding ProductSearchText}"
+                                    SearchCommand="{Binding SearchProductsCommand}"
+                                    BackgroundColor="#121212"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#7E7030"
+                                    CancelButtonColor="{StaticResource GoldText}" />
+
+                                <Label
+                                    Text="{Binding SelectedProductLabel}"
+                                    FontSize="13"
+                                    TextColor="{StaticResource GoldText}" />
+
+                                <CollectionView
+                                    ItemsSource="{Binding ProductResults}"
                                     SelectionMode="Single"
-                                    SelectedItem="{Binding SelectedPromo, Mode=TwoWay}">
-                        <CollectionView.ItemsLayout>
-                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
-                        </CollectionView.ItemsLayout>
+                                    SelectedItem="{Binding SelectedProduct}"
+                                    HeightRequest="180">
+                                    <CollectionView.ItemsLayout>
+                                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+                                    </CollectionView.ItemsLayout>
+                                    <CollectionView.EmptyView>
+                                        <Label
+                                            Text="Aucun produit à afficher"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{StaticResource GoldText}" />
+                                    </CollectionView.EmptyView>
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="10" Margin="0,4">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="12" />
+                                                </Border.StrokeShape>
+                                                <VerticalStackLayout Spacing="4">
+                                                    <Label Text="{Binding DisplayName}" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                                    <Label Text="{Binding DisplayDescription}" TextColor="{StaticResource GoldText}" FontSize="12" LineBreakMode="TailTruncation" MaxLines="2" />
+                                                    <Label Text="{Binding DisplayPrice}" TextColor="{StaticResource GoldText}" FontSize="12" />
+                                                </VerticalStackLayout>
+                                            </Border>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
 
-                        <CollectionView.EmptyView>
-                            <Label Text="Aucune promotion pour le moment"
-                                   HorizontalTextAlignment="Center"
-                                   TextColor="{StaticResource GoldText}" />
-                        </CollectionView.EmptyView>
+                                <Label Text="Sélection de la catégorie promo" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <SearchBar
+                                    Placeholder="Rechercher une catégorie"
+                                    Text="{Binding CategorySearchText}"
+                                    SearchCommand="{Binding SearchCategoriesCommand}"
+                                    BackgroundColor="#121212"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#7E7030"
+                                    CancelButtonColor="{StaticResource GoldText}" />
 
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate>
-                                <Border BackgroundColor="#101010"
-                                        Stroke="#000"
-                                        StrokeThickness="1"
-                                        Padding="12">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="12" />
-                                    </Border.StrokeShape>
+                                <Label
+                                    Text="{Binding SelectedCategoryLabel}"
+                                    FontSize="13"
+                                    TextColor="{StaticResource GoldText}" />
 
-                                    <VerticalStackLayout Spacing="4">
-                                        <Label Text="{Binding DisplayPeriod}"
-                                               FontAttributes="Bold"
-                                               TextColor="{StaticResource GoldText}" />
-                                        <Label Text="{Binding DisplayPrix}"
-                                               FontSize="13"
-                                               TextColor="{StaticResource GoldText}" />
-                                        <Label Text="{Binding LeProduit.DisplayName}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource GoldText}" />
-                                        <Label Text="{Binding LaCategoriePromo.DisplayName}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource GoldText}" />
-                                    </VerticalStackLayout>
-                                </Border>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
+                                <CollectionView
+                                    ItemsSource="{Binding CategoryResults}"
+                                    SelectionMode="Single"
+                                    SelectedItem="{Binding SelectedCategory}"
+                                    HeightRequest="140">
+                                    <CollectionView.ItemsLayout>
+                                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+                                    </CollectionView.ItemsLayout>
+                                    <CollectionView.EmptyView>
+                                        <Label
+                                            Text="Aucune catégorie à afficher"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{StaticResource GoldText}" />
+                                    </CollectionView.EmptyView>
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="10" Margin="0,4">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="12" />
+                                                </Border.StrokeShape>
+                                                <Label Text="{Binding DisplayName}" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+
+                                <ActivityIndicator
+                                    IsRunning="{Binding IsBusy}"
+                                    IsVisible="{Binding IsBusy}"
+                                    Color="{StaticResource GoldText}" />
+
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                    <Button
+                                        Text="Créer la promotion"
+                                        Command="{Binding CreatePromoCommand}"
+                                        BackgroundColor="#C18F1A"
+                                        TextColor="#0B0B0B" />
+                                    <Button
+                                        Text="Mettre à jour"
+                                        Command="{Binding UpdatePromoCommand}"
+                                        BackgroundColor="#303030"
+                                        TextColor="{StaticResource GoldText}"
+                                        IsVisible="{Binding IsUpdateMode}" />
+                                </Grid>
+                            </VerticalStackLayout>
+
+                            <Label
+                                Text="{Binding StatusMessage}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.85"
+                                HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Frame>
                 </VerticalStackLayout>
             </Border>
         </VerticalStackLayout>
