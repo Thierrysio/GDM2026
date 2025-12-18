@@ -181,7 +181,9 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         _hasInitialized = true;
 
-        await EnsureSessionAsync().ConfigureAwait(false);
+        if (!await EnsureSessionAsync().ConfigureAwait(false))
+            return;
+
         EnsureReservationStatuses();
 
         await MainThread.InvokeOnMainThreadAsync(() =>
@@ -191,10 +193,30 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         });
     }
 
-    private async Task EnsureSessionAsync()
+    private async Task<bool> EnsureSessionAsync()
     {
         var hasSession = await _sessionService.LoadAsync().ConfigureAwait(false);
-        _apis.SetBearerToken(hasSession ? _sessionService.AuthToken : string.Empty);
+
+        if (!hasSession || !_sessionService.IsAuthenticated || string.IsNullOrWhiteSpace(_sessionService.AuthToken))
+        {
+            await RedirectToLoginAsync().ConfigureAwait(false);
+            return false;
+        }
+
+        _apis.SetBearerToken(_sessionService.AuthToken);
+        return true;
+    }
+
+    private static Task RedirectToLoginAsync()
+    {
+        if (Shell.Current == null)
+            return Task.CompletedTask;
+
+        return MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            if (Shell.Current != null)
+                await Shell.Current.GoToAsync($"//{nameof(MainPage)}", animate: false);
+        });
     }
 
     private async Task LoadStatusAsync()
