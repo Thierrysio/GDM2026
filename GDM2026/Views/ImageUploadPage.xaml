@@ -10,87 +10,123 @@
 
     <ScrollView>
         <VerticalStackLayout Padding="24" Spacing="18">
-            <Border
-                Background="{StaticResource CardBackground}"
-                Stroke="#000000"
-                StrokeThickness="1.5"
-                Padding="24">
+
+            <Border Background="{StaticResource CardBackground}"
+                    Stroke="#000000"
+                    StrokeThickness="1.5"
+                    Padding="20">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="18" />
                 </Border.StrokeShape>
+
                 <VerticalStackLayout Spacing="16">
-                    <Label
-                        Text="Images"
-                        FontSize="28"
-                        FontAttributes="Bold"
-                        HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}" />
-                    <Label
-                        Text="Prenez une photo ou choisissez-en une depuis votre bibliothèque, puis envoyez-la vers dantecmarket.com."
-                        FontSize="16"
-                        HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}"
-                        Opacity="0.85" />
+                    <Label Text="Images"
+                           FontSize="28"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"
+                           TextColor="{StaticResource GoldText}" />
 
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                        <Button
-                            Text="Prendre une photo"
-                            Command="{Binding CapturePhotoCommand}"
-                            BackgroundColor="#C18F1A"
-                            TextColor="{StaticResource GoldText}" />
-                        <Button
-                            Grid.Column="1"
-                            Text="Bibliothèque"
-                            Command="{Binding PickFromGalleryCommand}"
-                            BackgroundColor="#303030"
-                            TextColor="{StaticResource GoldText}" />
-                    </Grid>
+                    <Label Text="Choisissez ou capturez une image, optimisez-la puis envoyez-la vers dantecmarket.com."
+                           FontSize="16"
+                           HorizontalTextAlignment="Center"
+                           TextColor="{StaticResource GoldText}"
+                           Opacity="0.85" />
 
-                    <Frame
-                        BackgroundColor="#1E1E1E"
-                        Padding="12"
-                        HasShadow="False"
-                        CornerRadius="14"
-                        BorderColor="#2D2D2D">
-                        <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
-                            <Label
-                                Text="Aperçu"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource GoldText}" />
-                            <Border Grid.Row="1" Background="#111" Padding="8" Stroke="#2D2D2D" StrokeThickness="1">
+                    <Label Text="1. Sélectionnez la source. 2. Prévisualisez l'image optimisée. 3. Lancez l'envoi."
+                           FontSize="13"
+                           HorizontalTextAlignment="Center"
+                           TextColor="{StaticResource GoldText}"
+                           Opacity="0.75" />
+
+                    <Frame BackgroundColor="#1E1E1E"
+                           HasShadow="False"
+                           Padding="14"
+                           CornerRadius="14"
+                           BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="Choix de la source"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource GoldText}" />
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                <Button Text="Prendre une photo"
+                                        Command="{Binding CapturePhotoCommand}"
+                                        BackgroundColor="#C18F1A"
+                                        TextColor="{StaticResource GoldText}" />
+                                <Button Grid.Column="1"
+                                        Text="Bibliothèque"
+                                        Command="{Binding PickFromGalleryCommand}"
+                                        BackgroundColor="#303030"
+                                        TextColor="{StaticResource GoldText}" />
+                            </Grid>
+
+                            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                               IsVisible="{Binding IsBusy}"
+                                               Color="{StaticResource GoldText}" />
+
+                            <Label Text="{Binding StatusMessage}"
+                                   TextColor="{Binding StatusColor}"
+                                   FontSize="13"
+                                   HorizontalTextAlignment="Center"
+                                   LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <Frame BackgroundColor="#1E1E1E"
+                           HasShadow="False"
+                           Padding="14"
+                           CornerRadius="14"
+                           BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="Aperçu optimisé"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource GoldText}" />
+
+                            <Border Background="#111"
+                                    Padding="8"
+                                    Stroke="#2D2D2D"
+                                    StrokeThickness="1">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="12" />
                                 </Border.StrokeShape>
-                                <Image
-                                    Source="{Binding SelectedImage}"
-                                    Aspect="AspectFit"
-                                    HeightRequest="220"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    BackgroundColor="#0B0B0B" />
+                                <Image Source="{Binding SelectedImage}"
+                                       Aspect="AspectFit"
+                                       HeightRequest="220"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"
+                                       BackgroundColor="#0B0B0B" />
                             </Border>
-                        </Grid>
+
+                            <Label Text="{Binding FileName}"
+                                   TextColor="{StaticResource GoldText}"
+                                   FontSize="14"
+                                   HorizontalTextAlignment="Center"
+                                   Opacity="0.85" />
+                        </VerticalStackLayout>
                     </Frame>
 
-                    <Label
-                        Text="{Binding FileName}"
-                        TextColor="{StaticResource GoldText}"
-                        FontSize="14"
-                        HorizontalTextAlignment="Center"
-                        Opacity="0.85" />
+                    <Frame BackgroundColor="#1E1E1E"
+                           HasShadow="False"
+                           Padding="14"
+                           CornerRadius="14"
+                           BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="Envoyer"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource GoldText}" />
 
-                    <Button
-                        Text="Uploader l'image"
-                        Command="{Binding UploadCommand}"
-                        BackgroundColor="#C18F1A"
-                        TextColor="{StaticResource GoldText}" />
+                            <Button Text="Uploader l'image"
+                                    Command="{Binding UploadCommand}"
+                                    BackgroundColor="#C18F1A"
+                                    TextColor="{StaticResource GoldText}" />
 
-                    <Label
-                        Text="{Binding StatusMessage}"
-                        TextColor="{Binding StatusColor}"
-                        FontSize="14"
-                        HorizontalTextAlignment="Center"
-                        LineBreakMode="WordWrap" />
+                            <Label Text="Le fichier est envoyé en mode administrateur vers dantecmarket.com."
+                                   FontSize="13"
+                                   TextColor="{StaticResource GoldText}"
+                                   Opacity="0.75" />
+                        </VerticalStackLayout>
+                    </Frame>
+
                 </VerticalStackLayout>
             </Border>
         </VerticalStackLayout>
