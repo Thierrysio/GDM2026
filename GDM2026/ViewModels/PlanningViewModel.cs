@@ -21,6 +21,8 @@ public class PlanningViewModel : BaseViewModel
     private bool _sessionPrepared;
     private bool _isLoading;
     private string _statusMessage = "Chargez le planning pour commencer.";
+    private bool _isCreateMode;
+    private bool _isUpdateMode;
 
     private Planning? _selectedPlanning;
     private DateTime _newJour = DateTime.Today;
@@ -39,6 +41,8 @@ public class PlanningViewModel : BaseViewModel
         CreateCommand = new Command(async () => await CreateAsync(), () => !IsLoading);
         UpdateCommand = new Command(async () => await UpdateAsync(), CanUpdate);
         DeleteCommand = new Command(async () => await DeleteAsync(), CanDelete);
+        ShowCreatePanelCommand = new Command(EnterCreateMode);
+        ShowUpdatePanelCommand = new Command(EnterUpdateMode);
     }
 
     public ObservableCollection<Planning> Plannings { get; }
@@ -47,6 +51,8 @@ public class PlanningViewModel : BaseViewModel
     public ICommand CreateCommand { get; }
     public ICommand UpdateCommand { get; }
     public ICommand DeleteCommand { get; }
+    public ICommand ShowCreatePanelCommand { get; }
+    public ICommand ShowUpdatePanelCommand { get; }
 
     public bool IsLoading
     {
@@ -68,6 +74,45 @@ public class PlanningViewModel : BaseViewModel
         set => SetProperty(ref _statusMessage, value);
     }
 
+    public bool IsCreateMode
+    {
+        get => _isCreateMode;
+        set
+        {
+            if (SetProperty(ref _isCreateMode, value))
+            {
+                OnPropertyChanged(nameof(IsFormSectionVisible));
+                OnPropertyChanged(nameof(FormTitle));
+                OnPropertyChanged(nameof(FormHelperMessage));
+            }
+        }
+    }
+
+    public bool IsUpdateMode
+    {
+        get => _isUpdateMode;
+        set
+        {
+            if (SetProperty(ref _isUpdateMode, value))
+            {
+                OnPropertyChanged(nameof(IsFormSectionVisible));
+                OnPropertyChanged(nameof(FormTitle));
+                OnPropertyChanged(nameof(FormHelperMessage));
+                RefreshEditCommands();
+            }
+        }
+    }
+
+    public bool IsFormSectionVisible => IsCreateMode || IsUpdateMode;
+
+    public string FormTitle => IsCreateMode ? "Nouveau créneau" : "Mise à jour du créneau";
+
+    public string FormHelperMessage => IsCreateMode
+        ? "Définissez la date et les horaires pour ajouter un créneau."
+        : SelectedPlanning is null
+            ? "Choisissez un créneau à modifier puis ajustez les horaires."
+            : $"#{SelectedPlanning.Id} — {SelectedPlanning.DisplayDate}";
+
     public Planning? SelectedPlanning
     {
         get => _selectedPlanning;
@@ -78,6 +123,7 @@ public class PlanningViewModel : BaseViewModel
                 ApplySelection(value);
                 RefreshEditCommands();
                 OnPropertyChanged(nameof(SelectedPlanningLabel));
+                OnPropertyChanged(nameof(FormHelperMessage));
             }
         }
     }
@@ -134,19 +180,37 @@ public class PlanningViewModel : BaseViewModel
         }
     }
 
-    public async Task OnPageAppearingAsync()
+    public async Task InitializeAsync()
     {
-        if (!_sessionPrepared)
+        if (_sessionPrepared)
         {
-            await EnsureSessionAsync();
+            return;
         }
 
-        await LoadPlanningsAsync();
+        await EnsureSessionAsync();
+        StatusMessage = "Choisissez un mode puis chargez le planning.";
+    }
+
+    private void EnterCreateMode()
+    {
+        IsCreateMode = true;
+        IsUpdateMode = false;
+        SelectedPlanning = null;
+        StatusMessage = "Mode création : ajoutez un créneau.";
+    }
+
+    private void EnterUpdateMode()
+    {
+        IsUpdateMode = true;
+        IsCreateMode = false;
+        StatusMessage = Plannings.Count == 0
+            ? "Chargez le planning puis sélectionnez un créneau."
+            : "Sélectionnez un créneau à modifier.";
     }
 
     private async Task EnsureSessionAsync()
     {
-        var hasSession = await _sessionService.LoadAsync().ConfigureAwait(false);
+        var hasSession = await _sessionService.LoadAsync();
         _apis.SetBearerToken(_sessionService.AuthToken);
         _sessionPrepared = hasSession;
     }
@@ -162,14 +226,23 @@ public class PlanningViewModel : BaseViewModel
 
             await EnsureSessionAsync();
 
-            var items = await _apis.GetListAsync<Planning>("/planning/list").ConfigureAwait(false);
+            var items = await _apis.GetListAsync<Planning>("/planning/list");
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 Plannings.Clear();
-                foreach (var item in items.OrderBy(p => p.Jour ?? DateTime.MaxValue))
+
+                if (items != null)
                 {
-                    Plannings.Add(item);
+                    foreach (var item in items.OrderBy(p => p?.Jour ?? DateTime.MaxValue))
+                    {
+                        if (item is null)
+                        {
+                            continue;
+                        }
+
+                        Plannings.Add(item);
+                    }
                 }
 
                 StatusMessage = Plannings.Count == 0
@@ -213,8 +286,7 @@ public class PlanningViewModel : BaseViewModel
                 heureFin = FormatTime(NewHeureFin)
             };
 
-            var response = await _apis.PostAsync<object, PlanningResponse>("/planning/create", payload)
-                .ConfigureAwait(false);
+            var response = await _apis.PostAsync<object, PlanningResponse>("/planning/create", payload);
 
             await LoadPlanningsAsync();
             StatusMessage = response?.Message ?? "Créneau créé.";
@@ -251,8 +323,7 @@ public class PlanningViewModel : BaseViewModel
                 heureFin = FormatTime(EditHeureFin)
             };
 
-            var response = await _apis.PostAsync<object, PlanningResponse>("/planning/update", payload)
-                .ConfigureAwait(false);
+            var response = await _apis.PostAsync<object, PlanningResponse>("/planning/update", payload);
 
             await LoadPlanningsAsync();
             StatusMessage = response?.Message ?? "Créneau mis à jour.";
@@ -285,8 +356,7 @@ public class PlanningViewModel : BaseViewModel
             await EnsureSessionAsync();
 
             var payload = new { id = SelectedPlanning.Id };
-            var response = await _apis.PostAsync<object, PlanningResponse>("/planning/delete", payload)
-                .ConfigureAwait(false);
+            var response = await _apis.PostAsync<object, PlanningResponse>("/planning/delete", payload);
 
             await LoadPlanningsAsync();
             SelectedPlanning = null;

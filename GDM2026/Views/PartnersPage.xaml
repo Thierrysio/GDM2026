@@ -4,7 +4,6 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     x:Name="PartnersRoot"
-    Title="Gestion des partenaires"
     BackgroundColor="#0B0B0B">
 
     <ContentPage.Resources>
@@ -14,329 +13,264 @@
         <Color x:Key="StrokeDark">#2D2D2D</Color>
     </ContentPage.Resources>
 
-    <CollectionView x:Name="PartnersCollection"
-                    ItemsSource="{Binding Partners}"
-                    SelectionMode="Single"
-                    SelectedItem="{Binding SelectedPartner}"
-                    ItemSizingStrategy="MeasureAllItems">
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="18">
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="#000000"
+                StrokeThickness="1.5"
+                Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
 
-        <CollectionView.Header>
-            <VerticalStackLayout Padding="20" Spacing="16">
+                <VerticalStackLayout Spacing="16">
+                    <Label
+                        Text="Gestion des partenaires"
+                        FontSize="28"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
 
-                <!-- TITRE + STATUT -->
-                <Border Background="{StaticResource CardBackground}"
-                        Padding="18"
-                        Stroke="#000"
-                        StrokeThickness="1.5">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="18"/>
-                    </Border.StrokeShape>
-
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="Gestion des partenaires"
-                               FontSize="30"
-                               FontAttributes="Bold"
-                               TextColor="{StaticResource GoldText}"
-                               HorizontalTextAlignment="Center"/>
-
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                            <Label Text="{Binding StatusMessage}"
-                                   FontSize="13"
-                                   TextColor="{StaticResource GoldText}"
-                                   Opacity="0.85"
-                                   LineBreakMode="WordWrap"/>
-
-                            <ActivityIndicator Grid.Column="1"
-                                               IsRunning="{Binding IsLoading}"
-                                               IsVisible="{Binding IsLoading}"
-                                               Color="{StaticResource GoldText}"
-                                               InputTransparent="True"/>
-                        </Grid>
-
-                        <!-- ✅ BOUTON VISIBLE POUR CHARGER -->
-                        <Button Text="Charger / Recharger les partenaires"
-                                Command="{Binding LoadPartnersCommand}"
-                                BackgroundColor="#303030"
-                                TextColor="{StaticResource GoldText}" />
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- CREATE -->
-                <Border Background="{StaticResource CardBackground}"
-                        Padding="18"
-                        Stroke="#000"
-                        StrokeThickness="1.5">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="18"/>
-                    </Border.StrokeShape>
-
-                    <VerticalStackLayout Spacing="12">
-                        <Label Text="Créer un partenaire"
-                               FontSize="18"
-                               FontAttributes="Bold"
-                               TextColor="{StaticResource GoldText}"/>
-
-                        <Entry Placeholder="Nom du partenaire"
-                               Text="{Binding NewPartnerName}"
-                               BackgroundColor="{StaticResource FieldBg}"
-                               TextColor="{StaticResource GoldText}"
-                               PlaceholderColor="#777"/>
-
-                        <Entry Placeholder="Site web (optionnel)"
-                               Text="{Binding NewPartnerWebsite}"
-                               BackgroundColor="{StaticResource FieldBg}"
-                               TextColor="{StaticResource GoldText}"
-                               PlaceholderColor="#777"/>
-
-                        <Button Text="Créer le partenaire"
-                                Command="{Binding CreateCommand}"
-                                BackgroundColor="#C18F1A"
-                                TextColor="{StaticResource GoldText}"/>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- EDIT (visible si SelectedPartner != null) -->
-                <Border Background="{StaticResource CardBackground}"
-                        Padding="18"
-                        Stroke="#000"
-                        StrokeThickness="1.5">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="18"/>
-                    </Border.StrokeShape>
-
-                    <Border.Triggers>
-                        <DataTrigger TargetType="Border"
-                                     Binding="{Binding SelectedPartner}"
-                                     Value="{x:Null}">
-                            <Setter Property="IsVisible" Value="False"/>
-                        </DataTrigger>
-                    </Border.Triggers>
-
-                    <VerticalStackLayout Spacing="12">
-                        <Label Text="Modifier le partenaire sélectionné"
-                               FontSize="18"
-                               FontAttributes="Bold"
-                               TextColor="{StaticResource GoldText}"/>
-
-                        <Label Text="{Binding SelectedPartnerLabel}"
-                               FontSize="12"
-                               TextColor="{StaticResource GoldText}"
-                               Opacity="0.8"/>
-
-                        <Entry Placeholder="Nom"
-                               Text="{Binding EditPartnerName}"
-                               BackgroundColor="{StaticResource FieldBg}"
-                               TextColor="{StaticResource GoldText}"
-                               PlaceholderColor="#777"/>
-
-                        <Entry Placeholder="Site web"
-                               Text="{Binding EditPartnerWebsite}"
-                               BackgroundColor="{StaticResource FieldBg}"
-                               TextColor="{StaticResource GoldText}"
-                               PlaceholderColor="#777"/>
-
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                            <Button Text="Mettre à jour"
-                                    Command="{Binding UpdateCommand}"
-                                    BackgroundColor="#303030"
-                                    TextColor="{StaticResource GoldText}"/>
-
-                            <Button Grid.Column="1"
-                                    Text="Supprimer"
-                                    Command="{Binding DeleteCommand}"
-                                    BackgroundColor="#7A1C1C"
-                                    TextColor="{StaticResource GoldText}"/>
-                        </Grid>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- LOGO (visible si SelectedPartner != null) -->
-                <Border Background="{StaticResource CardBackground}"
-                        Padding="18"
-                        Stroke="#000"
-                        StrokeThickness="1.5">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="18"/>
-                    </Border.StrokeShape>
-
-                    <Border.Triggers>
-                        <DataTrigger TargetType="Border"
-                                     Binding="{Binding SelectedPartner}"
-                                     Value="{x:Null}">
-                            <Setter Property="IsVisible" Value="False"/>
-                        </DataTrigger>
-                    </Border.Triggers>
+                    <Label
+                        Text="Ajoutez ou mettez à jour les partenaires de Dantec Market avec un flux cohérent."
+                        FontSize="16"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85" />
 
                     <VerticalStackLayout Spacing="10">
-                        <Label Text="Logo du partenaire"
-                               FontSize="18"
-                               FontAttributes="Bold"
-                               TextColor="{StaticResource GoldText}"/>
+                        <Button
+                            Text="+ Nouveau partenaire"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowCreatePanelCommand}" />
+                        <Button
+                            Text="Mettre à jour un partenaire"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowUpdatePanelCommand}" />
+                        <Button
+                            Text="Charger / Recharger les partenaires"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding LoadPartnersCommand}" />
+                    </VerticalStackLayout>
 
-                        <SearchBar Placeholder="Rechercher un logo"
-                                   Text="{Binding ImageSearchTerm}"
-                                   BackgroundColor="{StaticResource FieldBg}"
-                                   TextColor="{StaticResource GoldText}"
-                                   PlaceholderColor="#777"
-                                   CancelButtonColor="{StaticResource GoldText}" />
-
-                        <ActivityIndicator IsRunning="{Binding IsImageLibraryLoading}"
-                                           IsVisible="{Binding IsImageLibraryLoading}"
-                                           Color="{StaticResource GoldText}"
-                                           InputTransparent="True"/>
-
-                        <CollectionView ItemsSource="{Binding FilteredImageLibrary}"
-                                        SelectionMode="Single"
-                                        SelectedItem="{Binding SelectedLibraryImage}"
-                                        HeightRequest="240"
-                                        ItemSizingStrategy="MeasureAllItems">
-                            <CollectionView.ItemsLayout>
-                                <GridItemsLayout Orientation="Vertical" Span="3"/>
-                            </CollectionView.ItemsLayout>
-
-                            <CollectionView.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Background="#111"
-                                            Stroke="{StaticResource StrokeDark}"
-                                            StrokeThickness="1"
-                                            Padding="6"
-                                            Margin="4">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="10"/>
-                                        </Border.StrokeShape>
-
-                                        <Image Source="{Binding FullUrl}"
-                                               HeightRequest="80"
-                                               WidthRequest="100"
-                                               Aspect="AspectFill" />
-                                    </Border>
-                                </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
-
-                        <Label Text="{Binding SelectedImageName}"
-                               FontSize="12"
-                               TextColor="{StaticResource GoldText}"
-                               Opacity="0.85" />
-
-                        <Button Text="Effacer le logo"
-                                Command="{Binding ClearLogoCommand}"
-                                BackgroundColor="#303030"
+                    <Frame
+                        IsVisible="{Binding IsUpdateMode}"
+                        BackgroundColor="#1E1E1E"
+                        Padding="14"
+                        HasShadow="False"
+                        CornerRadius="14"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="Sélectionnez un partenaire à modifier"
+                                FontAttributes="Bold"
                                 TextColor="{StaticResource GoldText}" />
 
-                        <Border Background="#111"
-                                Padding="10"
-                                Stroke="{StaticResource StrokeDark}"
-                                StrokeThickness="1"
-                                IsVisible="{Binding HasSelectedImage}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="12" />
-                            </Border.StrokeShape>
+                            <ActivityIndicator
+                                IsRunning="{Binding IsLoading}"
+                                IsVisible="{Binding IsLoading}"
+                                Color="{StaticResource GoldText}" />
 
-                            <Image Source="{Binding SelectedImagePreview}"
-                                   Aspect="AspectFit"
-                                   HeightRequest="220"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center" />
-                        </Border>
-                    </VerticalStackLayout>
-                </Border>
+                            <CollectionView
+                                ItemsSource="{Binding Partners}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedPartner}"
+                                HeightRequest="240">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.EmptyView>
+                                    <Label
+                                        Text="Aucun partenaire chargé. Utilisez le bouton de chargement."
+                                        TextColor="{StaticResource GoldText}"
+                                        HorizontalTextAlignment="Center"
+                                        Opacity="0.6" />
+                                </CollectionView.EmptyView>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="10" Margin="0,4">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="12" />
+                                            </Border.StrokeShape>
+                                            <VerticalStackLayout Spacing="4">
+                                                <Label
+                                                    Text="{Binding Id, StringFormat='Id : {0}'}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontSize="13" />
+                                                <Label
+                                                    Text="{Binding DisplayName}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontAttributes="Bold"
+                                                    LineBreakMode="TailTruncation" />
+                                                <Label
+                                                    Text="{Binding WebsiteDisplay}"
+                                                    TextColor="#66CCFF"
+                                                    FontSize="12"
+                                                    LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
 
-                <Label Text="Liste : touchez un partenaire pour le sélectionner."
-                       FontSize="12"
-                       TextColor="{StaticResource GoldText}"
-                       Opacity="0.6" />
-            </VerticalStackLayout>
-        </CollectionView.Header>
+                            <Label
+                                Text="{Binding StatusMessage}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.85"
+                                HorizontalTextAlignment="Center" />
 
-        <CollectionView.ItemsLayout>
-            <LinearItemsLayout Orientation="Vertical" ItemSpacing="10"/>
-        </CollectionView.ItemsLayout>
-
-        <CollectionView.EmptyView>
-            <VerticalStackLayout Padding="20" Spacing="8">
-                <Label Text="Aucun partenaire affiché."
-                       TextColor="{StaticResource GoldText}"
-                       HorizontalTextAlignment="Center"
-                       Opacity="0.7" />
-                <Label Text="Cliquez sur « Charger / Recharger les partenaires »."
-                       TextColor="{StaticResource GoldText}"
-                       HorizontalTextAlignment="Center"
-                       Opacity="0.5"
-                       FontSize="12" />
-            </VerticalStackLayout>
-        </CollectionView.EmptyView>
-
-        <CollectionView.ItemTemplate>
-            <DataTemplate>
-                <Border x:Name="Row"
-                        Margin="20,4"
-                        BackgroundColor="#0B0B0B"
-                        Stroke="#2D2D2D"
-                        StrokeThickness="1.5"
-                        Padding="12">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="16"/>
-                    </Border.StrokeShape>
-
-                    <Grid ColumnDefinitions="80,*" ColumnSpacing="12">
-
-                        <Image Grid.Column="0"
-                               WidthRequest="64"
-                               HeightRequest="64"
-                               Aspect="AspectFit"
-                               VerticalOptions="Center"
-                               IsVisible="{Binding HasImage}">
-                            <Image.Source>
-                                <UriImageSource Uri="{Binding FullImageUrl}"
-                                                CachingEnabled="True"
-                                                CacheValidity="7.00:00:00" />
-                            </Image.Source>
-                        </Image>
-
-                        <VerticalStackLayout Grid.Column="1" Spacing="6">
-                            <Label Text="{Binding DisplayName}"
-                                   FontAttributes="Bold"
-                                   FontSize="16"
-                                   TextColor="{StaticResource GoldText}"/>
-
-                            <Label Text="{Binding WebsiteDisplay}"
-                                   FontSize="12"
-                                   TextColor="#66CCFF">
-                                <Label.GestureRecognizers>
-                                    <TapGestureRecognizer
-                                        Command="{Binding BindingContext.OpenWebsiteCommand, Source={x:Reference PartnersRoot}}"
-                                        CommandParameter="{Binding Website}"/>
-                                </Label.GestureRecognizers>
-                            </Label>
+                            <Button
+                                Text="Supprimer le partenaire sélectionné"
+                                Command="{Binding DeleteCommand}"
+                                BackgroundColor="#4A1010"
+                                TextColor="{StaticResource GoldText}"
+                                IsEnabled="{Binding HasPartnerSelection}" />
                         </VerticalStackLayout>
+                    </Frame>
 
-                    </Grid>
+                    <Frame
+                        IsVisible="{Binding IsFormSectionVisible}"
+                        BackgroundColor="#1E1E1E"
+                        Padding="14"
+                        HasShadow="False"
+                        CornerRadius="14"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="{Binding FormHeader}"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="20" />
 
-                    <VisualStateManager.VisualStateGroups>
-                        <VisualStateGroup x:Name="SelectionStates">
-                            <VisualState x:Name="Normal">
-                                <VisualState.Setters>
-                                    <Setter TargetName="Row" Property="Stroke" Value="#2D2D2D" />
-                                    <Setter TargetName="Row" Property="StrokeThickness" Value="1.5" />
-                                </VisualState.Setters>
-                            </VisualState>
-                            <VisualState x:Name="Selected">
-                                <VisualState.Setters>
-                                    <Setter TargetName="Row" Property="Stroke" Value="{StaticResource GoldText}" />
-                                    <Setter TargetName="Row" Property="StrokeThickness" Value="3" />
-                                </VisualState.Setters>
-                            </VisualState>
-                        </VisualStateGroup>
-                    </VisualStateManager.VisualStateGroups>
+                            <Label
+                                Text="{Binding FormHelperMessage}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.8" />
 
-                </Border>
-            </DataTemplate>
-        </CollectionView.ItemTemplate>
+                            <VerticalStackLayout Spacing="12" IsEnabled="{Binding IsFormInputEnabled}">
+                                <Label
+                                    Text="Nom"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource GoldText}" />
+                                <Entry
+                                    Placeholder="Nom du partenaire"
+                                    Text="{Binding PartnerName}"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    BackgroundColor="{StaticResource FieldBg}" />
 
-        <CollectionView.Footer>
-            <BoxView HeightRequest="140" InputTransparent="True"/>
-        </CollectionView.Footer>
+                                <Label
+                                    Text="Site web"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource GoldText}" />
+                                <Entry
+                                    Placeholder="Site web (optionnel)"
+                                    Text="{Binding PartnerWebsite}"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    BackgroundColor="{StaticResource FieldBg}" />
 
-    </CollectionView>
+                                <Label
+                                    Text="Bibliothèque de logos"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource GoldText}" />
+
+                                <SearchBar
+                                    Placeholder="Rechercher un logo"
+                                    Text="{Binding ImageSearchTerm}"
+                                    BackgroundColor="{StaticResource FieldBg}"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    CancelButtonColor="{StaticResource GoldText}" />
+
+                                <Label
+                                    Text="{Binding ImageLibraryMessage}"
+                                    TextColor="{StaticResource GoldText}"
+                                    FontSize="13"
+                                    Opacity="0.85" />
+
+                                <ActivityIndicator
+                                    IsRunning="{Binding IsImageLibraryLoading}"
+                                    IsVisible="{Binding IsImageLibraryLoading}"
+                                    Color="{StaticResource GoldText}" />
+
+                                <CollectionView
+                                    ItemsSource="{Binding FilteredImageLibrary}"
+                                    SelectionMode="Single"
+                                    SelectedItem="{Binding SelectedLibraryImage}"
+                                    HeightRequest="240">
+                                    <CollectionView.ItemsLayout>
+                                        <GridItemsLayout Orientation="Vertical" Span="3" />
+                                    </CollectionView.ItemsLayout>
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#111" Stroke="{StaticResource StrokeDark}" StrokeThickness="1" Padding="6" Margin="4">
+                                                <VerticalStackLayout Spacing="6">
+                                                    <Image
+                                                        Source="{Binding FullUrl}"
+                                                        Aspect="AspectFill"
+                                                        HeightRequest="80"
+                                                        WidthRequest="100" />
+                                                    <Label
+                                                        Text="{Binding DisplayName}"
+                                                        TextColor="{StaticResource GoldText}"
+                                                        FontSize="11"
+                                                        LineBreakMode="TailTruncation"
+                                                        HorizontalTextAlignment="Center" />
+                                                </VerticalStackLayout>
+                                            </Border>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+
+                                <Label
+                                    Text="{Binding SelectedImageName}"
+                                    TextColor="{StaticResource GoldText}"
+                                    FontSize="13"
+                                    Opacity="0.85" />
+
+                                <Button
+                                    Text="Effacer le logo"
+                                    Command="{Binding ClearLogoCommand}"
+                                    BackgroundColor="#303030"
+                                    TextColor="{StaticResource GoldText}" />
+
+                                <Border Background="#111" Padding="10" Stroke="{StaticResource StrokeDark}" StrokeThickness="1" IsVisible="{Binding HasSelectedImage}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Image
+                                        Source="{Binding SelectedImagePreview}"
+                                        Aspect="AspectFit"
+                                        HeightRequest="220"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <Button
+                                Text="{Binding FormActionButtonText}"
+                                Command="{Binding FormActionCommand}"
+                                BackgroundColor="#C18F1A"
+                                TextColor="{StaticResource GoldText}"
+                                IsEnabled="{Binding IsFormInputEnabled}" />
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <Label
+                        Text="{Binding StatusMessage}"
+                        TextColor="{StaticResource GoldText}"
+                        FontSize="14"
+                        HorizontalTextAlignment="Center"
+                        LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>
