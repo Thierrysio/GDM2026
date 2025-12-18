@@ -3,297 +3,179 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="GDM2026.Views.EvenementPage"
              BackgroundColor="#0B0B0B"
-             Title="Catégories événements">
+             Title="Événements">
 
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
         <Color x:Key="CardBackground">#151515</Color>
-
-        <Style x:Key="SectionTitleStyle" TargetType="Label">
-            <Setter Property="FontSize" Value="22" />
-            <Setter Property="FontAttributes" Value="Bold" />
-            <Setter Property="TextColor" Value="{StaticResource GoldText}" />
-        </Style>
-
-        <Style x:Key="DarkEntryStyle" TargetType="Entry">
-            <Setter Property="BackgroundColor" Value="#101010" />
-            <Setter Property="TextColor" Value="{StaticResource GoldText}" />
-            <Setter Property="PlaceholderColor" Value="#7E7030" />
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="HeightRequest" Value="46" />
-            <Setter Property="Margin" Value="0,4,0,0" />
-        </Style>
-
-        <Style x:Key="BaseButtonStyle" TargetType="Button">
-            <Setter Property="TextColor" Value="{StaticResource GoldText}" />
-            <Setter Property="FontAttributes" Value="Bold" />
-            <Setter Property="CornerRadius" Value="16" />
-            <Setter Property="Padding" Value="18,12" />
-            <Setter Property="BackgroundColor" Value="#2A2A2A" />
-        </Style>
-
-        <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
-            <Setter Property="BackgroundColor" Value="#C18F1A" />
-        </Style>
-
-        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
-            <Setter Property="BackgroundColor" Value="#1F1F1F" />
-        </Style>
-
-        <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
-            <Setter Property="BackgroundColor" Value="#7A1C1C" />
-        </Style>
     </ContentPage.Resources>
 
-    <RefreshView Command="{Binding RefreshCommand}"
-                 IsRefreshing="{Binding IsRefreshing}">
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="18">
 
-        <!-- + marge bas pour éviter que le dernier item touche le bord -->
-        <CollectionView x:Name="EventsCollection"
-                        ItemsSource="{Binding PromoCategories}"
-                        SelectionMode="Single"
-                        SelectedItem="{Binding SelectedCategory}"
-                        ItemSizingStrategy="MeasureAllItems"
-                        Margin="0,0,0,12">
+            <Border Background="{StaticResource CardBackground}" Stroke="#000" StrokeThickness="1.5" Padding="22">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
 
-            <!-- ✅ Footer = espace garanti sous le dernier item (anti-troncation) -->
-            <CollectionView.Footer>
-                <BoxView HeightRequest="80" />
-            </CollectionView.Footer>
-
-            <!-- HEADER = haut de page (toujours visible) -->
-            <CollectionView.Header>
-                <VerticalStackLayout Padding="24" Spacing="18">
-
-                    <!-- En-tête -->
-                    <Border Background="{StaticResource CardBackground}" Stroke="#000000" StrokeThickness="1.5" Padding="24">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="18" />
-                        </Border.StrokeShape>
-                        <VerticalStackLayout Spacing="8">
-                            <Label Text="Catégories événements"
-                                   FontSize="30"
-                                   FontAttributes="Bold"
-                                   HorizontalTextAlignment="Center"
-                                   TextColor="{StaticResource GoldText}" />
-                            <Label Text="Créez, renommez et supprimez les catégories promo utilisées sur le site."
-                                   FontSize="16"
-                                   TextColor="{StaticResource GoldText}"
-                                   HorizontalTextAlignment="Center"
-                                   Opacity="0.85" />
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <!-- Créer -->
-                    <Border Background="{StaticResource CardBackground}" Stroke="#000000" StrokeThickness="1.5" Padding="24">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="18" />
-                        </Border.StrokeShape>
-
-                        <VerticalStackLayout Spacing="12">
-                            <Label Text="Créer un événement" Style="{StaticResource SectionTitleStyle}" />
-
-                            <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
-                                <Label Text="{Binding StatusMessage}"
-                                       FontSize="14"
-                                       TextColor="{StaticResource GoldText}"
-                                       LineBreakMode="WordWrap"
-                                       Opacity="0.85" />
-                                <ActivityIndicator Grid.Column="1"
-                                                   IsRunning="{Binding IsRefreshing}"
-                                                   IsVisible="{Binding IsRefreshing}"
-                                                   Color="{StaticResource GoldText}" />
-                            </Grid>
-
-                            <VerticalStackLayout Spacing="10">
-                                <Entry Placeholder="Nom de l'événement"
-                                       Text="{Binding NewCategoryName}"
-                                       Style="{StaticResource DarkEntryStyle}" />
-                                <Button Text="Créer l'événement"
-                                        Command="{Binding CreateCommand}"
-                                        Style="{StaticResource PrimaryButtonStyle}" />
-                            </VerticalStackLayout>
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <!-- Modifier / Charger -->
-                    <Border Background="{StaticResource CardBackground}" Stroke="#000000" StrokeThickness="1.5" Padding="24">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="18" />
-                        </Border.StrokeShape>
-
-                        <VerticalStackLayout Spacing="12">
-                            <Label Text="Modifier un événement" Style="{StaticResource SectionTitleStyle}" />
-                            <Button Text="{Binding SelectionButtonText}"
-                                    Command="{Binding ShowSelectionCommand}"
-                                    Style="{StaticResource PrimaryButtonStyle}" />
-                            <Label Text="{Binding SelectedCategoryName}"
-                                   FontSize="13"
-                                   TextColor="{StaticResource GoldText}"
-                                   Opacity="0.85"
-                                   LineBreakMode="WordWrap" />
-
-                            <!-- Hint visible tant que la liste n'est pas "activée" -->
-                            <Label Text="Appuyez sur « Modifier / Supprimer » pour charger / afficher les événements."
-                                   FontSize="13"
-                                   TextColor="{StaticResource GoldText}"
-                                   Opacity="0.65">
-                                <Label.Triggers>
-                                    <DataTrigger TargetType="Label"
-                                                 Binding="{Binding IsSelectionVisible}"
-                                                 Value="True">
-                                        <Setter Property="IsVisible" Value="False" />
-                                    </DataTrigger>
-                                </Label.Triggers>
-                            </Label>
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <!-- Titre de section -->
-                    <Border Background="{StaticResource CardBackground}" Stroke="#000000" StrokeThickness="1.5" Padding="18">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="18" />
-                        </Border.StrokeShape>
-                        <Label Text="Événements" Style="{StaticResource SectionTitleStyle}" />
-                    </Border>
-
-                </VerticalStackLayout>
-            </CollectionView.Header>
-
-            <!-- EmptyView dynamique -->
-            <CollectionView.EmptyView>
-                <VerticalStackLayout Padding="24" Spacing="10">
-                    <Label x:Name="EmptyText"
-                           Text="Appuyez sur « Modifier / Supprimer » pour charger les événements."
-                           HorizontalTextAlignment="Center"
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Événements"
+                           FontSize="30"
+                           FontAttributes="Bold"
                            TextColor="{StaticResource GoldText}"
-                           Opacity="0.75" />
-                    <Label Text="(Ensuite, touchez un événement pour le mettre en surbrillance et afficher le panneau de modification.)"
-                           HorizontalTextAlignment="Center"
+                           HorizontalTextAlignment="Center" />
+                    <Label Text="Créez ou mettez à jour les événements avec le même guidage que l'Actualité."
                            TextColor="{StaticResource GoldText}"
-                           Opacity="0.55"
-                           FontSize="12" />
+                           Opacity="0.85"
+                           HorizontalTextAlignment="Center" />
 
-                    <VerticalStackLayout.Triggers>
-                        <DataTrigger TargetType="VerticalStackLayout"
-                                     Binding="{Binding IsSelectionVisible}"
-                                     Value="True">
-                            <Setter TargetName="EmptyText" Property="Label.Text" Value="Aucun événement pour le moment." />
-                        </DataTrigger>
-                    </VerticalStackLayout.Triggers>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Button Text="Créer"
+                                BackgroundColor="#303030"
+                                TextColor="{StaticResource GoldText}"
+                                CornerRadius="16"
+                                Command="{Binding ShowCreateModeCommand}" />
+                        <Button Grid.Column="1"
+                                Text="Mettre à jour"
+                                BackgroundColor="#303030"
+                                TextColor="{StaticResource GoldText}"
+                                CornerRadius="16"
+                                Command="{Binding ShowUpdateModeCommand}" />
+                    </Grid>
+
+                    <Label Text="{Binding StatusMessage}"
+                           TextColor="{StaticResource GoldText}"
+                           FontSize="14"
+                           Opacity="0.9"
+                           HorizontalTextAlignment="Center"
+                           LineBreakMode="WordWrap" />
                 </VerticalStackLayout>
-            </CollectionView.EmptyView>
+            </Border>
 
-            <CollectionView.ItemsLayout>
-                <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
-            </CollectionView.ItemsLayout>
+            <Border Background="{StaticResource CardBackground}" Stroke="#000" StrokeThickness="1.5" Padding="18"
+                    IsVisible="{Binding IsUpdateMode}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
 
-            <!-- ITEMS -->
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Sélectionnez un événement"
+                           FontAttributes="Bold"
+                           FontSize="20"
+                           TextColor="{StaticResource GoldText}" />
 
-                    <Border x:Name="ItemBorder"
-                            Margin="24,0,24,0"
-                            BackgroundColor="#0B0B0B"
-                            Stroke="#2D2D2D"
-                            StrokeThickness="1.5"
-                            Padding="16">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <Label Text="{Binding SelectedCategoryName}"
+                               TextColor="{StaticResource GoldText}"
+                               Opacity="0.85"
+                               LineBreakMode="WordWrap" />
+                        <ActivityIndicator Grid.Column="1"
+                                           IsRunning="{Binding IsRefreshing}"
+                                           IsVisible="{Binding IsRefreshing}"
+                                           Color="{StaticResource GoldText}" />
+                    </Grid>
 
-                        <Border.Triggers>
-                            <DataTrigger TargetType="Border"
-                                         Binding="{Binding BindingContext.IsSelectionVisible, Source={x:Reference EventsCollection}}"
-                                         Value="False">
-                                <Setter Property="IsVisible" Value="False" />
-                            </DataTrigger>
-                        </Border.Triggers>
+                    <Button Text="{Binding SelectionButtonText}"
+                            Command="{Binding ReloadSelectionCommand}"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            CornerRadius="14" />
 
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="16" />
-                        </Border.StrokeShape>
-
-                        <VerticalStackLayout Spacing="4">
-
-                            <Label Text="{Binding DisplayName}"
-                                   FontSize="18"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource GoldText}" />
-
-                            <Label Text="{Binding Name}"
-                                   FontSize="13"
+                    <CollectionView ItemsSource="{Binding PromoCategories}"
+                                    SelectionMode="Single"
+                                    SelectedItem="{Binding SelectedCategory}"
+                                    HeightRequest="220">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.EmptyView>
+                            <Label Text="Appuyez sur « Afficher les événements » pour charger la liste."
+                                   HorizontalTextAlignment="Center"
                                    TextColor="{StaticResource GoldText}"
-                                   Opacity="0.75" />
+                                   Opacity="0.7" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#0F0F0F" Stroke="#2D2D2D" StrokeThickness="1.5" Padding="12">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding DisplayName}"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource GoldText}" />
+                                        <Label Text="{Binding Name}"
+                                               FontSize="13"
+                                               TextColor="{StaticResource GoldText}"
+                                               Opacity="0.75" />
+                                        <Label Text="{Binding Id, StringFormat='ID : {0}'}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource GoldText}"
+                                               Opacity="0.55" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
 
-                            <Label Text="{Binding Id, StringFormat='ID : {0}'}"
-                                   FontSize="12"
-                                   TextColor="{StaticResource GoldText}"
-                                   Opacity="0.55" />
+            <Border Background="{StaticResource CardBackground}" Stroke="#000" StrokeThickness="1.5" Padding="18"
+                    IsVisible="{Binding IsFormSectionVisible}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
 
-                            <BoxView HeightRequest="1"
-                                     BackgroundColor="#2D2D2D"
-                                     Margin="0,8" />
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{Binding FormHeader}"
+                           FontAttributes="Bold"
+                           FontSize="22"
+                           TextColor="{StaticResource GoldText}" />
+                    <Label Text="{Binding FormHelperMessage}"
+                           TextColor="{StaticResource GoldText}"
+                           FontSize="13"
+                           Opacity="0.85" />
 
-                            <VerticalStackLayout x:Name="EditPanel"
-                                                 Spacing="8"
-                                                 IsVisible="False">
+                    <VerticalStackLayout Spacing="10" IsEnabled="{Binding IsFormInputEnabled}">
+                        <Entry Placeholder="Nom de l'événement"
+                               BackgroundColor="#101010"
+                               TextColor="{StaticResource GoldText}"
+                               PlaceholderColor="#7E7030"
+                               Text="{Binding NewCategoryName}"
+                               IsVisible="{Binding IsCreateMode}" />
 
-                                <Label Text="Modifier cet événement"
-                                       FontSize="14"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource GoldText}" />
+                        <Entry Placeholder="Nouveau nom de l'événement"
+                               BackgroundColor="#101010"
+                               TextColor="{StaticResource GoldText}"
+                               PlaceholderColor="#7E7030"
+                               Text="{Binding EditCategoryName}"
+                               IsVisible="{Binding IsUpdateMode}" />
 
-                                <Entry Placeholder="Nouveau titre de l'événement"
-                                       Text="{Binding BindingContext.EditCategoryName, Source={x:Reference EventsCollection}}"
-                                       Style="{StaticResource DarkEntryStyle}" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12"
+                              IsVisible="{Binding IsUpdateMode}">
+                            <Button Text="Mettre à jour"
+                                    Command="{Binding UpdateCommand}"
+                                    BackgroundColor="#303030"
+                                    TextColor="{StaticResource GoldText}"
+                                    CornerRadius="14" />
+                            <Button Grid.Column="1"
+                                    Text="Supprimer"
+                                    Command="{Binding DeleteCommand}"
+                                    BackgroundColor="#5A1A1A"
+                                    TextColor="{StaticResource GoldText}"
+                                    CornerRadius="14" />
+                        </Grid>
 
-                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                                    <Button Text="Mettre à jour"
-                                            Command="{Binding BindingContext.UpdateCommand, Source={x:Reference EventsCollection}}"
-                                            Style="{StaticResource SecondaryButtonStyle}" />
+                        <Button Text="Créer l'événement"
+                                Command="{Binding CreateCommand}"
+                                BackgroundColor="#C18F1A"
+                                TextColor="{StaticResource GoldText}"
+                                CornerRadius="14"
+                                IsVisible="{Binding IsCreateMode}" />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
 
-                                    <Button Grid.Column="1"
-                                            Text="Supprimer"
-                                            Command="{Binding BindingContext.DeleteCommand, Source={x:Reference EventsCollection}}"
-                                            Style="{StaticResource DangerButtonStyle}" />
-                                </Grid>
-                            </VerticalStackLayout>
-
-                        </VerticalStackLayout>
-
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup x:Name="SelectionStates">
-
-                                <VisualState x:Name="Normal">
-                                    <VisualState.Setters>
-                                        <Setter TargetName="ItemBorder" Property="BackgroundColor" Value="#0B0B0B" />
-                                        <Setter TargetName="ItemBorder" Property="Stroke" Value="#2D2D2D" />
-                                        <Setter TargetName="ItemBorder" Property="StrokeThickness" Value="1.5" />
-                                        <Setter TargetName="ItemBorder" Property="Shadow" Value="{x:Null}" />
-                                        <Setter TargetName="EditPanel" Property="IsVisible" Value="False" />
-                                    </VisualState.Setters>
-                                </VisualState>
-
-                                <VisualState x:Name="Selected">
-                                    <VisualState.Setters>
-                                        <Setter TargetName="ItemBorder" Property="BackgroundColor" Value="#0B0B0B" />
-                                        <Setter TargetName="ItemBorder" Property="Stroke" Value="{StaticResource GoldText}" />
-                                        <Setter TargetName="ItemBorder" Property="StrokeThickness" Value="3" />
-                                        <Setter TargetName="ItemBorder" Property="Shadow">
-                                            <Setter.Value>
-                                                <Shadow Opacity="0.85" Radius="18" />
-                                            </Setter.Value>
-                                        </Setter>
-                                        <Setter TargetName="EditPanel" Property="IsVisible" Value="True" />
-                                    </VisualState.Setters>
-                                </VisualState>
-
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
-
-                    </Border>
-
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-
-        </CollectionView>
-    </RefreshView>
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>

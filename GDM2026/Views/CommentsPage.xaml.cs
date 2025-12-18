@@ -26,7 +26,7 @@ public partial class CommentsPage : ContentPage
         catch (Exception ex)
         {
             Debug.WriteLine($"[COMMENTS_PAGE] Crash OnAppearing: {ex}");
-            await DisplayAlert("Erreur", "Impossible de charger les commentaires.", "OK");
+            await DisplayAlertAsync("Erreur", "Impossible de charger les commentaires.", "OK");
         }
     }
 }

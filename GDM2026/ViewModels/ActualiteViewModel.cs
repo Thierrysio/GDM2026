@@ -722,7 +722,7 @@ public class ActualiteViewModel : BaseViewModel
         var shell = Shell.Current;
         if (shell is not null)
         {
-            var confirmed = await shell.DisplayAlert(
+            var confirmed = await shell.DisplayAlertAsync(
                 "Suppression",
                 $"Supprimer définitivement l'actualité #{_selectedActualiteForEdit.Id} ?",
                 "Supprimer",

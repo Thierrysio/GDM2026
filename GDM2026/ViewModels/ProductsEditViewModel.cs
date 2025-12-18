@@ -724,7 +724,7 @@ public class ProductsEditViewModel : BaseViewModel
                 if (Shell.Current != null)
                 {
                     await MainThread.InvokeOnMainThreadAsync(async () =>
-                        await Shell.Current.DisplayAlert(
+                        await Shell.Current.DisplayAlertAsync(
                             "Mise à jour",
                             $"Le produit \"{EditProductName.Trim()}\" a été mis à jour avec succès.",
                             "OK"));
@@ -737,7 +737,7 @@ public class ProductsEditViewModel : BaseViewModel
                 if (Shell.Current != null)
                 {
                     await MainThread.InvokeOnMainThreadAsync(async () =>
-                        await Shell.Current.DisplayAlert(
+                        await Shell.Current.DisplayAlertAsync(
                             "Mise à jour",
                             "La mise à jour du produit a échoué.",
                             "OK"));
@@ -753,7 +753,7 @@ public class ProductsEditViewModel : BaseViewModel
             if (Shell.Current != null)
             {
                 await MainThread.InvokeOnMainThreadAsync(async () =>
-                    await Shell.Current.DisplayAlert(
+                    await Shell.Current.DisplayAlertAsync(
                         "Mise à jour",
                         "Une erreur est survenue pendant la mise à jour.",
                         "OK"));
@@ -857,10 +857,21 @@ public class ProductsEditViewModel : BaseViewModel
 
     private static async Task NavigateBackAsync()
     {
-        if (Shell.Current != null)
+        if (Shell.Current == null)
         {
-            await Shell.Current.GoToAsync("//HomePage", animate: true);
+            return;
         }
+
+        // Prefer a relative back navigation to return where the user came from (ex: reservations → produit → édition)
+        // and fall back to the page produits si la pile est indisponible.
+        var navigation = Shell.Current.Navigation;
+        if (navigation?.NavigationStack?.Count > 1)
+        {
+            await Shell.Current.GoToAsync("..", animate: true);
+            return;
+        }
+
+        await Shell.Current.GoToAsync("//ProductsPage", animate: true);
     }
 
     private static IEnumerable<ProductCatalogItem> FilterProducts(IEnumerable<ProductCatalogItem> products, string? query)
