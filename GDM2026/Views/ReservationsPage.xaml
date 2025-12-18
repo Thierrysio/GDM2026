@@ -315,21 +315,23 @@
                                                 <CollectionView.ItemTemplate>
                                                     <DataTemplate>
                                                         <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto" Padding="8" ColumnSpacing="12">
-                                                            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                                            <VerticalStackLayout Grid.Column="0" Spacing="2">
                                                                 <Label Text="{Binding LeProduit.NomProduit}" FontAttributes="Bold" />
                                                                 <Label Text="{Binding Quantite, StringFormat='Quantité : {0}'}" Opacity="0.8" />
                                                                 <Label Text="{Binding PrixRetenu, StringFormat='Prix : {0:C}'}" Opacity="0.8" />
                                                                 <Label Text="À traiter" Opacity="0.8">
                                                                     <Label.Triggers>
-                                                                        <DataTrigger TargetType="Label" Binding="{Binding Livree}" Value="True">
-                                                                            <Setter Property="Text" Value="Livré" />
-                                                                            <Setter Property="TextColor" Value="#5BE35B" />
-                                                                            <Setter Property="Opacity" Value="1" />
-                                                                        </DataTrigger>
                                                                         <DataTrigger TargetType="Label" Binding="{Binding Traite}" Value="True">
                                                                             <Setter Property="Text" Value="Traité" />
                                                                             <Setter Property="TextColor" Value="#5BE35B" />
                                                                             <Setter Property="Opacity" Value="1" />
+                                                                        </DataTrigger>
+                                                                    </Label.Triggers>
+                                                                </Label>
+                                                                <Label Text="Livré" TextColor="#5BE35B" FontAttributes="Bold" IsVisible="False">
+                                                                    <Label.Triggers>
+                                                                        <DataTrigger TargetType="Label" Binding="{Binding Livree}" Value="True">
+                                                                            <Setter Property="IsVisible" Value="True" />
                                                                         </DataTrigger>
                                                                     </Label.Triggers>
                                                                 </Label>

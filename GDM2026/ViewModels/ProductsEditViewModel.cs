@@ -862,16 +862,25 @@ public class ProductsEditViewModel : BaseViewModel
             return;
         }
 
-        // Prefer a relative back navigation to return where the user came from (ex: reservations → produit → édition)
-        // and fall back to the page produits si la pile est indisponible.
+        // Préférence : revenir en arrière si une page précédente est disponible.
         var navigation = Shell.Current.Navigation;
         if (navigation?.NavigationStack?.Count > 1)
         {
-            await Shell.Current.GoToAsync("..", animate: true);
+            await navigation.PopAsync(animated: true);
             return;
         }
 
-        await Shell.Current.GoToAsync("//ProductsPage", animate: true);
+        // Si la pile est vide ou invalide (cas rencontré dans le crash), on revient d'abord à l'accueil
+        // puis on recharge la page Produits via une navigation simple pour éviter les routes ambiguës.
+        try
+        {
+            await Shell.Current.GoToAsync($"///{nameof(HomePage)}", animate: true);
+            await Shell.Current.GoToAsync(nameof(ProductsPage), animate: false);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PRODUCTS EDIT] Navigation de secours échouée : {ex}");
+        }
     }
 
     private static IEnumerable<ProductCatalogItem> FilterProducts(IEnumerable<ProductCatalogItem> products, string? query)
