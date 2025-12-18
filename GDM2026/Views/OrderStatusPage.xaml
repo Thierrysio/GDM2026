@@ -171,7 +171,16 @@
                                     Title="Modifier l'état"
                                     FontSize="14"
                                     TextColor="{StaticResource GoldText}"
-                                    TitleColor="{StaticResource GoldText}" />
+                                    TitleColor="{StaticResource GoldText}">
+                                    <Picker.Triggers>
+                                        <DataTrigger Binding="{Binding BindingContext.IsReservationMode, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                                     TargetType="Picker"
+                                                     Value="True">
+                                            <Setter Property="IsVisible" Value="False" />
+                                            <Setter Property="IsEnabled" Value="False" />
+                                        </DataTrigger>
+                                    </Picker.Triggers>
+                                </Picker>
                             </VerticalStackLayout>
 
                             <FlexLayout Grid.Row="1"

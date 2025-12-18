@@ -329,6 +329,9 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         if (_statusUpdatesInProgress.Contains(order))
             return;
 
+        if (IsReservationMode)
+            return;
+
         var newStatus = order.CurrentStatus;
         var previousStatus = _lastKnownStatuses.TryGetValue(order, out var last) ? last : string.Empty;
 
