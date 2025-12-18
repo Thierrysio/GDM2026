@@ -29,7 +29,7 @@
     </ContentPage.Resources>
 
     <ScrollView>
-        <VerticalStackLayout Padding="24" Spacing="16">
+        <VerticalStackLayout Padding="24" Spacing="18">
 
             <Border
                 Background="{StaticResource CardBackground}"
@@ -39,82 +39,106 @@
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="18" />
                 </Border.StrokeShape>
-                <VerticalStackLayout Spacing="8">
+                <VerticalStackLayout Spacing="10">
                     <Label
-                        FontSize="22"
+                        FontSize="24"
                         FontAttributes="Bold"
                         HorizontalTextAlignment="Center"
-                        Text="Réservations par état"
+                        Text="Réservations"
                         TextColor="{StaticResource GoldText}" />
                     <Label
                         FontSize="14"
                         HorizontalTextAlignment="Center"
                         Opacity="0.85"
-                        Text="Sélectionnez un état puis la période à consulter."
+                        Text="Sélectionnez la période puis l'état, le chargement ne démarre qu'après l'appui sur le bouton."
                         TextColor="{StaticResource GoldText}" />
                 </VerticalStackLayout>
             </Border>
 
-            <CollectionView ItemsSource="{Binding ReservationStatuses}" SelectionMode="None">
-                <CollectionView.ItemsLayout>
-                    <GridItemsLayout Orientation="Vertical" Span="2" />
-                </CollectionView.ItemsLayout>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Border
-                            Margin="6"
-                            Padding="12"
-                            Background="#1F1F1F"
-                            Stroke="{StaticResource GoldText}"
-                            StrokeThickness="1.2">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="14" />
-                            </Border.StrokeShape>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer
-                                    Command="{Binding BindingContext.SelectReservationStatusCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
-                                    CommandParameter="{Binding .}" />
-                            </Border.GestureRecognizers>
-                            <Border.Triggers>
-                                <DataTrigger Binding="{Binding IsSelected}" TargetType="Border" Value="True">
-                                    <Setter Property="Background" Value="#2A2A2A" />
-                                    <Setter Property="StrokeThickness" Value="2" />
-                                </DataTrigger>
-                            </Border.Triggers>
-                            <VerticalStackLayout Spacing="4">
-                                <Label
-                                    Text="{Binding Status}"
-                                    FontSize="16"
-                                    FontAttributes="Bold" />
-                                <Label
-                                    Text="{Binding DisplayCount}"
-                                    FontSize="13"
-                                    Opacity="0.8" />
-                            </VerticalStackLayout>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                <VerticalStackLayout Spacing="6" Grid.Column="0">
-                    <Label Text="Date début" FontAttributes="Bold" />
-                    <DatePicker Date="{Binding StartDate}" TextColor="{StaticResource GoldText}" />
+            <Frame BackgroundColor="#1E1E1E" Padding="16" CornerRadius="16" BorderColor="#2D2D2D" HasShadow="False">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="1. Sélectionnez la période" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="6" Grid.Column="0">
+                            <Label Text="Date début" FontAttributes="Bold" />
+                            <DatePicker Date="{Binding StartDate}" TextColor="{StaticResource GoldText}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Spacing="6" Grid.Column="1">
+                            <Label Text="Date fin" FontAttributes="Bold" />
+                            <DatePicker Date="{Binding EndDate}" TextColor="{StaticResource GoldText}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                    <Label
+                        Text="Ajustez la période, puis choisissez l'état avant de lancer le chargement."
+                        FontSize="13"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.75" />
                 </VerticalStackLayout>
-                <VerticalStackLayout Spacing="6" Grid.Column="1">
-                    <Label Text="Date fin" FontAttributes="Bold" />
-                    <DatePicker Date="{Binding EndDate}" TextColor="{StaticResource GoldText}" />
-                </VerticalStackLayout>
-            </Grid>
+            </Frame>
 
-            <Button
-                Text="Charger les réservations"
-                Command="{Binding ApplyReservationFiltersCommand}"
-                BackgroundColor="Transparent"
-                BorderColor="{StaticResource GoldText}"
-                BorderWidth="1.5"
-                CornerRadius="10"
-                TextColor="{StaticResource GoldText}" />
+            <Frame BackgroundColor="#1E1E1E" Padding="16" CornerRadius="16" BorderColor="#2D2D2D" HasShadow="False">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="2. Choisissez l'état de réservation" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
+                    <CollectionView ItemsSource="{Binding ReservationStatuses}" SelectionMode="None">
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout Orientation="Vertical" Span="2" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Margin="6"
+                                    Padding="12"
+                                    Background="#1F1F1F"
+                                    Stroke="{StaticResource GoldText}"
+                                    StrokeThickness="1.2">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding BindingContext.SelectReservationStatusCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                            CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+                                    <Border.Triggers>
+                                        <DataTrigger Binding="{Binding IsSelected}" TargetType="Border" Value="True">
+                                            <Setter Property="Background" Value="#2A2A2A" />
+                                            <Setter Property="StrokeThickness" Value="2" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label
+                                            Text="{Binding Status}"
+                                            FontSize="16"
+                                            FontAttributes="Bold" />
+                                        <Label
+                                            Text="{Binding DisplayCount}"
+                                            FontSize="13"
+                                            Opacity="0.8" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                    <Label Text="{Binding Subtitle}" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.75" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame BackgroundColor="#1E1E1E" Padding="16" CornerRadius="16" BorderColor="#2D2D2D" HasShadow="False">
+                <VerticalStackLayout Spacing="10">
+                    <Button
+                        Text="Charger les réservations"
+                        Command="{Binding ApplyReservationFiltersCommand}"
+                        BackgroundColor="#303030"
+                        TextColor="{StaticResource GoldText}" />
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+                    <Label
+                        Text="Le chargement est lancé uniquement après l'appui sur le bouton."
+                        FontSize="13"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.75"
+                        HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Frame>
 
             <SearchBar
                 Placeholder="Rechercher une commande"
@@ -215,7 +239,6 @@
                                     </Border>
                                 </Grid>
 
-                                <!-- ✅ ACTIONS : Picker à gauche, boutons à droite (Annuler + Supprimer) -->
                                 <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto" ColumnSpacing="12" RowSpacing="6">
 
                                     <VerticalStackLayout Spacing="4" Grid.Row="0" Grid.Column="0">
