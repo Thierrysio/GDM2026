@@ -210,7 +210,7 @@ public class PlanningViewModel : BaseViewModel
 
     private async Task EnsureSessionAsync()
     {
-        var hasSession = await _sessionService.LoadAsync().ConfigureAwait(false);
+        var hasSession = await _sessionService.LoadAsync();
         _apis.SetBearerToken(_sessionService.AuthToken);
         _sessionPrepared = hasSession;
     }
@@ -226,7 +226,7 @@ public class PlanningViewModel : BaseViewModel
 
             await EnsureSessionAsync();
 
-            var items = await _apis.GetListAsync<Planning>("/planning/list").ConfigureAwait(false);
+            var items = await _apis.GetListAsync<Planning>("/planning/list");
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -286,8 +286,7 @@ public class PlanningViewModel : BaseViewModel
                 heureFin = FormatTime(NewHeureFin)
             };
 
-            var response = await _apis.PostAsync<object, PlanningResponse>("/planning/create", payload)
-                .ConfigureAwait(false);
+            var response = await _apis.PostAsync<object, PlanningResponse>("/planning/create", payload);
 
             await LoadPlanningsAsync();
             StatusMessage = response?.Message ?? "Créneau créé.";
@@ -324,8 +323,7 @@ public class PlanningViewModel : BaseViewModel
                 heureFin = FormatTime(EditHeureFin)
             };
 
-            var response = await _apis.PostAsync<object, PlanningResponse>("/planning/update", payload)
-                .ConfigureAwait(false);
+            var response = await _apis.PostAsync<object, PlanningResponse>("/planning/update", payload);
 
             await LoadPlanningsAsync();
             StatusMessage = response?.Message ?? "Créneau mis à jour.";
@@ -358,8 +356,7 @@ public class PlanningViewModel : BaseViewModel
             await EnsureSessionAsync();
 
             var payload = new { id = SelectedPlanning.Id };
-            var response = await _apis.PostAsync<object, PlanningResponse>("/planning/delete", payload)
-                .ConfigureAwait(false);
+            var response = await _apis.PostAsync<object, PlanningResponse>("/planning/delete", payload);
 
             await LoadPlanningsAsync();
             SelectedPlanning = null;
