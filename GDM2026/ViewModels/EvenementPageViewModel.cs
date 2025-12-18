@@ -561,7 +561,7 @@ public class EvenementPageViewModel : BaseViewModel
                 return;
             }
 
-            await page.DisplayAlert(title, message, "OK");
+            await page.DisplayAlertAsync(title, message, "OK");
         });
     }
 
@@ -575,7 +575,7 @@ public class EvenementPageViewModel : BaseViewModel
                 return true;
             }
 
-            return await page.DisplayAlert(title, message, "Oui", "Non");
+            return await page.DisplayAlertAsync(title, message, "Oui", "Non");
         });
     }
 }

@@ -399,7 +399,7 @@ public class PlanningViewModel : BaseViewModel
         {
             var page = Application.Current?.Windows?.FirstOrDefault()?.Page;
             if (page is null) return true;
-            return await page.DisplayAlert(title, message, "Oui", "Non");
+            return await page.DisplayAlertAsync(title, message, "Oui", "Non");
         });
     }
 

@@ -724,7 +724,7 @@ public class ProductsEditViewModel : BaseViewModel
                 if (Shell.Current != null)
                 {
                     await MainThread.InvokeOnMainThreadAsync(async () =>
-                        await Shell.Current.DisplayAlert(
+                        await Shell.Current.DisplayAlertAsync(
                             "Mise à jour",
                             $"Le produit \"{EditProductName.Trim()}\" a été mis à jour avec succès.",
                             "OK"));
@@ -737,7 +737,7 @@ public class ProductsEditViewModel : BaseViewModel
                 if (Shell.Current != null)
                 {
                     await MainThread.InvokeOnMainThreadAsync(async () =>
-                        await Shell.Current.DisplayAlert(
+                        await Shell.Current.DisplayAlertAsync(
                             "Mise à jour",
                             "La mise à jour du produit a échoué.",
                             "OK"));
@@ -753,7 +753,7 @@ public class ProductsEditViewModel : BaseViewModel
             if (Shell.Current != null)
             {
                 await MainThread.InvokeOnMainThreadAsync(async () =>
-                    await Shell.Current.DisplayAlert(
+                    await Shell.Current.DisplayAlertAsync(
                         "Mise à jour",
                         "Une erreur est survenue pendant la mise à jour.",
                         "OK"));

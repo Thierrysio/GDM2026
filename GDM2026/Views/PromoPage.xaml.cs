@@ -24,7 +24,7 @@ public partial class PromoPage : ContentPage
     {
         MainThread.BeginInvokeOnMainThread(async () =>
         {
-            await DisplayAlert("Succès", message, "OK");
+            await DisplayAlertAsync("Succès", message, "OK");
         });
     }
 }

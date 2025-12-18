@@ -25,6 +25,6 @@ public static class DialogService
             return false;
         }
 
-        return await page.DisplayAlert(title, message, accept, cancel);
+        return await page.DisplayAlertAsync(title, message, accept, cancel);
     }
 }

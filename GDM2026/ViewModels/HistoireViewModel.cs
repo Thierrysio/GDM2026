@@ -620,7 +620,8 @@ public class HistoireViewModel : BaseViewModel
         var newWidth = Math.Max(1, (int)Math.Round(originalBitmap.Width * scale));
         var newHeight = Math.Max(1, (int)Math.Round(originalBitmap.Height * scale));
 
-        var resized = originalBitmap.Resize(new SKImageInfo(newWidth, newHeight, originalBitmap.ColorType, originalBitmap.AlphaType), SKFilterQuality.High);
+        var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.None);
+        var resized = originalBitmap.Resize(new SKImageInfo(newWidth, newHeight, originalBitmap.ColorType, originalBitmap.AlphaType), sampling);
         return resized ?? originalBitmap;
     }
 

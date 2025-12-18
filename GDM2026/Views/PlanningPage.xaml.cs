@@ -23,7 +23,7 @@ namespace GDM2026
             catch (Exception ex)
             {
                 Debug.WriteLine($"[PLANNING] OnAppearing crash: {ex}");
-                await DisplayAlert("Erreur", "Impossible de préparer le planning.", "OK");
+                await DisplayAlertAsync("Erreur", "Impossible de préparer le planning.", "OK");
             }
         }
     }
