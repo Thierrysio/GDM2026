@@ -480,9 +480,11 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
             if (!isOpening) return;
 
-            // En mode réservation, on affiche simplement les détails sans tenter de modifier
-            // automatiquement le statut pour éviter l'erreur signalée par les utilisateurs.
-            if (!IsReservationMode)
+            var isAlreadyInProgress = string.Equals(order.CurrentStatus, "En cours de traitement", StringComparison.OrdinalIgnoreCase);
+            var isAlreadyCompleted = string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase)
+                                     || string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase);
+
+            if (!isAlreadyInProgress && !isAlreadyCompleted)
             {
                 var isAlreadyInProgress = string.Equals(order.CurrentStatus, "En cours de traitement", StringComparison.OrdinalIgnoreCase);
                 var isAlreadyCompleted = string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase);
@@ -636,6 +638,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                 line.Livree = true;
             });
 
+            await MarkRemainingLinesDeliveredIfOrderIsTreatedAsync(order).ConfigureAwait(false);
+
             await CheckAndUpdateOrderCompletionAsync(order).ConfigureAwait(false);
             await CheckAndUpdateOrderDeliveryAsync(order).ConfigureAwait(false);
         }
@@ -651,6 +655,27 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         {
             await ShowLoadErrorAsync("Une erreur inattendue empêche la mise à jour de ce produit.");
         }
+    }
+
+    private async Task MarkRemainingLinesDeliveredIfOrderIsTreatedAsync(OrderStatusEntry order)
+    {
+        if (order.OrderLines.Count == 0)
+            return;
+
+        if (!order.OrderLines.All(l => l.Traite))
+            return;
+
+        var pendingDeliveries = order.OrderLines.Where(l => !l.Livree).ToList();
+        if (pendingDeliveries.Count == 0)
+            return;
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            foreach (var pending in pendingDeliveries)
+            {
+                pending.Livree = true;
+            }
+        });
     }
 
     private async Task CheckAndUpdateOrderCompletionAsync(OrderStatusEntry order)
