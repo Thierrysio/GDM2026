@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.Views.HistoirePage"
+             x:Name="HistoirePageRoot"
+             BackgroundColor="#0B0B0B"
+             Title="Histoire">
+
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+        <Color x:Key="CardBackground">#151515</Color>
+    </ContentPage.Resources>
+
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior Command="{Binding GoBackCommand}" />
+    </Shell.BackButtonBehavior>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="18">
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="#000000"
+                StrokeThickness="1.5"
+                Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="16">
+                    <Label
+                        Text="Histoire"
+                        FontSize="28"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
+
+                    <Label
+                        Text="Gérez les histoires dans le même esprit que les Actualités : actions guidées, formulaire sombre et validations explicites."
+                        FontSize="16"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85" />
+
+                    <VerticalStackLayout Spacing="10">
+                        <Button
+                            Text="+ Nouvelle histoire"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowCreatePanelCommand}" />
+                        <Button
+                            Text="Mettre à jour une histoire"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowUpdatePanelCommand}" />
+                        <Button
+                            Text="🔄 Charger / Recharger"
+                            BackgroundColor="#252525"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding RefreshHistoiresCommand}" />
+                    </VerticalStackLayout>
+
+                    <Frame
+                        IsVisible="{Binding IsUpdateMode}"
+                        BackgroundColor="#1E1E1E"
+                        Padding="14"
+                        HasShadow="False"
+                        CornerRadius="14"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="Sélectionnez une histoire à modifier"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}" />
+
+                            <ActivityIndicator
+                                IsRunning="{Binding IsLoadingHistoires}"
+                                IsVisible="{Binding IsLoadingHistoires}"
+                                Color="{StaticResource GoldText}" />
+
+                            <CollectionView
+                                ItemsSource="{Binding Histoires}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedHistoire}"
+                                HeightRequest="220">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.EmptyView>
+                                    <Label
+                                        Text="Aucune histoire n'a encore été chargée."
+                                        TextColor="{StaticResource GoldText}"
+                                        HorizontalTextAlignment="Center"
+                                        Opacity="0.6" />
+                                </CollectionView.EmptyView>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="10" Margin="0,4">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="12" />
+                                            </Border.StrokeShape>
+                                            <VerticalStackLayout Spacing="4">
+                                                <Label
+                                                    Text="{Binding DisplayTitle}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontAttributes="Bold" />
+                                                <Label
+                                                    Text="{Binding DisplayDate}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontSize="13" />
+                                                <Label
+                                                    Text="{Binding DisplayImage}"
+                                                    TextColor="{StaticResource GoldText}"
+                                                    FontSize="13"
+                                                    LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+
+                            <Label
+                                Text="{Binding HistoiresStatusMessage}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.85"
+                                HorizontalTextAlignment="Center" />
+
+                            <Button
+                                Text="Supprimer l'histoire sélectionnée"
+                                Command="{Binding DeleteHistoireCommand}"
+                                BackgroundColor="#4A1010"
+                                TextColor="{StaticResource GoldText}"
+                                IsEnabled="{Binding HasHistoireSelection}" />
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <Frame
+                        IsVisible="{Binding IsFormSectionVisible}"
+                        BackgroundColor="#1E1E1E"
+                        Padding="14"
+                        HasShadow="False"
+                        CornerRadius="14"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="{Binding FormHeader}"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="20" />
+
+                            <Label
+                                Text="{Binding FormHelperMessage}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.8" />
+
+                            <VerticalStackLayout Spacing="10" IsEnabled="{Binding IsFormInputEnabled}">
+                                <Label Text="Titre" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <Entry
+                                    Placeholder="Titre de l'histoire"
+                                    Text="{Binding Titre}"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    BackgroundColor="#121212" />
+
+                                <Label Text="Texte" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <Editor
+                                    Placeholder="Contenu de l'histoire"
+                                    Text="{Binding Texte}"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    BackgroundColor="#121212"
+                                    AutoSize="TextChanges"
+                                    HeightRequest="120" />
+
+                                <Label Text="Image de l'histoire" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+
+                                <HorizontalStackLayout Spacing="8">
+                                    <Button
+                                        Text="📷 Prendre une photo"
+                                        Command="{Binding CapturePhotoCommand}"
+                                        BackgroundColor="#303030"
+                                        TextColor="{StaticResource GoldText}" />
+                                    <Button
+                                        Text="🖼️ Bibliothèque"
+                                        Command="{Binding PickFromLibraryCommand}"
+                                        BackgroundColor="#303030"
+                                        TextColor="{StaticResource GoldText}" />
+                                </HorizontalStackLayout>
+
+                                <Button
+                                    Text="⬆️ Envoyer l'image"
+                                    Command="{Binding UploadImageCommand}"
+                                    IsEnabled="{Binding HasLocalImageSelection}"
+                                    BackgroundColor="#C18F1A"
+                                    TextColor="{StaticResource GoldText}" />
+
+                                <ActivityIndicator
+                                    IsRunning="{Binding IsImageUploading}"
+                                    IsVisible="{Binding IsImageUploading}"
+                                    Color="{StaticResource GoldText}" />
+
+                                <Label
+                                    Text="{Binding SelectedImageLabel}"
+                                    TextColor="{StaticResource GoldText}"
+                                    FontSize="13"
+                                    Opacity="0.85" />
+
+                                <Label
+                                    Text="{Binding ImageStatusMessage}"
+                                    TextColor="{StaticResource GoldText}"
+                                    FontSize="13"
+                                    Opacity="0.75" />
+
+                                <Border
+                                    Background="#111"
+                                    Stroke="#2D2D2D"
+                                    StrokeThickness="1"
+                                    Padding="10"
+                                    IsVisible="{Binding HasLocalImageSelection}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Image Source="{Binding SelectedImagePreview}" Aspect="AspectFit" HeightRequest="200" />
+                                </Border>
+
+                                <Label Text="URL générée" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <Entry
+                                    Placeholder="images/nom-image.jpg"
+                                    Text="{Binding UrlImage}"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    BackgroundColor="#121212"
+                                    IsReadOnly="True" />
+
+                                <Label Text="Date de l'histoire" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <Entry
+                                    Placeholder="AAAA-MM-JJ"
+                                    Text="{Binding DateHistoireText}"
+                                    TextColor="{StaticResource GoldText}"
+                                    PlaceholderColor="#777"
+                                    BackgroundColor="#121212" />
+                            </VerticalStackLayout>
+
+                            <ActivityIndicator
+                                IsRunning="{Binding IsBusy}"
+                                IsVisible="{Binding IsBusy}"
+                                Color="{StaticResource GoldText}" />
+
+                            <Label
+                                Text="{Binding StatusMessage}"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.85"
+                                HorizontalTextAlignment="Center" />
+
+                            <Button
+                                Text="{Binding FormActionButtonText}"
+                                Command="{Binding FormActionCommand}"
+                                BackgroundColor="#303030"
+                                TextColor="{StaticResource GoldText}"
+                                IsEnabled="{Binding IsFormActionEnabled}" />
+                        </VerticalStackLayout>
+                    </Frame>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

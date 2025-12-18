@@ -20,11 +20,13 @@ namespace GDM2026
             Routing.RegisterRoute(nameof(PartnersPage), typeof(PartnersPage));
             Routing.RegisterRoute(nameof(ReservationsPage), typeof(ReservationsPage));
             Routing.RegisterRoute(nameof(ProductsPage), typeof(ProductsPage));
+            Routing.RegisterRoute(nameof(CataloguePage), typeof(CataloguePage));
             Routing.RegisterRoute(nameof(UsersPage), typeof(UsersPage));
             Routing.RegisterRoute(nameof(CommentsPage), typeof(CommentsPage));
             Routing.RegisterRoute(nameof(ProductsEditPage), typeof(ProductsEditPage));
             Routing.RegisterRoute(nameof(PromoPage), typeof(PromoPage));
             Routing.RegisterRoute(nameof(PlanningPage), typeof(PlanningPage));
+            Routing.RegisterRoute(nameof(HistoirePage), typeof(HistoirePage));
         }
     }
 }
