@@ -23,7 +23,7 @@ public class PromoPageViewModel : BaseViewModel
     private bool _productsLoaded;
     private bool _categoriesLoaded;
     private bool _isUpdateMode;
-    private bool _isFormSectionVisible = true;
+    private bool _isFormSectionVisible;
     private bool _isPromosLoading;
 
     private string _statusMessage = "Choisissez un mode pour commencer.";
@@ -83,7 +83,7 @@ public class PromoPageViewModel : BaseViewModel
         CreatePromoCommand = new Command(async () => await CreatePromoAsync(), CanCreatePromo);
         UpdatePromoCommand = new Command(async () => await UpdatePromoAsync(), CanUpdatePromo);
 
-        ActivateCreateMode();
+        StatusMessage = "Choisissez un mode pour commencer.";
     }
 
     public ICommand GoBackCommand { get; }
