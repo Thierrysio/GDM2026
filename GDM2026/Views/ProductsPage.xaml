@@ -10,285 +10,266 @@
 
     <ScrollView>
         <VerticalStackLayout Padding="24" Spacing="18">
-            <Label Text="Catalogue produits"
-                   FontSize="32"
-                   FontAttributes="Bold"
-                   HorizontalTextAlignment="Center"
-                   TextColor="{StaticResource GoldText}" />
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="#000000"
+                StrokeThickness="1.5"
+                Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
 
-            <Label Text="Retrouvez la liste des produits publiés sur Dantec Market."
-                   FontSize="15"
-                   HorizontalTextAlignment="Center"
-                   TextColor="{StaticResource GoldText}"
-                   Opacity="0.85" />
+                <VerticalStackLayout Spacing="16">
+                    <Label
+                        Text="Catalogue produits"
+                        FontSize="28"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
 
-            <Button Text="+ Nouveau produit"
-                    Command="{Binding ToggleFormCommand}"
-                    BackgroundColor="#C18F1A"
-                    TextColor="{StaticResource GoldText}" />
+                    <Label
+                        Text="Gérez la création, la navigation et la mise à jour des produits avec le même confort que l'Actualité."
+                        FontSize="16"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85" />
 
-            <Frame IsVisible="{Binding IsFormVisible}"
-                   Padding="18"
-                   BackgroundColor="{StaticResource CardBackground}"
-                   BorderColor="#000000"
-                   CornerRadius="18">
-                <VerticalStackLayout Spacing="12">
-                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                        <Label Text="Nom du produit"
-                               TextColor="{StaticResource GoldText}"
-                               FontAttributes="Bold" />
-                        <Label Text="⚠"
-                               TextColor="Tomato"
-                               FontAttributes="Bold"
-                               IsVisible="{Binding IsNameMissing}" />
-                    </HorizontalStackLayout>
-                    <Entry Placeholder="Entrez le nom"
-                           Text="{Binding NewProductName}"
-                           TextColor="{StaticResource GoldText}" />
-
-                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                        <Label Text="Description courte"
-                               TextColor="{StaticResource GoldText}"
-                               FontAttributes="Bold" />
-                        <Label Text="⚠"
-                               TextColor="Tomato"
-                               FontAttributes="Bold"
-                               IsVisible="{Binding IsShortDescriptionMissing}" />
-                    </HorizontalStackLayout>
-                    <Editor Placeholder="Résumé du produit"
-                            HeightRequest="80"
-                            Text="{Binding NewProductShortDescription}"
-                            TextColor="{StaticResource GoldText}" />
-
-                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                        <Label Text="Description complète"
-                               TextColor="{StaticResource GoldText}"
-                               FontAttributes="Bold" />
-                        <Label Text="⚠"
-                               TextColor="Tomato"
-                               FontAttributes="Bold"
-                               IsVisible="{Binding IsFullDescriptionMissing}" />
-                    </HorizontalStackLayout>
-                    <Editor Placeholder="Description détaillée"
-                            HeightRequest="140"
-                            Text="{Binding NewProductFullDescription}"
-                            TextColor="{StaticResource GoldText}" />
-
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                        <VerticalStackLayout Grid.Column="0" Spacing="4">
-                            <HorizontalStackLayout Spacing="6">
-                                <Label Text="Prix" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
-                                <Label Text="⚠" TextColor="Tomato" FontAttributes="Bold" IsVisible="{Binding IsPriceMissing}" />
-                            </HorizontalStackLayout>
-                            <Entry Placeholder="ex : 14.90"
-                                   Keyboard="Numeric"
-                                   Text="{Binding ProductPriceText}"
-                                   TextColor="{StaticResource GoldText}" />
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="1" Spacing="4">
-                            <HorizontalStackLayout Spacing="6">
-                                <Label Text="Quantité" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
-                                <Label Text="⚠" TextColor="Tomato" FontAttributes="Bold" IsVisible="{Binding IsQuantityMissing}" />
-                            </HorizontalStackLayout>
-                            <Entry Placeholder="ex : 25"
-                                   Keyboard="Numeric"
-                                   Text="{Binding ProductQuantityText}"
-                                   TextColor="{StaticResource GoldText}" />
-                        </VerticalStackLayout>
-                    </Grid>
-
-                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                        <Label Text="Catégorie"
-                               TextColor="{StaticResource GoldText}"
-                               FontAttributes="Bold" />
-                        <Label Text="⚠"
-                               TextColor="Tomato"
-                               FontAttributes="Bold"
-                               IsVisible="{Binding IsCategoryMissing}" />
-                    </HorizontalStackLayout>
-                    <Label Text="{Binding CategoryStatusMessage}"
-                           FontSize="12"
-                           TextColor="{StaticResource GoldText}"
-                           Opacity="0.85" />
-                    <ActivityIndicator IsRunning="{Binding IsCategoryLoading}"
-                                       IsVisible="{Binding IsCategoryLoading}"
-                                       Color="{StaticResource GoldText}" />
-                    <Picker ItemsSource="{Binding AvailableCategories}"
-                            SelectedItem="{Binding SelectedCategory}"
-                            ItemDisplayBinding="{Binding DisplayName}"
-                            Title="Choisissez une catégorie"
-                            IsEnabled="{Binding IsCategorySelectionEnabled}"
+                    <VerticalStackLayout Spacing="10">
+                        <Button
+                            Text="+ Nouveau produit"
+                            BackgroundColor="#303030"
                             TextColor="{StaticResource GoldText}"
-                            BackgroundColor="#101010" />
+                            Command="{Binding ToggleFormCommand}" />
+                        <Button
+                            Text="Mettre à jour un produit"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Clicked="OnEditProductClicked" />
+                    </VerticalStackLayout>
 
-                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                        <Label Text="{Binding SelectedImageName}"
-                               TextColor="{StaticResource GoldText}"
-                               FontAttributes="Bold" />
-                        <Label Text="⚠"
-                               TextColor="Tomato"
-                               FontAttributes="Bold"
-                               IsVisible="{Binding IsImageMissing}" />
-                    </HorizontalStackLayout>
+                    <Frame
+                        IsVisible="{Binding IsFormVisible}"
+                        BackgroundColor="#1E1E1E"
+                        Padding="14"
+                        HasShadow="False"
+                        CornerRadius="14"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="Nouveau produit"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="20" />
 
-                    <Border BackgroundColor="#1B1B1B"
-                            Stroke="#2D2D2D"
-                            Padding="12">
-                        <VerticalStackLayout Spacing="8">
-                            <SearchBar Placeholder="Rechercher une image"
-                                       Text="{Binding ImageSearchTerm}"
+                            <Label
+                                Text="Renseignez les informations du produit puis validez pour l'ajouter au catalogue."
+                                TextColor="{StaticResource GoldText}"
+                                FontSize="13"
+                                Opacity="0.8" />
+
+                            <VerticalStackLayout Spacing="12">
+                                <VerticalStackLayout Spacing="6">
+                                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                        <Label Text="Nom du produit" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                        <Label Text="⚠" TextColor="Tomato" FontAttributes="Bold" IsVisible="{Binding IsNameMissing}" />
+                                    </HorizontalStackLayout>
+                                    <Entry Placeholder="Entrez le nom"
+                                           Text="{Binding NewProductName}"
+                                           TextColor="{StaticResource GoldText}"
+                                           PlaceholderColor="#777"
+                                           BackgroundColor="#121212" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Spacing="6">
+                                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                        <Label Text="Description courte" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                        <Label Text="⚠" TextColor="Tomato" FontAttributes="Bold" IsVisible="{Binding IsShortDescriptionMissing}" />
+                                    </HorizontalStackLayout>
+                                    <Editor Placeholder="Résumé du produit"
+                                            HeightRequest="80"
+                                            Text="{Binding NewProductShortDescription}"
+                                            TextColor="{StaticResource GoldText}"
+                                            PlaceholderColor="#777"
+                                            BackgroundColor="#121212" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Spacing="6">
+                                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                        <Label Text="Description complète" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                        <Label Text="⚠" TextColor="Tomato" FontAttributes="Bold" IsVisible="{Binding IsFullDescriptionMissing}" />
+                                    </HorizontalStackLayout>
+                                    <Editor Placeholder="Description détaillée"
+                                            HeightRequest="140"
+                                            Text="{Binding NewProductFullDescription}"
+                                            TextColor="{StaticResource GoldText}"
+                                            PlaceholderColor="#777"
+                                            BackgroundColor="#121212" />
+                                </VerticalStackLayout>
+
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="6">
+                                        <HorizontalStackLayout Spacing="6">
+                                            <Label Text="Prix" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                            <Label Text="⚠" TextColor="Tomato" FontAttributes="Bold" IsVisible="{Binding IsPriceMissing}" />
+                                        </HorizontalStackLayout>
+                                        <Entry Placeholder="ex : 14.90"
+                                               Keyboard="Numeric"
+                                               Text="{Binding ProductPriceText}"
+                                               TextColor="{StaticResource GoldText}"
+                                               PlaceholderColor="#777"
+                                               BackgroundColor="#121212" />
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                        <HorizontalStackLayout Spacing="6">
+                                            <Label Text="Quantité" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                            <Label Text="⚠" TextColor="Tomato" FontAttributes="Bold" IsVisible="{Binding IsQuantityMissing}" />
+                                        </HorizontalStackLayout>
+                                        <Entry Placeholder="ex : 25"
+                                               Keyboard="Numeric"
+                                               Text="{Binding ProductQuantityText}"
+                                               TextColor="{StaticResource GoldText}"
+                                               PlaceholderColor="#777"
+                                               BackgroundColor="#121212" />
+                                    </VerticalStackLayout>
+                                </Grid>
+
+                                <VerticalStackLayout Spacing="6">
+                                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                        <Label Text="Catégorie" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                        <Label Text="⚠" TextColor="Tomato" FontAttributes="Bold" IsVisible="{Binding IsCategoryMissing}" />
+                                    </HorizontalStackLayout>
+                                    <Label Text="{Binding CategoryStatusMessage}" FontSize="12" TextColor="{StaticResource GoldText}" Opacity="0.85" />
+                                    <ActivityIndicator IsRunning="{Binding IsCategoryLoading}" IsVisible="{Binding IsCategoryLoading}" Color="{StaticResource GoldText}" />
+                                    <Picker ItemsSource="{Binding AvailableCategories}"
+                                            SelectedItem="{Binding SelectedCategory}"
+                                            ItemDisplayBinding="{Binding DisplayName}"
+                                            Title="Choisissez une catégorie"
+                                            IsEnabled="{Binding IsCategorySelectionEnabled}"
+                                            TextColor="{StaticResource GoldText}"
+                                            BackgroundColor="#101010" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Spacing="8">
+                                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                        <Label Text="{Binding SelectedImageName}" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                        <Label Text="⚠" TextColor="Tomato" FontAttributes="Bold" IsVisible="{Binding IsImageMissing}" />
+                                    </HorizontalStackLayout>
+
+                                    <Border BackgroundColor="#1B1B1B" Stroke="#2D2D2D" Padding="12">
+                                        <VerticalStackLayout Spacing="8">
+                                            <SearchBar Placeholder="Rechercher une image"
+                                                       Text="{Binding ImageSearchTerm}"
+                                                       TextColor="{StaticResource GoldText}"
+                                                       PlaceholderColor="#7E7030"
+                                                       CancelButtonColor="{StaticResource GoldText}"
+                                                       BackgroundColor="#101010" />
+
+                                            <Label Text="{Binding ImageLibraryMessage}" FontSize="12" TextColor="{StaticResource GoldText}" Opacity="0.8" />
+
+                                            <ActivityIndicator IsRunning="{Binding IsImageLibraryLoading}" IsVisible="{Binding IsImageLibraryLoading}" Color="{StaticResource GoldText}" />
+
+                                            <CollectionView ItemsSource="{Binding FilteredImageLibrary}"
+                                                            SelectionMode="Single"
+                                                            SelectedItem="{Binding SelectedLibraryImage}"
+                                                            HeightRequest="200">
+                                                <CollectionView.ItemsLayout>
+                                                    <GridItemsLayout Orientation="Vertical" Span="3" />
+                                                </CollectionView.ItemsLayout>
+                                                <CollectionView.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Padding="4" Margin="4" BackgroundColor="#111" Stroke="#333">
+                                                            <Border.StrokeShape>
+                                                                <RoundRectangle CornerRadius="10" />
+                                                            </Border.StrokeShape>
+                                                            <VerticalStackLayout Spacing="4">
+                                                                <Image Source="{Binding FullUrl}" HeightRequest="70" Aspect="AspectFill" />
+                                                                <Label Text="{Binding DisplayName}" FontSize="11" TextColor="{StaticResource GoldText}" LineBreakMode="TailTruncation" HorizontalTextAlignment="Center" />
+                                                            </VerticalStackLayout>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </CollectionView.ItemTemplate>
+                                            </CollectionView>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </VerticalStackLayout>
+
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                    <Button Text="Réinitialiser"
+                                            Command="{Binding ResetFormCommand}"
+                                            BackgroundColor="#353535"
+                                            TextColor="{StaticResource GoldText}" />
+                                    <Button Grid.Column="1"
+                                            Text="Créer le produit"
+                                            Command="{Binding SubmitProductCommand}"
+                                            IsEnabled="{Binding IsSubmitEnabled}"
+                                            BackgroundColor="#C18F1A"
+                                            TextColor="{StaticResource GoldText}" />
+                                </Grid>
+
+                                <Label Text="{Binding CreationStatusMessage}"
+                                       TextColor="{Binding CreationStatusColor}"
+                                       FontSize="13"
+                                       HorizontalTextAlignment="Center"
+                                       LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <Frame
+                        BackgroundColor="#1E1E1E"
+                        Padding="14"
+                        HasShadow="False"
+                        CornerRadius="14"
+                        BorderColor="#2D2D2D">
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="Catalogue actuel" FontAttributes="Bold" TextColor="{StaticResource GoldText}" FontSize="20" />
+                            <Label Text="Recherchez un produit, actualisez le catalogue puis parcourez la liste limitée avec un indicateur d'activité clair."
+                                   TextColor="{StaticResource GoldText}" FontSize="13" Opacity="0.8" />
+
+                            <SearchBar Placeholder="Rechercher un produit"
+                                       Text="{Binding SearchText}"
                                        TextColor="{StaticResource GoldText}"
                                        PlaceholderColor="#7E7030"
                                        CancelButtonColor="{StaticResource GoldText}"
                                        BackgroundColor="#101010" />
 
-                            <Label Text="{Binding ImageLibraryMessage}"
-                                   FontSize="12"
-                                   TextColor="{StaticResource GoldText}"
-                                   Opacity="0.8" />
+                            <Label Text="{Binding StatusMessage}" FontSize="14" TextColor="{StaticResource GoldText}" Opacity="0.85" />
 
-                            <ActivityIndicator IsRunning="{Binding IsImageLibraryLoading}"
-                                               IsVisible="{Binding IsImageLibraryLoading}"
-                                               Color="{StaticResource GoldText}" />
+                            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource GoldText}" />
 
-                            <CollectionView ItemsSource="{Binding FilteredImageLibrary}"
-                                            SelectionMode="Single"
-                                            SelectedItem="{Binding SelectedLibraryImage}"
-                                            HeightRequest="200">
-                                <CollectionView.ItemsLayout>
-                                    <GridItemsLayout Orientation="Vertical" Span="3" />
-                                </CollectionView.ItemsLayout>
-                                <CollectionView.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Padding="4"
-                                                Margin="4"
-                                                BackgroundColor="#111"
-                                                Stroke="#333">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="10" />
-                                            </Border.StrokeShape>
-                                            <VerticalStackLayout Spacing="4">
-                                                <Image Source="{Binding FullUrl}"
-                                                       HeightRequest="70"
-                                                       Aspect="AspectFill" />
-                                                <Label Text="{Binding DisplayName}"
-                                                       FontSize="11"
-                                                       TextColor="{StaticResource GoldText}"
-                                                       LineBreakMode="TailTruncation"
-                                                       HorizontalTextAlignment="Center" />
-                                            </VerticalStackLayout>
-                                        </Border>
-                                    </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>
+                            <RefreshView Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}">
+                                <CollectionView ItemsSource="{Binding FilteredProducts}" SelectionMode="None">
+                                    <CollectionView.ItemsLayout>
+                                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
+                                    </CollectionView.ItemsLayout>
+                                    <CollectionView.EmptyView>
+                                        <Label Text="Aucun produit à afficher." HorizontalTextAlignment="Center" TextColor="{StaticResource GoldText}" Opacity="0.6" />
+                                    </CollectionView.EmptyView>
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Frame Padding="16" BackgroundColor="{StaticResource CardBackground}" BorderColor="#000000" HasShadow="False" CornerRadius="16">
+                                                <Grid ColumnDefinitions="120,*" ColumnSpacing="12">
+                                                    <Border BackgroundColor="#111" Stroke="#2D2D2D" HeightRequest="120" WidthRequest="120" HorizontalOptions="Start" VerticalOptions="Start">
+                                                        <Image Source="{Binding PrimaryImageFullUrl}" Aspect="AspectFill" HeightRequest="120" WidthRequest="120" SemanticProperties.Description="Image du produit" />
+                                                    </Border>
+
+                                                    <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                                        <Label Text="{Binding DisplayName}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
+                                                        <Label Text="{Binding Categorie, StringFormat='Catégorie : {0}'}" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.8" />
+                                                        <Label Text="{Binding Description}" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.75" LineBreakMode="WordWrap" />
+                                                        <Label Text="{Binding StockLabel}" FontSize="12" TextColor="{StaticResource GoldText}" Opacity="0.75" />
+                                                        <Label Text="{Binding DisplayPrice}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
+                                                    </VerticalStackLayout>
+                                                </Grid>
+                                            </Frame>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+                            </RefreshView>
                         </VerticalStackLayout>
-                    </Border>
-
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                        <Button Text="Réinitialiser"
-                                Command="{Binding ResetFormCommand}"
-                                BackgroundColor="#353535"
-                                TextColor="{StaticResource GoldText}" />
-                        <Button Grid.Column="1"
-                                Text="Créer le produit"
-                                Command="{Binding SubmitProductCommand}"
-                                IsEnabled="{Binding IsSubmitEnabled}"
-                                BackgroundColor="#C18F1A"
-                                TextColor="{StaticResource GoldText}" />
-                    </Grid>
-
-                    <Label Text="{Binding CreationStatusMessage}"
-                           TextColor="{Binding CreationStatusColor}"
-                           FontSize="13"
-                           HorizontalTextAlignment="Center"
-                           LineBreakMode="WordWrap" />
+                    </Frame>
                 </VerticalStackLayout>
-            </Frame>
-
-            <Button Text="Modifier un produit"
-                    Clicked="OnEditProductClicked"
-                    BackgroundColor="#353535"
-                    TextColor="{StaticResource GoldText}" />
-
-            <SearchBar Placeholder="Rechercher un produit"
-                       Text="{Binding SearchText}"
-                       TextColor="{StaticResource GoldText}"
-                       PlaceholderColor="#7E7030"
-                       CancelButtonColor="{StaticResource GoldText}"
-                       BackgroundColor="#101010" />
-
-            <Label Text="{Binding StatusMessage}"
-                   FontSize="14"
-                   TextColor="{StaticResource GoldText}"
-                   Opacity="0.85" />
-
-            <ActivityIndicator IsRunning="{Binding IsBusy}"
-                               IsVisible="{Binding IsBusy}"
-                               Color="{StaticResource GoldText}" />
-
-            <RefreshView Command="{Binding RefreshCommand}"
-                         IsRefreshing="{Binding IsRefreshing}">
-                <CollectionView ItemsSource="{Binding FilteredProducts}"
-                                SelectionMode="None">
-                    <CollectionView.ItemsLayout>
-                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.EmptyView>
-                        <Label Text="Aucun produit à afficher."
-                               HorizontalTextAlignment="Center"
-                               TextColor="{StaticResource GoldText}"
-                               Opacity="0.6" />
-                    </CollectionView.EmptyView>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                            <Frame Padding="16"
-                                   BackgroundColor="{StaticResource CardBackground}"
-                                   BorderColor="#000000"
-                                   HasShadow="False"
-                                   CornerRadius="16">
-                                <Grid ColumnDefinitions="120,*" ColumnSpacing="12">
-                                    <Border BackgroundColor="#111"
-                                            Stroke="#2D2D2D"
-                                            HeightRequest="120"
-                                            WidthRequest="120"
-                                            HorizontalOptions="Start"
-                                            VerticalOptions="Start">
-                                        <Image Source="{Binding PrimaryImageFullUrl}"
-                                               Aspect="AspectFill"
-                                               HeightRequest="120"
-                                               WidthRequest="120"
-                                               SemanticProperties.Description="Image du produit" />
-                                    </Border>
-
-                                    <VerticalStackLayout Grid.Column="1" Spacing="6">
-                                        <Label Text="{Binding DisplayName}"
-                                               FontSize="18"
-                                               FontAttributes="Bold"
-                                               TextColor="{StaticResource GoldText}" />
-                                        <Label Text="{Binding Categorie, StringFormat='Catégorie : {0}'}"
-                                               FontSize="13"
-                                               TextColor="{StaticResource GoldText}"
-                                               Opacity="0.8" />
-                                        <Label Text="{Binding Description}"
-                                               FontSize="13"
-                                               TextColor="{StaticResource GoldText}"
-                                               Opacity="0.75"
-                                               LineBreakMode="WordWrap" />
-                                        <Label Text="{Binding StockLabel}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource GoldText}"
-                                               Opacity="0.75" />
-                                        <Label Text="{Binding DisplayPrice}"
-                                               FontSize="15"
-                                               FontAttributes="Bold"
-                                               TextColor="{StaticResource GoldText}" />
-                                    </VerticalStackLayout>
-                                </Grid>
-                            </Frame>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </RefreshView>
+            </Border>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
