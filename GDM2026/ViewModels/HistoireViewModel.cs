@@ -4,9 +4,8 @@ using GDM2026.Views;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
-using Microsoft.Maui.Graphics;
-using Microsoft.Maui.Graphics.Platform;
 using Newtonsoft.Json;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -486,6 +485,8 @@ public class HistoireViewModel : BaseViewModel
                 return;
             }
 
+            ImageStatusMessage = "Optimisation de l'image…";
+
             _selectedLocalFile = await SaveFileToLocalAsync(fileResult);
             SelectedImagePreview = ImageSource.FromFile(_selectedLocalFile);
             SelectedImageLabel = Path.GetFileName(_selectedLocalFile);
@@ -573,50 +574,54 @@ public class HistoireViewModel : BaseViewModel
             throw new ArgumentNullException(nameof(fileResult));
         }
 
-        var extension = Path.GetExtension(fileResult.FileName);
-        if (string.IsNullOrWhiteSpace(extension))
-        {
-            extension = ".jpg";
-        }
-
-        var targetFileName = $"histoire-{DateTimeOffset.Now:yyyyMMddHHmmssfff}{extension}";
-        var localPath = Path.Combine(FileSystem.CacheDirectory, targetFileName);
-
-        await using var source = await fileResult.OpenReadAsync();
-
-        try
-        {
-            await SaveOptimizedImageAsync(source, localPath);
-        }
-        catch
-        {
-            source.Position = 0;
-            await using var destination = File.Create(localPath);
-            await source.CopyToAsync(destination);
-        }
-
-        return localPath;
+        return await OptimizeAndSaveAsync(fileResult);
     }
 
-    private static async Task SaveOptimizedImageAsync(Stream source, string destinationPath)
+    private static async Task<string> OptimizeAndSaveAsync(FileResult fileResult)
     {
-        const int maxDimension = 1280;
-        const int quality = 80;
+        await using var sourceStream = await fileResult.OpenReadAsync();
 
-        source.Position = 0;
-        using var platformImage = PlatformImage.FromStream(source);
-        if (platformImage is null)
+        var resultPath = await Task.Run(() =>
         {
-            throw new InvalidOperationException("Impossible de lire l'image pour optimisation.");
+            using var managedStream = new SKManagedStream(sourceStream);
+            using var originalBitmap = SKBitmap.Decode(managedStream) ?? throw new InvalidOperationException("Impossible de lire l'image sélectionnée.");
+
+            var resizedBitmap = ResizeBitmap(originalBitmap, 1280);
+
+            var newFileName = $"{Path.GetFileNameWithoutExtension(fileResult.FileName)}-{Guid.NewGuid():N}.jpg";
+            var newFilePath = Path.Combine(FileSystem.CacheDirectory, newFileName);
+
+            using var image = SKImage.FromBitmap(resizedBitmap);
+            using var data = image.Encode(SKEncodedImageFormat.Jpeg, 80);
+            using (var destStream = File.Open(newFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                data.SaveTo(destStream);
+            }
+
+            if (!ReferenceEquals(resizedBitmap, originalBitmap))
+            {
+                resizedBitmap.Dispose();
+            }
+
+            return newFilePath;
+        }).ConfigureAwait(false);
+
+        return resultPath;
+    }
+
+    private static SKBitmap ResizeBitmap(SKBitmap originalBitmap, int maxSize)
+    {
+        if (originalBitmap.Width <= maxSize && originalBitmap.Height <= maxSize)
+        {
+            return originalBitmap;
         }
 
-        var scale = Math.Min(1d, Math.Min(maxDimension / platformImage.Width, maxDimension / platformImage.Height));
-        var targetWidth = Math.Max(1, (int)(platformImage.Width * scale));
-        var targetHeight = Math.Max(1, (int)(platformImage.Height * scale));
+        var scale = Math.Min(maxSize / (float)originalBitmap.Width, maxSize / (float)originalBitmap.Height);
+        var newWidth = Math.Max(1, (int)Math.Round(originalBitmap.Width * scale));
+        var newHeight = Math.Max(1, (int)Math.Round(originalBitmap.Height * scale));
 
-        using var resized = platformImage.Downsize(targetWidth, targetHeight);
-        await using var destination = File.Create(destinationPath);
-        await resized.SaveAsync(destination, ImageFormat.Jpeg, quality);
+        var resized = originalBitmap.Resize(new SKImageInfo(newWidth, newHeight, originalBitmap.ColorType, originalBitmap.AlphaType), SKFilterQuality.High);
+        return resized ?? originalBitmap;
     }
 
     private static async Task<bool> EnsurePermissionsAsync(bool fromCamera)
