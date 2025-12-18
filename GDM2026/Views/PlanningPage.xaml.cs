@@ -18,12 +18,12 @@ namespace GDM2026
             base.OnAppearing();
             try
             {
-                await _viewModel.OnPageAppearingAsync();
+                await _viewModel.InitializeAsync();
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[PLANNING] OnAppearing crash: {ex}");
-                await DisplayAlert("Erreur", "Impossible de charger le planning.", "OK");
+                await DisplayAlert("Erreur", "Impossible de préparer le planning.", "OK");
             }
         }
     }

@@ -45,96 +45,6 @@
                 Background="{StaticResource CardBackground}"
                 Stroke="#000000"
                 StrokeThickness="1.5"
-                Padding="20">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="18" />
-                </Border.StrokeShape>
-                <VerticalStackLayout Spacing="14">
-                    <Label
-                        Text="Club Dantec Market"
-                        FontSize="28"
-                        FontAttributes="Bold"
-                        HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}" />
-
-                    <Label
-                        Text="Rejoignez le club et alimentez votre porte-monnaie fidélité grâce à vos couronnes."
-                        FontSize="16"
-                        HorizontalTextAlignment="Center"
-                        TextColor="{StaticResource GoldText}"
-                        Opacity="0.9" />
-
-                    <Border
-                        Background="#1A1A1A"
-                        Stroke="#2A2A2A"
-                        StrokeThickness="1"
-                        Padding="14">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="16" />
-                        </Border.StrokeShape>
-                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalOptions="Center">
-                            <VerticalStackLayout Grid.Column="0" Spacing="4">
-                                <Label
-                                    Text="Porte-monnaie fidélité"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource GoldText}" />
-                                <Label
-                                    Text="{Binding LoyaltyBalanceText}"
-                                    FontSize="15"
-                                    TextColor="{StaticResource GoldText}" />
-                            </VerticalStackLayout>
-
-                            <Button
-                                Grid.Column="1"
-                                Text="Panier"
-                                BackgroundColor="#C18F1A"
-                                TextColor="{StaticResource GoldText}" />
-
-                            <Button
-                                Grid.Column="2"
-                                Text="☰"
-                                FontAttributes="Bold"
-                                BackgroundColor="#252525"
-                                TextColor="{StaticResource GoldText}"
-                                Command="{Binding ToggleProfileMenuCommand}" />
-                        </Grid>
-                    </Border>
-
-                    <Border
-                        IsVisible="{Binding IsProfileMenuVisible}"
-                        Background="#111"
-                        Stroke="#2D2D2D"
-                        Padding="14"
-                        StrokeThickness="1">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="14" />
-                        </Border.StrokeShape>
-                        <VerticalStackLayout Spacing="10">
-                            <Button
-                                Text="Porte monnaie fidélité"
-                                BackgroundColor="#C18F1A"
-                                TextColor="{StaticResource GoldText}" />
-                            <Button
-                                Text="Mon profil"
-                                BackgroundColor="#252525"
-                                TextColor="{StaticResource GoldText}" />
-                            <Button
-                                Text="À propos"
-                                BackgroundColor="#252525"
-                                TextColor="{StaticResource GoldText}" />
-                            <Button
-                                Text="Se déconnecter"
-                                BackgroundColor="#3A1B1B"
-                                TextColor="{StaticResource GoldText}" />
-                        </VerticalStackLayout>
-                    </Border>
-                </VerticalStackLayout>
-            </Border>
-
-            <Border
-                Background="{StaticResource CardBackground}"
-                Stroke="#000000"
-                StrokeThickness="1.5"
                 Padding="24">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="18" />
@@ -189,8 +99,8 @@
                                     Margin="6"
                                     Padding="12"
                                     Background="#1F1F1F"
-                                    Stroke="#000000"
-                                    StrokeThickness="1">
+                                    Stroke="#C18F1A"
+                                    StrokeThickness="1.2">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="14" />
                                     </Border.StrokeShape>
@@ -205,12 +115,16 @@
                                                 <VisualState.Setters>
                                                     <Setter Property="Background" Value="#1F1F1F" />
                                                     <Setter Property="Scale" Value="1" />
+                                                    <Setter Property="TranslationY" Value="0" />
+                                                    <Setter Property="Stroke" Value="#C18F1A" />
                                                 </VisualState.Setters>
                                             </VisualState>
                                             <VisualState x:Name="Pressed">
                                                 <VisualState.Setters>
-                                                    <Setter Property="Background" Value="#2A2A2A" />
-                                                    <Setter Property="Scale" Value="0.98" />
+                                                    <Setter Property="Background" Value="#272727" />
+                                                    <Setter Property="Scale" Value="0.95" />
+                                                    <Setter Property="TranslationY" Value="3" />
+                                                    <Setter Property="Stroke" Value="#E2B74B" />
                                                 </VisualState.Setters>
                                             </VisualState>
                                         </VisualStateGroup>
@@ -253,8 +167,8 @@
                             Margin="6"
                             Padding="16"
                             Background="{StaticResource CardBackground}"
-                            Stroke="#000000"
-                            StrokeThickness="1">
+                            Stroke="#C18F1A"
+                            StrokeThickness="1.3">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="16" />
                             </Border.StrokeShape>
@@ -269,12 +183,16 @@
                                         <VisualState.Setters>
                                             <Setter Property="Background" Value="{StaticResource CardBackground}" />
                                             <Setter Property="Scale" Value="1" />
+                                            <Setter Property="TranslationY" Value="0" />
+                                            <Setter Property="Stroke" Value="#C18F1A" />
                                         </VisualState.Setters>
                                     </VisualState>
                                     <VisualState x:Name="Pressed">
                                         <VisualState.Setters>
-                                            <Setter Property="Background" Value="#1E1E1E" />
-                                            <Setter Property="Scale" Value="0.98" />
+                                            <Setter Property="Background" Value="#232323" />
+                                            <Setter Property="Scale" Value="0.95" />
+                                            <Setter Property="TranslationY" Value="3" />
+                                            <Setter Property="Stroke" Value="#E2B74B" />
                                         </VisualState.Setters>
                                     </VisualState>
                                 </VisualStateGroup>

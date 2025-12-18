@@ -89,6 +89,7 @@ public class MessagesViewModel : BaseViewModel
                 OnPropertyChanged(nameof(SelectionMode));
                 OnPropertyChanged(nameof(OtherButtonText));
                 OnPropertyChanged(nameof(PendingButtonText));
+                OnPropertyChanged(nameof(IsReplySectionVisible));
                 RefreshCommands();
 
                 // en mode "autres", on ne doit rien modifier
@@ -124,9 +125,12 @@ public class MessagesViewModel : BaseViewModel
             {
                 ReplyText = value?.Reponse ?? string.Empty;
                 RefreshCommands();
+                OnPropertyChanged(nameof(IsReplySectionVisible));
             }
         }
     }
+
+    public bool IsReplySectionVisible => SelectedMessage is not null && !IsShowingOthers;
 
     public string ReplyText
     {
