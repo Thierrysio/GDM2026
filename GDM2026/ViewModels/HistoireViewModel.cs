@@ -501,11 +501,16 @@ public class HistoireViewModel : BaseViewModel
 
     private bool TryParseDate(out DateTime parsedDate)
     {
-        var isValid = !string.IsNullOrWhiteSpace(Titre)
-            && !string.IsNullOrWhiteSpace(Texte)
-            && !string.IsNullOrWhiteSpace(UrlImage)
-            && DateTime.TryParse(DateHistoireText, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out parsedDate);
-        return isValid;
+        parsedDate = default;
+
+        if (string.IsNullOrWhiteSpace(Titre)
+            || string.IsNullOrWhiteSpace(Texte)
+            || string.IsNullOrWhiteSpace(UrlImage))
+        {
+            return false;
+        }
+
+        return DateTime.TryParse(DateHistoireText, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out parsedDate);
     }
 
     private bool CanCreateHistoire()
