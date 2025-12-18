@@ -455,12 +455,17 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
             if (!isOpening) return;
 
-            var isAlreadyInProgress = string.Equals(order.CurrentStatus, "En cours de traitement", StringComparison.OrdinalIgnoreCase);
-            var isAlreadyCompleted = string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase);
-
-            if (!isAlreadyInProgress && !isAlreadyCompleted)
+            // En mode réservation, on affiche simplement les détails sans tenter de modifier
+            // automatiquement le statut pour éviter l'erreur signalée par les utilisateurs.
+            if (!IsReservationMode)
             {
-                await UpdateOrderStatusAsync(order, "En cours de traitement", isReverting: false);
+                var isAlreadyInProgress = string.Equals(order.CurrentStatus, "En cours de traitement", StringComparison.OrdinalIgnoreCase);
+                var isAlreadyCompleted = string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase);
+
+                if (!isAlreadyInProgress && !isAlreadyCompleted)
+                {
+                    await UpdateOrderStatusAsync(order, "En cours de traitement", isReverting: false);
+                }
             }
 
             await LoadOrderDetailsAsync(order);
