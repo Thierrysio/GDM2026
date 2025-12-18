@@ -1,57 +1,65 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage
-    x:Class="GDM2026.PlanningPage"
-    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:vm="clr-namespace:GDM2026.ViewModels"
-    Title="Planning"
-    BackgroundColor="#0B0B0B">
-
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.PlanningPage"
+             x:Name="PlanningPageRoot"
+             BackgroundColor="#0B0B0B"
+             Title="Planning">
     <ContentPage.Resources>
         <Color x:Key="GoldText">#D4AF37</Color>
-        <Color x:Key="CardBackground">#101010</Color>
-        <Color x:Key="FieldBg">#161616</Color>
-        <Color x:Key="StrokeDark">#2D2D2D</Color>
-        <Style TargetType="Label">
-            <Setter Property="TextColor" Value="{StaticResource GoldText}" />
-        </Style>
-        <Style TargetType="Entry">
-            <Setter Property="TextColor" Value="{StaticResource GoldText}" />
-            <Setter Property="PlaceholderColor" Value="#777" />
-            <Setter Property="BackgroundColor" Value="{StaticResource FieldBg}" />
-        </Style>
-        <Style TargetType="DatePicker">
-            <Setter Property="TextColor" Value="{StaticResource GoldText}" />
-            <Setter Property="BackgroundColor" Value="{StaticResource FieldBg}" />
-        </Style>
-        <Style TargetType="TimePicker">
-            <Setter Property="TextColor" Value="{StaticResource GoldText}" />
-            <Setter Property="BackgroundColor" Value="{StaticResource FieldBg}" />
-        </Style>
+        <Color x:Key="CardBackground">#151515</Color>
     </ContentPage.Resources>
 
     <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="16">
-
+        <VerticalStackLayout Padding="24" Spacing="18">
             <Border
                 Background="{StaticResource CardBackground}"
-                Padding="18"
-                Stroke="{StaticResource StrokeDark}"
-                StrokeThickness="1.5">
+                Stroke="#000000"
+                StrokeThickness="1.5"
+                Padding="20">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="18" />
                 </Border.StrokeShape>
-                <VerticalStackLayout Spacing="10">
+
+                <VerticalStackLayout Spacing="16">
                     <Label
+                        Text="Planning"
                         FontSize="28"
                         FontAttributes="Bold"
                         HorizontalTextAlignment="Center"
-                        Text="Organisation du planning" />
+                        TextColor="{StaticResource GoldText}" />
+
+                    <Label
+                        Text="Ordonnez vos créneaux en suivant la même expérience que les Actualités."
+                        FontSize="16"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85" />
+
+                    <VerticalStackLayout Spacing="10">
+                        <Button
+                            Text="+ Nouveau créneau"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowCreatePanelCommand}" />
+                        <Button
+                            Text="Mettre à jour un créneau"
+                            BackgroundColor="#303030"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding ShowUpdatePanelCommand}" />
+                        <Button
+                            Text="🔄 Charger les créneaux"
+                            BackgroundColor="#252525"
+                            TextColor="{StaticResource GoldText}"
+                            Command="{Binding RefreshCommand}" />
+                    </VerticalStackLayout>
+
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <Label
                             Text="{Binding StatusMessage}"
                             FontSize="14"
                             Opacity="0.85"
+                            TextColor="{StaticResource GoldText}"
                             LineBreakMode="WordWrap" />
                         <ActivityIndicator
                             Grid.Column="1"
@@ -59,125 +67,163 @@
                             IsVisible="{Binding IsLoading}"
                             Color="{StaticResource GoldText}" />
                     </Grid>
-                    <Button
-                        Text="Recharger le planning"
-                        Command="{Binding RefreshCommand}"
-                        BackgroundColor="#303030"
-                        TextColor="{StaticResource GoldText}" />
                 </VerticalStackLayout>
             </Border>
 
-            <Border
-                Background="{StaticResource CardBackground}"
-                Padding="18"
-                Stroke="{StaticResource StrokeDark}"
-                StrokeThickness="1.5">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="18" />
-                </Border.StrokeShape>
+            <Frame
+                IsVisible="{Binding IsUpdateMode}"
+                BackgroundColor="#1E1E1E"
+                Padding="14"
+                HasShadow="False"
+                CornerRadius="14"
+                BorderColor="#2D2D2D">
                 <VerticalStackLayout Spacing="12">
                     <Label
-                        Text="Ajouter un créneau"
-                        FontSize="18"
-                        FontAttributes="Bold" />
-                    <Label Text="Sélectionnez la date et les horaires à créer." FontSize="13" Opacity="0.75" />
-                    <DatePicker Date="{Binding NewJour}" />
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="Début" FontAttributes="Bold" FontSize="13" />
-                            <TimePicker Time="{Binding NewHeureDebut}" />
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Spacing="6" Grid.Column="1">
-                            <Label Text="Fin" FontAttributes="Bold" FontSize="13" />
-                            <TimePicker Time="{Binding NewHeureFin}" />
-                        </VerticalStackLayout>
-                    </Grid>
-                    <Button
-                        Text="Créer"
-                        Command="{Binding CreateCommand}"
-                        BackgroundColor="#C18F1A"
+                        Text="Sélectionnez un créneau à modifier"
+                        FontAttributes="Bold"
                         TextColor="{StaticResource GoldText}" />
-                </VerticalStackLayout>
-            </Border>
 
-            <Border
-                Background="{StaticResource CardBackground}"
-                Padding="18"
-                Stroke="{StaticResource StrokeDark}"
-                StrokeThickness="1.5">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="18" />
-                </Border.StrokeShape>
-                <Border.Triggers>
-                    <DataTrigger Binding="{Binding SelectedPlanning}" TargetType="Border" Value="{x:Null}">
-                        <Setter Property="IsVisible" Value="False" />
-                    </DataTrigger>
-                </Border.Triggers>
+                    <ActivityIndicator
+                        IsRunning="{Binding IsLoading}"
+                        IsVisible="{Binding IsLoading}"
+                        Color="{StaticResource GoldText}" />
+
+                    <CollectionView
+                        ItemsSource="{Binding Plannings}"
+                        SelectionMode="Single"
+                        SelectedItem="{Binding SelectedPlanning}"
+                        HeightRequest="230">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="8" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.EmptyView>
+                            <Label
+                                Text="Aucun créneau n'a encore été chargé."
+                                TextColor="{StaticResource GoldText}"
+                                HorizontalTextAlignment="Center"
+                                Opacity="0.6" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="10" Margin="0,4">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label
+                                            Text="{Binding DisplayDate}"
+                                            TextColor="{StaticResource GoldText}"
+                                            FontAttributes="Bold" />
+                                        <Label
+                                            Text="{Binding DisplayHours}"
+                                            TextColor="{StaticResource GoldText}"
+                                            FontSize="13" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <Label
+                        Text="{Binding SelectedPlanningLabel}"
+                        TextColor="{StaticResource GoldText}"
+                        FontSize="13"
+                        Opacity="0.8"
+                        HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame
+                IsVisible="{Binding IsFormSectionVisible}"
+                BackgroundColor="#1E1E1E"
+                Padding="14"
+                HasShadow="False"
+                CornerRadius="14"
+                BorderColor="#2D2D2D">
                 <VerticalStackLayout Spacing="12">
                     <Label
-                        Text="Modifier / supprimer"
-                        FontSize="18"
-                        FontAttributes="Bold" />
-                    <Label Text="{Binding SelectedPlanningLabel}" FontSize="13" Opacity="0.8" />
-                    <DatePicker Date="{Binding EditJour}" />
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="Début" FontAttributes="Bold" FontSize="13" />
-                            <TimePicker Time="{Binding EditHeureDebut}" />
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Spacing="6" Grid.Column="1">
-                            <Label Text="Fin" FontAttributes="Bold" FontSize="13" />
-                            <TimePicker Time="{Binding EditHeureFin}" />
-                        </VerticalStackLayout>
-                    </Grid>
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                        <Button
-                            Text="Mettre à jour"
-                            Command="{Binding UpdateCommand}"
-                            BackgroundColor="#303030"
-                            TextColor="{StaticResource GoldText}" />
-                        <Button
-                            Grid.Column="1"
-                            Text="Supprimer"
-                            Command="{Binding DeleteCommand}"
-                            BackgroundColor="#7A1C1C"
-                            TextColor="{StaticResource GoldText}" />
-                    </Grid>
-                </VerticalStackLayout>
-            </Border>
+                        Text="{Binding FormTitle}"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource GoldText}"
+                        FontSize="20" />
 
-            <CollectionView
-                ItemsSource="{Binding Plannings}"
-                SelectionMode="Single"
-                SelectedItem="{Binding SelectedPlanning}"
-                ItemSizingStrategy="MeasureAllItems">
-                <CollectionView.EmptyView>
-                    <VerticalStackLayout Padding="12" Spacing="6" HorizontalOptions="Center">
-                        <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}" Color="{StaticResource GoldText}" />
-                        <Label Text="Aucun créneau disponible." />
-                    </VerticalStackLayout>
-                </CollectionView.EmptyView>
-                <CollectionView.ItemsLayout>
-                    <VerticalStackLayout Spacing="10" />
-                </CollectionView.ItemsLayout>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Border
-                            Padding="16"
-                            Stroke="{StaticResource StrokeDark}"
-                            StrokeThickness="1.2"
-                            Background="{StaticResource CardBackground}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="16" />
-                            </Border.StrokeShape>
+                    <Label
+                        Text="{Binding FormHelperMessage}"
+                        TextColor="{StaticResource GoldText}"
+                        FontSize="13"
+                        Opacity="0.8" />
+
+                    <VerticalStackLayout Spacing="12" IsVisible="{Binding IsCreateMode}">
+                        <Label Text="Date du créneau" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                        <DatePicker
+                            Date="{Binding NewJour}"
+                            TextColor="{StaticResource GoldText}"
+                            BackgroundColor="#121212" />
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                             <VerticalStackLayout Spacing="6">
-                                <Label Text="{Binding DisplayDate}" FontAttributes="Bold" FontSize="16" />
-                                <Label Text="{Binding DisplayHours}" FontSize="14" Opacity="0.85" />
+                                <Label Text="Début" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <TimePicker
+                                    Time="{Binding NewHeureDebut}"
+                                    TextColor="{StaticResource GoldText}"
+                                    BackgroundColor="#121212" />
                             </VerticalStackLayout>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+                            <VerticalStackLayout Spacing="6" Grid.Column="1">
+                                <Label Text="Fin" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <TimePicker
+                                    Time="{Binding NewHeureFin}"
+                                    TextColor="{StaticResource GoldText}"
+                                    BackgroundColor="#121212" />
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <Button
+                            Text="Créer ce créneau"
+                            Command="{Binding CreateCommand}"
+                            BackgroundColor="#C18F1A"
+                            TextColor="{StaticResource GoldText}" />
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="12" IsVisible="{Binding IsUpdateMode}">
+                        <Label Text="Jour" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                        <DatePicker
+                            Date="{Binding EditJour}"
+                            TextColor="{StaticResource GoldText}"
+                            BackgroundColor="#121212" />
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Début" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <TimePicker
+                                    Time="{Binding EditHeureDebut}"
+                                    TextColor="{StaticResource GoldText}"
+                                    BackgroundColor="#121212" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="6" Grid.Column="1">
+                                <Label Text="Fin" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
+                                <TimePicker
+                                    Time="{Binding EditHeureFin}"
+                                    TextColor="{StaticResource GoldText}"
+                                    BackgroundColor="#121212" />
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <Button
+                                Text="Mettre à jour"
+                                Command="{Binding UpdateCommand}"
+                                BackgroundColor="#303030"
+                                TextColor="{StaticResource GoldText}" />
+                            <Button
+                                Grid.Column="1"
+                                Text="Supprimer"
+                                Command="{Binding DeleteCommand}"
+                                BackgroundColor="#7A1C1C"
+                                TextColor="{StaticResource GoldText}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
