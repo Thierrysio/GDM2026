@@ -16,7 +16,7 @@
                    HorizontalTextAlignment="Center"
                    TextColor="{StaticResource GoldText}" />
 
-            <Label Text="Consultez la liste des comptes enregistrés sur Dantec Market."
+            <Label Text="Consultez la liste des comptes enregistres sur Dantec Market."
                    FontSize="15"
                    HorizontalTextAlignment="Center"
                    TextColor="{StaticResource GoldText}"
@@ -43,10 +43,10 @@
                 <CollectionView ItemsSource="{Binding FilteredUsers}"
                                 SelectionMode="None">
                     <CollectionView.ItemsLayout>
-                        <VerticalLinearItemsLayout ItemSpacing="12" />
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
                     </CollectionView.ItemsLayout>
                     <CollectionView.EmptyView>
-                        <Label Text="Aucun utilisateur à afficher."
+                        <Label Text="Aucun utilisateur a afficher."
                                HorizontalTextAlignment="Center"
                                TextColor="{StaticResource GoldText}"
                                Opacity="0.6" />
@@ -86,7 +86,7 @@
                                                FontSize="13"
                                                TextColor="{StaticResource GoldText}"
                                                Opacity="0.8" />
-                                        <Label Text="{Binding RolesSummary, StringFormat='Rôles : {0}'}"
+                                        <Label Text="{Binding RolesSummary, StringFormat='Roles : {0}'}"
                                                FontSize="13"
                                                TextColor="{StaticResource GoldText}"
                                                Opacity="0.8" />

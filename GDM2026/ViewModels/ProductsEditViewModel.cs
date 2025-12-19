@@ -113,8 +113,10 @@ public class ProductsEditViewModel : BaseViewModel
         get => _selectedProduct;
         set
         {
+            Debug.WriteLine($"[PRODUCTS_EDIT] SelectedProduct setter called with: {value?.DisplayName ?? "null"}");
             if (SetProperty(ref _selectedProduct, value))
             {
+                Debug.WriteLine($"[PRODUCTS_EDIT] SelectedProduct changed, IsEditFormVisible will be: {value is not null}");
                 PrepareEditForm(value);
                 OnPropertyChanged(nameof(IsEditFormVisible));
                 RefreshSaveAvailability();
@@ -864,31 +866,11 @@ public class ProductsEditViewModel : BaseViewModel
 
         try
         {
-            // Si une page précédente existe dans la pile, on revient simplement en arrière.
-            var navigation = Shell.Current.Navigation;
-            if (navigation?.NavigationStack?.Count > 1)
-            {
-                await navigation.PopAsync(animated: true);
-                return;
-            }
-
-            // Sinon, on tente la navigation Shell relative vers la page précédente.
             await Shell.Current.GoToAsync("..", animate: true);
-            return;
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[PRODUCTS EDIT] Navigation vers Produits échouée : {ex}");
-        }
-
-        // Repli minimal vers l'accueil en cas d'échec de navigation.
-        try
-        {
-            await Shell.Current.GoToAsync($"//{nameof(HomePage)}", animate: true);
-        }
-        catch (Exception fallbackEx)
-        {
-            Debug.WriteLine($"[PRODUCTS EDIT] Repli vers l'accueil échoué : {fallbackEx}");
+            Debug.WriteLine($"[PRODUCTS EDIT] Navigation arrière échouée : {ex}");
         }
     }
 
