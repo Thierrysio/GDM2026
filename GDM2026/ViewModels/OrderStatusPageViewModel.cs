@@ -632,13 +632,14 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                 return;
             }
 
+            // Mise à jour du stock : envoyer l'ID du produit et la quantité livrée
+            await UpdateProductStockAsync(line.ProduitId, line.Quantite).ConfigureAwait(false);
+
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 line.Traite = true;
                 line.Livree = true;
             });
-
-            await MarkRemainingLinesDeliveredIfOrderIsTreatedAsync(order).ConfigureAwait(false);
 
             await CheckAndUpdateOrderCompletionAsync(order).ConfigureAwait(false);
             await CheckAndUpdateOrderDeliveryAsync(order).ConfigureAwait(false);
@@ -657,25 +658,26 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         }
     }
 
-    private async Task MarkRemainingLinesDeliveredIfOrderIsTreatedAsync(OrderStatusEntry order)
+    private async Task UpdateProductStockAsync(int produitId, int quantite)
     {
-        if (order.OrderLines.Count == 0)
-            return;
+        if (produitId <= 0 || quantite <= 0) return;
 
-        if (!order.OrderLines.All(l => l.Traite))
-            return;
-
-        var pendingDeliveries = order.OrderLines.Where(l => !l.Livree).ToList();
-        if (pendingDeliveries.Count == 0)
-            return;
-
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        var stockEndpoint = "https://dantecmarket.com/api/mobile/updateStock";
+        var stockRequest = new UpdateStockRequest
         {
-            foreach (var pending in pendingDeliveries)
-            {
-                pending.Livree = true;
-            }
-        });
+            ProduitId = produitId,
+            Quantite = quantite
+        };
+
+        try
+        {
+            await _apis.PostBoolAsync(stockEndpoint, stockRequest).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // Log silencieux : la mise à jour du stock est secondaire
+            // Le produit a déjà été marqué comme livré
+        }
     }
 
     private async Task CheckAndUpdateOrderCompletionAsync(OrderStatusEntry order)
