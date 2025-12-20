@@ -18,6 +18,7 @@ public class OrderStatusEntry : INotifyPropertyChanged
     private DateTime? _pickupDate;
     private string? _previousStatus;
     private string? _selectedStatusOption;
+    private double _totalAmount;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -27,7 +28,19 @@ public class OrderStatusEntry : INotifyPropertyChanged
 
     public string DisplayDate { get; set; } = string.Empty;
 
-    public string DisplayAmount { get; set; } = string.Empty;
+    public string DisplayAmount => TotalAmount.ToString("C", CultureInfo.GetCultureInfo("fr-FR"));
+
+    public double TotalAmount
+    {
+        get => _totalAmount;
+        set
+        {
+            if (SetProperty(ref _totalAmount, value))
+            {
+                OnPropertyChanged(nameof(DisplayAmount));
+            }
+        }
+    }
 
     public ObservableCollection<OrderLine> OrderLines { get; } = [];
 
@@ -139,6 +152,7 @@ public class OrderStatusEntry : INotifyPropertyChanged
     {
         OrderId = order.Id;
         OrderDate = order.DateCommande;
+        TotalAmount = order.MontantTotal;
         var status = order.Etat;
 
         if (string.IsNullOrWhiteSpace(status))
@@ -150,7 +164,6 @@ public class OrderStatusEntry : INotifyPropertyChanged
             ? "État non renseigné"
             : status;
         DisplayDate = order.DateCommande.ToString("dd MMM yyyy - HH:mm", CultureInfo.GetCultureInfo("fr-FR"));
-        DisplayAmount = order.MontantTotal.ToString("C", CultureInfo.GetCultureInfo("fr-FR"));
         PickupDate = TryParsePickupDate(order.Jour);
     }
 

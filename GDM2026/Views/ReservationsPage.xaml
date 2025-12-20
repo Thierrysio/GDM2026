@@ -317,7 +317,61 @@
                                                         <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto" Padding="8" ColumnSpacing="12">
                                                             <VerticalStackLayout Grid.Column="0" Spacing="2">
                                                                 <Label Text="{Binding LeProduit.NomProduit}" FontAttributes="Bold" />
-                                                                <Label Text="{Binding Quantite, StringFormat='Quantité : {0}'}" Opacity="0.8" />
+                                                                
+                                                                <!-- Contrôle de quantité avec boutons +/- -->
+                                                                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                                                    <Label Text="Quantité :" Opacity="0.8" VerticalOptions="Center" />
+                                                                    
+                                                                    <!-- Bouton Moins -->
+                                                                    <Button
+                                                                        Text="-"
+                                                                        Command="{Binding BindingContext.DecreaseLineQuantityCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                                                        CommandParameter="{Binding .}"
+                                                                        BackgroundColor="#2A2A2A"
+                                                                        TextColor="{StaticResource GoldText}"
+                                                                        FontSize="18"
+                                                                        FontAttributes="Bold"
+                                                                        WidthRequest="36"
+                                                                        HeightRequest="36"
+                                                                        Padding="0"
+                                                                        CornerRadius="8">
+                                                                        <Button.Triggers>
+                                                                            <DataTrigger TargetType="Button" Binding="{Binding Livree}" Value="True">
+                                                                                <Setter Property="IsVisible" Value="False" />
+                                                                            </DataTrigger>
+                                                                        </Button.Triggers>
+                                                                    </Button>
+                                                                    
+                                                                    <Label 
+                                                                        Text="{Binding Quantite}" 
+                                                                        FontSize="16"
+                                                                        FontAttributes="Bold"
+                                                                        VerticalOptions="Center"
+                                                                        HorizontalOptions="Center"
+                                                                        WidthRequest="30"
+                                                                        HorizontalTextAlignment="Center" />
+                                                                    
+                                                                    <!-- Bouton Plus -->
+                                                                    <Button
+                                                                        Text="+"
+                                                                        Command="{Binding BindingContext.IncreaseLineQuantityCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                                                        CommandParameter="{Binding .}"
+                                                                        BackgroundColor="#2A2A2A"
+                                                                        TextColor="{StaticResource GoldText}"
+                                                                        FontSize="18"
+                                                                        FontAttributes="Bold"
+                                                                        WidthRequest="36"
+                                                                        HeightRequest="36"
+                                                                        Padding="0"
+                                                                        CornerRadius="8">
+                                                                        <Button.Triggers>
+                                                                            <DataTrigger TargetType="Button" Binding="{Binding Livree}" Value="True">
+                                                                                <Setter Property="IsVisible" Value="False" />
+                                                                            </DataTrigger>
+                                                                        </Button.Triggers>
+                                                                    </Button>
+                                                                </HorizontalStackLayout>
+                                                                
                                                                 <Label Text="{Binding PrixRetenu, StringFormat='Prix : {0:C}'}" Opacity="0.8" />
                                                                 <Label Text="À traiter" Opacity="0.8">
                                                                     <Label.Triggers>

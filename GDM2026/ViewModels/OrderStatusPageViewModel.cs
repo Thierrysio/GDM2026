@@ -48,6 +48,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private bool _isShowingLimitedOrders = true;
     private bool _canShowMore;
+    private int _displayedReservationsCount = 5;
+    private const int ReservationPageSize = 5;
 
     private ObservableCollection<OrderStatusEntry> _orders = [];
 
@@ -65,6 +67,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         ToggleOrderDetailsCommand = new Command<OrderStatusEntry>(async order => await ToggleOrderDetailsAsync(order));
         MarkLineTreatedCommand = new Command<OrderLine>(async line => await MarkLineTreatedAsync(line));
         MarkLineDeliveredCommand = new Command<OrderLine>(async line => await MarkLineDeliveredAsync(line));
+        IncreaseLineQuantityCommand = new Command<OrderLine>(async line => await IncreaseLineQuantityAsync(line));
+        DecreaseLineQuantityCommand = new Command<OrderLine>(async line => await DecreaseLineQuantityAsync(line));
         ShowMoreCommand = new Command(ShowMoreOrders);
 
         SelectReservationStatusCommand = new Command<ReservationStatusDisplay>(async status => await OnReservationStatusSelectedAsync(status));
@@ -86,6 +90,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     public ICommand ToggleOrderDetailsCommand { get; }
     public ICommand MarkLineTreatedCommand { get; }
     public ICommand MarkLineDeliveredCommand { get; }
+    public ICommand IncreaseLineQuantityCommand { get; }
+    public ICommand DecreaseLineQuantityCommand { get; }
     public ICommand ShowMoreCommand { get; }
     public ICommand SelectReservationStatusCommand { get; }
     public ICommand ApplyReservationFiltersCommand { get; }
@@ -225,6 +231,9 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         try
         {
+            // Réinitialiser le compteur de pagination pour les réservations
+            _displayedReservationsCount = ReservationPageSize;
+
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 IsBusy = true;
@@ -680,6 +689,134 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         }
     }
 
+    private async Task IncreaseLineQuantityAsync(OrderLine? line)
+    {
+        if (line is null) return;
+
+        var order = Orders.FirstOrDefault(o => o.OrderId == line.OrderId);
+        if (order is null) return;
+
+        // Ne pas permettre la modification si la commande est déjà livrée
+        if (string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase)) return;
+
+        var newQuantity = line.Quantite + 1;
+        await UpdateLineQuantityAsync(line, order, newQuantity).ConfigureAwait(false);
+    }
+
+    private async Task DecreaseLineQuantityAsync(OrderLine? line)
+    {
+        if (line is null) return;
+
+        var order = Orders.FirstOrDefault(o => o.OrderId == line.OrderId);
+        if (order is null) return;
+
+        // Ne pas permettre la modification si la commande est déjà livrée
+        if (string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase)) return;
+
+        var newQuantity = line.Quantite - 1;
+
+        if (newQuantity <= 0)
+        {
+            // Confirmer la suppression de la ligne
+            var confirmed = await MainThread.InvokeOnMainThreadAsync(() =>
+                DialogService.DisplayConfirmationAsync(
+                    "Retirer le produit",
+                    $"Voulez-vous retirer \"{line.LeProduit?.NomProduit ?? "ce produit"}\" de la réservation ?",
+                    "Oui",
+                    "Non"));
+
+            if (!confirmed) return;
+
+            await RemoveLineFromOrderAsync(line, order).ConfigureAwait(false);
+        }
+        else
+        {
+            await UpdateLineQuantityAsync(line, order, newQuantity).ConfigureAwait(false);
+        }
+    }
+
+    private async Task UpdateLineQuantityAsync(OrderLine line, OrderStatusEntry order, int newQuantity)
+    {
+        var previousQuantity = line.Quantite;
+
+        var endpoint = "https://dantecmarket.com/api/mobile/updateQuantiteCommander";
+        var request = new UpdateLineQuantityRequest
+        {
+            Id = line.Id,
+            Quantite = newQuantity
+        };
+
+        try
+        {
+            var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
+            if (!success)
+            {
+                await ShowLoadErrorAsync("Impossible de modifier la quantité.");
+                return;
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                line.Quantite = newQuantity;
+                // Recalculer le montant total de la commande
+                RecalculateOrderTotal(order);
+            });
+        }
+        catch (TaskCanceledException)
+        {
+            await ShowLoadErrorAsync("La mise à jour a expiré. Veuillez réessayer.");
+        }
+        catch (HttpRequestException)
+        {
+            await ShowLoadErrorAsync("Impossible de mettre à jour la quantité.");
+        }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue empêche la mise à jour de la quantité.");
+        }
+    }
+
+    private async Task RemoveLineFromOrderAsync(OrderLine line, OrderStatusEntry order)
+    {
+        var endpoint = "https://dantecmarket.com/api/mobile/supprimerLigneCommande";
+        var request = new { Id = line.Id };
+
+        try
+        {
+            var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
+            if (!success)
+            {
+                await ShowLoadErrorAsync("Impossible de retirer ce produit de la réservation.");
+                return;
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                order.OrderLines.Remove(line);
+                // Recalculer le montant total de la commande
+                RecalculateOrderTotal(order);
+            });
+        }
+        catch (TaskCanceledException)
+        {
+            await ShowLoadErrorAsync("La suppression a expiré. Veuillez réessayer.");
+        }
+        catch (HttpRequestException)
+        {
+            await ShowLoadErrorAsync("Impossible de retirer ce produit.");
+        }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue empêche la suppression du produit.");
+        }
+    }
+
+    private static void RecalculateOrderTotal(OrderStatusEntry order)
+    {
+        var newTotal = order.OrderLines.Sum(l => l.PrixRetenu * l.Quantite);
+        order.TotalAmount = newTotal;
+    }
+
     private async Task CheckAndUpdateOrderCompletionAsync(OrderStatusEntry order)
     {
         if (order.OrderLines.Count == 0) return;
@@ -741,13 +878,19 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             var start = StartDate.Date;
             var end = EndDate.Date;
 
-            finalOrders = _allOrders
+            var filteredReservations = _allOrders
                 .Where(o => !o.PickupDate.HasValue || (o.PickupDate.Value.Date >= start && o.PickupDate.Value.Date <= end))
                 .OrderByDescending(o => o.OrderDate)
-                .Take(5)
                 .ToList();
 
-            await MainThread.InvokeOnMainThreadAsync(() => CanShowMore = false);
+            var totalCount = filteredReservations.Count;
+            var canShowMore = totalCount > _displayedReservationsCount;
+
+            finalOrders = filteredReservations
+                .Take(_displayedReservationsCount)
+                .ToList();
+
+            await MainThread.InvokeOnMainThreadAsync(() => CanShowMore = canShowMore);
         }
         else
         {
@@ -775,7 +918,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
             Subtitle = IsReservationMode
                 ? _hasAppliedFilters
-                    ? $"Réservations affichées : {finalOrders.Count} (max 5)"
+                    ? $"Réservations affichées : {finalOrders.Count} sur {_allOrders.Count}"
                     : "Choisissez une période, un état puis lancez la recherche"
                 : $"Commandes : {finalOrders.Count}";
         });
@@ -784,7 +927,16 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     private void ShowMoreOrders()
     {
         if (!CanShowMore) return;
-        _isShowingLimitedOrders = false;
+
+        if (IsReservationMode)
+        {
+            _displayedReservationsCount += ReservationPageSize;
+        }
+        else
+        {
+            _isShowingLimitedOrders = false;
+        }
+
         _ = ApplyFiltersAsync();
     }
 
