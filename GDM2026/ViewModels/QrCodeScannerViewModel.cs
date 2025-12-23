@@ -23,7 +23,7 @@ public class QrCodeScannerViewModel : BaseViewModel
     private readonly int _orderId;
     private readonly double _maxReduction;
 
-    // Événement pour notifier quand une réduction est appliquée
+    // Ã‰vÃ©nement pour notifier quand une rÃ©duction est appliquÃ©e
     public event EventHandler<ApplyLoyaltyResponse>? LoyaltyApplied;
 
     public QrCodeScannerViewModel() : this(0, 0) { }
@@ -80,7 +80,7 @@ public class QrCodeScannerViewModel : BaseViewModel
     }
 
     /// <summary>
-    /// S'assure que la session est chargée et le token défini avant tout appel API
+    /// S'assure que la session est chargÃ©e et le token dÃ©fini avant tout appel API
     /// </summary>
     private async Task EnsureInitializedAsync()
     {
@@ -104,14 +104,14 @@ public class QrCodeScannerViewModel : BaseViewModel
         _hasProcessedCode = true;
         IsScanning = false;
         IsLoading = true;
-        StatusMessage = "Vérification du QR code...";
+        StatusMessage = "VÃ©rification du QR code...";
 
         try
         {
-            // S'assurer que le token est chargé AVANT l'appel API
+            // S'assurer que le token est chargÃ© AVANT l'appel API
             await EnsureInitializedAsync().ConfigureAwait(false);
 
-            // Récupérer les infos fidélité du client via l'API
+            // RÃ©cupÃ©rer les infos fidÃ©litÃ© du client via l'API
             var request = new GetLoyaltyByQrCodeRequest { QrCode = qrCodeValue };
             var response = await _apis
                 .PostAsync<GetLoyaltyByQrCodeRequest, LoyaltyInfoResponse>(
@@ -133,7 +133,7 @@ public class QrCodeScannerViewModel : BaseViewModel
 
             var loyaltyInfo = response.Data;
 
-            // Afficher le popup pour choisir les points à utiliser
+            // Afficher le popup pour choisir les points Ã  utiliser
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 await ShowLoyaltySelectionAsync(loyaltyInfo);
@@ -143,9 +143,9 @@ public class QrCodeScannerViewModel : BaseViewModel
         {
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                // Afficher plus de détails sur l'erreur pour le debug
+                // Afficher plus de dÃ©tails sur l'erreur pour le debug
                 var errorMsg = ex.StatusCode == System.Net.HttpStatusCode.Unauthorized
-                    ? "Session expirée. Veuillez vous reconnecter."
+                    ? "Session expirÃ©e. Veuillez vous reconnecter."
                     : "Erreur de connexion au serveur";
                     
                 StatusMessage = errorMsg;
@@ -178,13 +178,13 @@ public class QrCodeScannerViewModel : BaseViewModel
         {
             await DialogService.DisplayAlertAsync(
                 "Pas de points",
-                $"{loyaltyInfo.DisplayName} n'a pas de points fidélité disponibles.",
+                $"{loyaltyInfo.DisplayName} n'a pas de points fidÃ©litÃ© disponibles.",
                 "OK");
             await NavigateBackAsync();
             return;
         }
 
-        // Calculer le maximum utilisable (limité par le montant de la commande)
+        // Calculer le maximum utilisable (limitÃ© par le montant de la commande)
         var maxCouronnesParMontant = (int)(_maxReduction / 0.01); // Conversion euros -> couronnes
         var maxCouronnesUtilisables = Math.Min(loyaltyInfo.Couronnes, maxCouronnesParMontant);
         var maxReductionPossible = maxCouronnesUtilisables * 0.01;
@@ -197,7 +197,7 @@ public class QrCodeScannerViewModel : BaseViewModel
                       $"Combien de couronnes utiliser ?";
 
         var result = await Application.Current!.Windows[0].Page!.DisplayPromptAsync(
-            "Points Fidélité",
+            "Points FidÃ©litÃ©",
             message,
             "Appliquer",
             "Annuler",
@@ -229,18 +229,18 @@ public class QrCodeScannerViewModel : BaseViewModel
             return;
         }
 
-        // Appliquer la réduction
+        // Appliquer la rÃ©duction
         await ApplyLoyaltyReductionAsync(loyaltyInfo.UserId, couronnesAUtiliser);
     }
 
     private async Task ApplyLoyaltyReductionAsync(int userId, int couronnes)
     {
         IsLoading = true;
-        StatusMessage = "Application de la réduction...";
+        StatusMessage = "Application de la rÃ©duction...";
 
         try
         {
-            // S'assurer que le token est chargé
+            // S'assurer que le token est chargÃ©
             await EnsureInitializedAsync().ConfigureAwait(false);
 
             var reductionMontant = couronnes * 0.01;
@@ -261,21 +261,22 @@ public class QrCodeScannerViewModel : BaseViewModel
             {
                 if (response?.Success == true)
                 {
+                    response.UserId = userId;
                     await DialogService.DisplayAlertAsync(
-                        "Succès",
-                        $"Réduction de {response.ReductionAppliquee:C} appliquée !\n" +
+                        "SuccÃ¨s",
+                        $"RÃ©duction de {response.ReductionAppliquee:C} appliquÃ©e !\n" +
                         $"Nouveau total : {response.NouveauMontantCommande:C}\n" +
                         $"Nouveau solde client : {response.NouveauSoldeCouronnes} couronnes",
                         "OK");
 
-                    // Notifier via l'événement
+                    // Notifier via l'Ã©vÃ©nement
                     LoyaltyApplied?.Invoke(this, response);
                 }
                 else
                 {
                     await DialogService.DisplayAlertAsync(
                         "Erreur",
-                        response?.Message ?? "Impossible d'appliquer la réduction.",
+                        response?.Message ?? "Impossible d'appliquer la rÃ©duction.",
                         "OK");
                 }
 
@@ -288,7 +289,7 @@ public class QrCodeScannerViewModel : BaseViewModel
             {
                 await DialogService.DisplayAlertAsync(
                     "Erreur",
-                    "Erreur lors de l'application de la réduction.",
+                    "Erreur lors de l'application de la rÃ©duction.",
                     "OK");
                 await NavigateBackAsync();
             });
