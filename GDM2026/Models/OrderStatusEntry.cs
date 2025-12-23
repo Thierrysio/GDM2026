@@ -240,7 +240,7 @@ public class OrderStatusEntry : INotifyPropertyChanged
         OrderId = order.Id;
         OrderDate = order.DateCommande;
         TotalAmount = order.MontantTotal;
-        UserId = order.UserId;
+        UserId = ResolveUserId(order);
         var status = order.Etat;
 
         if (string.IsNullOrWhiteSpace(status))
@@ -281,6 +281,21 @@ public class OrderStatusEntry : INotifyPropertyChanged
             || DisplayAmount.Contains(query, comparison)
             || (CurrentStatus?.Contains(query, comparison) ?? false)
             || (HasPickupDate && PickupDateDisplay.Contains(query, comparison));
+    }
+
+    private static int? ResolveUserId(OrderByStatus order)
+    {
+        if (order.UserId is > 0)
+        {
+            return order.UserId;
+        }
+
+        if (order.UserIdFidelite is > 0)
+        {
+            return order.UserIdFidelite;
+        }
+
+        return null;
     }
 
     protected bool SetProperty<T>(ref T backingStore, T value, [CallerMemberName] string propertyName = "")
