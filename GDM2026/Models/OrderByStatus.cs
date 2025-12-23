@@ -28,6 +28,9 @@ public class OrderByStatus
     [JsonProperty("clientId")]
     private int? ClientIdAlias { set => UserId = value; get => UserId; }
 
+    [JsonProperty("idUser")]
+    private int? IdUserAlias { set => UserId = value; get => UserId; }
+
     public string? NomClient { get; set; }
 
     public string? PrenomClient { get; set; }

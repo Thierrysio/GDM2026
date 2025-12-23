@@ -915,7 +915,6 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private async Task TryCreditReservationLoyaltyAsync(OrderStatusEntry order)
     {
-        if (!IsReservationMode) return;
         if (order.UserId is null || order.UserId <= 0) return;
 
         var pointsToAdd = CalculateLoyaltyPoints(order);
@@ -955,10 +954,13 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     {
         if (order?.OrderLines == null || order.OrderLines.Count == 0)
         {
-            return 0;
+            return (int)Math.Max(Math.Round(order?.TotalAmount ?? 0, MidpointRounding.AwayFromZero), 0);
         }
 
-        var totalAmount = order.OrderLines.Sum(l => l.PrixRetenu * l.Quantite);
+        var totalAmount = order.TotalAmount > 0
+            ? order.TotalAmount
+            : order.OrderLines.Sum(l => l.PrixRetenu * l.Quantite);
+
         var roundedPoints = (int)Math.Round(totalAmount, MidpointRounding.AwayFromZero);
 
         return Math.Max(roundedPoints, 0);

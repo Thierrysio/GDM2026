@@ -14,6 +14,9 @@ public class ReservationOrder
     [JsonProperty("clientId")]
     private int? ClientIdAlias { set => UserId = value; get => UserId; }
 
+    [JsonProperty("idUser")]
+    private int? IdUserAlias { set => UserId = value; get => UserId; }
+
     public string? Etat { get; set; }
 
     public bool Valider { get; set; }
