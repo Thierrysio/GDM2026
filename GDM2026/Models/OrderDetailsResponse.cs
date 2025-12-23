@@ -16,6 +16,19 @@ public class OrderDetailsResponse
 
     public string? Etat { get; set; }
 
+    public int? UserId { get; set; }
+
+    [JsonProperty("user_id")]
+    private int? UserIdSnakeAlias { set => UserId = value; get => UserId; }
+
+    public int? UserIdFidelite { get; set; }
+
+    [JsonProperty("userIdFidelite")]
+    private int? UserIdFideliteCamelAlias { set => UserIdFidelite = value; get => UserIdFidelite; }
+
+    [JsonProperty("user_id_fidelite")]
+    private int? UserIdFideliteSnakeAlias { set => UserIdFidelite = value; get => UserIdFidelite; }
+
     [JsonProperty("produits")]
     public List<OrderLine> LesCommandes { get; set; } = new();
 }

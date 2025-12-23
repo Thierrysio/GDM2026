@@ -8,8 +8,19 @@ public class ReservationOrder
 {
     public int Id { get; set; }
 
+    public int? UserIdFidelite { get; set; }
+
     [JsonProperty("userId")]
     public int? UserId { get; set; }
+
+    [JsonProperty("user_id")]
+    private int? UserIdSnakeAlias { set => UserId = value; get => UserId; }
+
+    [JsonProperty("userIdFidelite")]
+    private int? UserIdFideliteCamelAlias { set => UserIdFidelite = value; get => UserIdFidelite; }
+
+    [JsonProperty("user_id_fidelite")]
+    private int? UserIdFideliteSnakeAlias { set => UserIdFidelite = value; get => UserIdFidelite; }
 
     [JsonProperty("clientId")]
     private int? ClientIdAlias { set => UserId = value; get => UserId; }
