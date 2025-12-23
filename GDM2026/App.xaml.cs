@@ -10,11 +10,35 @@ namespace GDM2026
             InitializeComponent();
 
             GlobalErrorHandler.Register(this);
+            
+            // S'abonner à l'événement de token expiré pour rediriger vers le login
+            Apis.TokenExpired += OnTokenExpired;
         }
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
             return new Window(new AppShell());
+        }
+
+        private async void OnTokenExpired(object? sender, EventArgs e)
+        {
+            // Effacer la session
+            var sessionService = new SessionService();
+            await sessionService.ClearAsync();
+
+            // Rediriger vers la page de login sur le thread UI
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                if (Shell.Current != null)
+                {
+                    await Shell.Current.DisplayAlert(
+                        "Session expirée",
+                        "Votre session a expiré. Veuillez vous reconnecter.",
+                        "OK");
+
+                    await Shell.Current.GoToAsync($"//{nameof(MainPage)}", animate: false);
+                }
+            });
         }
     }
 }

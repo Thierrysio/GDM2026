@@ -7,8 +7,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
 using System.Windows.Input;
-using GDM2026;
 using GDM2026.Views;
+using System.Diagnostics;
 
 namespace GDM2026.ViewModels;
 
@@ -17,8 +17,6 @@ public partial class HomePageViewModel : BaseViewModel
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
     private string _welcomeText = "Bonjour!";
-    private bool _isProfileMenuVisible;
-    private string _loyaltyBalanceText = "👑 85 couronnes cumulées";
 
     public HomePageViewModel()
     {
@@ -26,8 +24,7 @@ public partial class HomePageViewModel : BaseViewModel
         OrderStatuses = [];
 
         CategorySelectedCommand = new Command<CategoryCard>(async card => await NavigateToCategoryAsync(card));
-        OrderStatusSelectedCommand = new Command<OrderStatusDisplay>(async status => await NavigateToOrderStatusAsync(status));
-        ToggleProfileMenuCommand = new Command(() => IsProfileMenuVisible = !IsProfileMenuVisible);
+        OrderStatusSelectedCommand = new Command<OrderStatusDisplay>(async status => await NavigateToReservationsWithStatusAsync(status));
 
         LoadCategories();
     }
@@ -40,48 +37,46 @@ public partial class HomePageViewModel : BaseViewModel
 
     public ICommand OrderStatusSelectedCommand { get; }
 
-    public ICommand ToggleProfileMenuCommand { get; }
-
     public string WelcomeText
     {
         get => _welcomeText;
         set => SetProperty(ref _welcomeText, value);
     }
 
-    public bool IsProfileMenuVisible
-    {
-        get => _isProfileMenuVisible;
-        set => SetProperty(ref _isProfileMenuVisible, value);
-    }
-
-    public string LoyaltyBalanceText
-    {
-        get => _loyaltyBalanceText;
-        set => SetProperty(ref _loyaltyBalanceText, value);
-    }
-
     public async Task InitializeAsync()
     {
-        await LoadSessionAsync();
-        _apis.SetBearerToken(_sessionService.AuthToken);
+        var isAuthenticated = await LoadSessionAsync();
 
+        Debug.WriteLine($"[HOME] Session loaded: {isAuthenticated}");
+        Debug.WriteLine($"[HOME] Token present: {!string.IsNullOrWhiteSpace(_sessionService.AuthToken)}");
+        Debug.WriteLine($"[HOME] Token value: {(_sessionService.AuthToken?.Length > 20 ? _sessionService.AuthToken.Substring(0, 20) + "..." : _sessionService.AuthToken)}");
+
+        if (!isAuthenticated || string.IsNullOrWhiteSpace(_sessionService.AuthToken))
+        {
+            Debug.WriteLine("[HOME] Not authenticated, skipping LoadOrderStatusesAsync");
+            return;
+        }
+
+        // S'assurer que le token est bien défini dans le factory ET dans l'instance Apis
+        AppHttpClientFactory.SetBearerToken(_sessionService.AuthToken);
+        _apis.SetBearerToken(_sessionService.AuthToken);
+        
+        Debug.WriteLine("[HOME] Token set, calling LoadOrderStatusesAsync");
         await LoadOrderStatusesAsync();
     }
 
-    public static void OnDisappearing()
-    {
-        OrderStatusDeltaTracker.Clear();
-    }
-
-    private async Task LoadSessionAsync()
+    private async Task<bool> LoadSessionAsync()
     {
         var hasSession = await _sessionService.LoadAsync().ConfigureAwait(false);
+
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             WelcomeText = hasSession && _sessionService.CurrentUser != null
                 ? $"Bonjour {_sessionService.CurrentUser.Prenom ?? _sessionService.CurrentUser.Nom ?? _sessionService.CurrentUser.UserIdentifier}!"
                 : "Bonjour!";
         });
+
+        return hasSession && _sessionService.IsAuthenticated;
     }
 
     private void LoadCategories()
@@ -116,11 +111,13 @@ public partial class HomePageViewModel : BaseViewModel
     {
         try
         {
+            Debug.WriteLine("[HOME] Calling API getNombreCommandes...");
+            
             var statuses = await _apis
                 .GetAsync<Dictionary<string, int>>("https://dantecmarket.com/api/mobile/getNombreCommandes")
                 .ConfigureAwait(false) ?? new Dictionary<string, int>();
 
-            var deltas = OrderStatusDeltaTracker.GetDeltas();
+            Debug.WriteLine($"[HOME] API returned {statuses.Count} statuses");
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -128,27 +125,27 @@ public partial class HomePageViewModel : BaseViewModel
 
                 foreach (var status in statuses)
                 {
-                    var delta = deltas.TryGetValue(status.Key, out var change) ? change : 0;
-                    OrderStatuses.Add(new OrderStatusDisplay(status.Key, status.Value, delta));
-                }
-
-                foreach (var delta in deltas.Where(d => !statuses.ContainsKey(d.Key)))
-                {
-                    OrderStatuses.Add(new OrderStatusDisplay(delta.Key, 0, delta.Value));
+                    OrderStatuses.Add(new OrderStatusDisplay(status.Key, status.Value));
                 }
             });
         }
-        catch (TaskCanceledException)
+        catch (HttpRequestException ex)
         {
-            // Ignore timeout and keep the existing data.
+            Debug.WriteLine($"[HOME] HTTP Error: {ex.StatusCode} - {ex.Message}");
+            
+            // Si 401, le token est invalide - on pourrait rediriger vers login
+            if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                Debug.WriteLine("[HOME] Token invalid (401), should redirect to login");
+            }
         }
-        catch (HttpRequestException)
+        catch (TaskCanceledException ex)
         {
-            // Ignore network/API errors and keep the existing data.
+            Debug.WriteLine($"[HOME] Timeout: {ex.Message}");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Ignore unexpected errors to avoid breaking the UI lifecycle.
+            Debug.WriteLine($"[HOME] Unexpected error: {ex.GetType().Name} - {ex.Message}");
         }
     }
 
@@ -226,14 +223,15 @@ public partial class HomePageViewModel : BaseViewModel
         });
     }
 
-    private Task NavigateToOrderStatusAsync(OrderStatusDisplay? status)
+    private Task NavigateToReservationsWithStatusAsync(OrderStatusDisplay? status)
     {
         if (status == null || Shell.Current == null)
         {
             return Task.CompletedTask;
         }
 
-        return Shell.Current.GoToAsync(nameof(OrderStatusPage), animate: false, new Dictionary<string, object>
+        // Naviguer vers ReservationsPage avec le statut pré-sélectionné
+        return Shell.Current.GoToAsync(nameof(ReservationsPage), animate: false, new Dictionary<string, object>
         {
             { "status", status.Status }
         });

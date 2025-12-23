@@ -19,6 +19,9 @@ public class OrderStatusEntry : INotifyPropertyChanged
     private string? _previousStatus;
     private string? _selectedStatusOption;
     private double _totalAmount;
+    private double _loyaltyReduction;
+    private int _loyaltyUserId;
+    private int _loyaltyCouronnesUsed;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -38,9 +41,85 @@ public class OrderStatusEntry : INotifyPropertyChanged
             if (SetProperty(ref _totalAmount, value))
             {
                 OnPropertyChanged(nameof(DisplayAmount));
+                OnPropertyChanged(nameof(DisplayAmountWithReduction));
             }
         }
     }
+
+    /// <summary>
+    /// Réduction fidélité appliquée sur cette commande
+    /// </summary>
+    public double LoyaltyReduction
+    {
+        get => _loyaltyReduction;
+        set
+        {
+            if (SetProperty(ref _loyaltyReduction, value))
+            {
+                OnPropertyChanged(nameof(HasLoyaltyReduction));
+                OnPropertyChanged(nameof(DisplayLoyaltyReduction));
+                OnPropertyChanged(nameof(DisplayAmountWithReduction));
+                OnPropertyChanged(nameof(FinalAmount));
+            }
+        }
+    }
+
+    /// <summary>
+    /// ID de l'utilisateur qui a utilisé ses points fidélité
+    /// </summary>
+    public int LoyaltyUserId
+    {
+        get => _loyaltyUserId;
+        set => SetProperty(ref _loyaltyUserId, value);
+    }
+
+    /// <summary>
+    /// Nombre de couronnes utilisées
+    /// </summary>
+    public int LoyaltyCouronnesUsed
+    {
+        get => _loyaltyCouronnesUsed;
+        set
+        {
+            if (SetProperty(ref _loyaltyCouronnesUsed, value))
+            {
+                OnPropertyChanged(nameof(DisplayLoyaltyCouronnes));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Indique si une réduction fidélité a été appliquée
+    /// </summary>
+    public bool HasLoyaltyReduction => LoyaltyReduction > 0;
+
+    /// <summary>
+    /// Affichage de la réduction fidélité
+    /// </summary>
+    public string DisplayLoyaltyReduction => $"-{LoyaltyReduction:C}";
+
+    /// <summary>
+    /// Affichage des couronnes utilisées
+    /// </summary>
+    public string DisplayLoyaltyCouronnes => $"{LoyaltyCouronnesUsed} couronnes utilisées";
+
+    /// <summary>
+    /// Montant final après réduction fidélité
+    /// </summary>
+    public double FinalAmount => Math.Max(0, TotalAmount - LoyaltyReduction);
+
+    /// <summary>
+    /// Affichage du montant avec réduction
+    /// </summary>
+    public string DisplayAmountWithReduction => HasLoyaltyReduction
+        ? $"{FinalAmount:C} (après réduction)"
+        : DisplayAmount;
+
+    /// <summary>
+    /// Indique si le bouton fidélité peut être utilisé (pas encore livrée)
+    /// </summary>
+    public bool CanUseLoyalty => !string.Equals(CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase)
+                                 && !HasLoyaltyReduction;
 
     public ObservableCollection<OrderLine> OrderLines { get; } = [];
 
@@ -55,7 +134,13 @@ public class OrderStatusEntry : INotifyPropertyChanged
     public string CurrentStatus
     {
         get => _currentStatus;
-        set => SetProperty(ref _currentStatus, value);
+        set
+        {
+            if (SetProperty(ref _currentStatus, value))
+            {
+                OnPropertyChanged(nameof(CanUseLoyalty));
+            }
+        }
     }
 
     public string? PreviousStatus
@@ -168,6 +253,13 @@ public class OrderStatusEntry : INotifyPropertyChanged
             : status;
         DisplayDate = order.DateCommande.ToString("dd MMM yyyy - HH:mm", CultureInfo.GetCultureInfo("fr-FR"));
         PickupDate = TryParsePickupDate(order.Jour);
+    }
+
+    public void ApplyLoyaltyReduction(int userId, int couronnes, double reduction)
+    {
+        LoyaltyUserId = userId;
+        LoyaltyCouronnesUsed = couronnes;
+        LoyaltyReduction = reduction;
     }
 
     public void RememberPreviousStatus(string status) => PreviousStatus = status;

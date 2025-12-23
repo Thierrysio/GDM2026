@@ -77,7 +77,6 @@ public class OrderLine : INotifyPropertyChanged
 {
     private bool _traite;
     private bool _livree;
-    private int _quantite;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -85,11 +84,7 @@ public class OrderLine : INotifyPropertyChanged
 
     public int OrderId { get; set; }
 
-    public int Quantite
-    {
-        get => _quantite;
-        set => SetProperty(ref _quantite, value);
-    }
+    public int Quantite { get; set; }
 
     public ProductSummary? LeProduit { get; set; }
 

@@ -13,7 +13,6 @@ namespace GDM2026
 
             Routing.RegisterRoute(nameof(CategoryDetailPage), typeof(CategoryDetailPage));
             Routing.RegisterRoute(nameof(EvenementPage), typeof(EvenementPage));
-            Routing.RegisterRoute(nameof(OrderStatusPage), typeof(OrderStatusPage));
             Routing.RegisterRoute(nameof(ImageUploadPage), typeof(ImageUploadPage));
             Routing.RegisterRoute(nameof(ActualitePage), typeof(ActualitePage));
             Routing.RegisterRoute(nameof(MessagesPage), typeof(MessagesPage));
@@ -27,6 +26,7 @@ namespace GDM2026
             Routing.RegisterRoute(nameof(PromoPage), typeof(PromoPage));
             Routing.RegisterRoute(nameof(PlanningPage), typeof(PlanningPage));
             Routing.RegisterRoute(nameof(HistoirePage), typeof(HistoirePage));
+            Routing.RegisterRoute(nameof(QrCodeScannerPage), typeof(QrCodeScannerPage));
         }
     }
 }
