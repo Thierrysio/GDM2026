@@ -6,13 +6,11 @@ namespace GDM2026.Models;
 public class OrderStatusDisplay : INotifyPropertyChanged
 {
     private int _count;
-    private int _delta;
 
-    public OrderStatusDisplay(string status, int count, int delta = 0)
+    public OrderStatusDisplay(string status, int count)
     {
         Status = status;
         _count = count;
-        _delta = delta;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -22,22 +20,16 @@ public class OrderStatusDisplay : INotifyPropertyChanged
     public int Count
     {
         get => _count;
-        set => SetProperty(ref _count, value);
-    }
-
-    public int Delta
-    {
-        get => _delta;
         set
         {
-            if (SetProperty(ref _delta, value))
+            if (SetProperty(ref _count, value))
             {
                 OnPropertyChanged(nameof(DisplayCount));
             }
         }
     }
 
-    public string DisplayCount => Delta != 0 ? $"{Count} ({(Delta > 0 ? "+" : string.Empty)}{Delta})" : Count.ToString();
+    public string DisplayCount => $"{Count} commande(s)";
 
     protected bool SetProperty<T>(ref T backingStore, T value, [CallerMemberName] string propertyName = "")
     {

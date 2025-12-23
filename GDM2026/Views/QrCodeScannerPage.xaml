@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
+             x:Class="GDM2026.Views.QrCodeScannerPage"
+             Title="Scanner QR Code"
+             BackgroundColor="#0B0B0B">
+
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*,Auto,Auto">
+        
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Padding="24,24,24,12" Spacing="8">
+            <Label 
+                Text="Scanner le QR Code du client"
+                FontSize="22"
+                FontAttributes="Bold"
+                TextColor="{StaticResource GoldText}"
+                HorizontalTextAlignment="Center" />
+            <Label 
+                Text="Placez le QR code du client dans le cadre"
+                FontSize="14"
+                TextColor="{StaticResource GoldText}"
+                Opacity="0.8"
+                HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+
+        <!-- Scanner -->
+        <zxing:CameraBarcodeReaderView
+            x:Name="BarcodeReader"
+            Grid.Row="1"
+            Margin="24"
+            BarcodesDetected="OnBarcodesDetected" />
+
+        <!-- Status -->
+        <VerticalStackLayout Grid.Row="2" Padding="24,12" Spacing="8">
+            <ActivityIndicator 
+                IsRunning="{Binding IsLoading}" 
+                IsVisible="{Binding IsLoading}"
+                Color="{StaticResource GoldText}" />
+            <Label 
+                Text="{Binding StatusMessage}"
+                FontSize="14"
+                TextColor="{StaticResource GoldText}"
+                HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+
+        <!-- Boutons -->
+        <HorizontalStackLayout Grid.Row="3" 
+                               Padding="24,12,24,24" 
+                               Spacing="12" 
+                               HorizontalOptions="Center">
+            <Button
+                Text="Annuler"
+                Command="{Binding CancelCommand}"
+                BackgroundColor="Transparent"
+                BorderColor="{StaticResource GoldText}"
+                BorderWidth="1.5"
+                TextColor="{StaticResource GoldText}"
+                CornerRadius="10"
+                WidthRequest="120" />
+            
+            <Button
+                x:Name="TorchButton"
+                Text="Torche"
+                Clicked="OnTorchClicked"
+                BackgroundColor="#1A1A1A"
+                TextColor="{StaticResource GoldText}"
+                CornerRadius="10"
+                WidthRequest="120" />
+        </HorizontalStackLayout>
+        
+    </Grid>
+</ContentPage>

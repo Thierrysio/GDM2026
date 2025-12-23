@@ -3,6 +3,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -28,6 +30,11 @@ namespace GDM2026.Services
         private readonly JsonSerializerSettings _json;
         private readonly Uri? _configuredBaseUri;
         private readonly bool _ownsClient;
+
+        /// <summary>
+        /// Événement déclenché quand un appel API retourne 401 (token expiré/invalide)
+        /// </summary>
+        public static event EventHandler? TokenExpired;
 
         public HttpClient HttpClient => _http;
 
@@ -88,6 +95,8 @@ namespace GDM2026.Services
         {
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
             using var resp = await _http.GetAsync(BuildUri(relativeUrl), reqCts.Token).ConfigureAwait(false);
+            
+            await HandleUnauthorizedAsync(resp, relativeUrl).ConfigureAwait(false);
             await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -116,6 +125,8 @@ namespace GDM2026.Services
             {
                 using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
                 using var resp = await _http.GetAsync(BuildUri(relativeUrl), reqCts.Token).ConfigureAwait(false);
+                
+                await HandleUnauthorizedAsync(resp, relativeUrl).ConfigureAwait(false);
                 await EnsureSuccess(resp, relativeUrl).ConfigureAwait(false);
 
                 var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -139,6 +150,8 @@ namespace GDM2026.Services
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
             using var resp = await _http.PostAsync(BuildUri(relativeUrl), content, reqCts.Token).ConfigureAwait(false);
+            
+            await HandleUnauthorizedAsync(resp, relativeUrl).ConfigureAwait(false);
             await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
 
             var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -153,10 +166,13 @@ namespace GDM2026.Services
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
             using var resp = await _http.PostAsync(BuildUri(relativeUrl), content, reqCts.Token).ConfigureAwait(false);
+            
+            await HandleUnauthorizedAsync(resp, relativeUrl).ConfigureAwait(false);
+            
             if (resp.IsSuccessStatusCode) return true;
 
             await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
-            return false; // n’est jamais atteint si EnsureSuccess lève
+            return false;
         }
 
         // ---------- PUT/PATCH : bool succès/échec ----------
@@ -167,6 +183,9 @@ namespace GDM2026.Services
             using var reqCts = LinkedCts(ct, TimeSpan.FromSeconds(30));
 
             using var resp = await _http.PutAsync(BuildUri(relativeUrl), content, reqCts.Token).ConfigureAwait(false);
+            
+            await HandleUnauthorizedAsync(resp, relativeUrl).ConfigureAwait(false);
+            
             if (resp.IsSuccessStatusCode) return true;
 
             await EnsureSuccess(resp, relativeUrl, payload).ConfigureAwait(false);
@@ -174,6 +193,24 @@ namespace GDM2026.Services
         }
 
         // ========== Helpers ==========
+        
+        /// <summary>
+        /// Gère les réponses 401 Unauthorized (token expiré)
+        /// </summary>
+        private static async Task HandleUnauthorizedAsync(HttpResponseMessage response, string path)
+        {
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                Debug.WriteLine($"[API] 401 Unauthorized on '{path}' - Token expired or invalid");
+                
+                // Déclencher l'événement pour que l'app puisse réagir
+                TokenExpired?.Invoke(null, EventArgs.Empty);
+                
+                // Lancer une exception spécifique
+                throw new HttpRequestException($"Session expirée. Veuillez vous reconnecter.", null, HttpStatusCode.Unauthorized);
+            }
+        }
+        
         private Uri BuildUri(string path)
         {
             if (string.IsNullOrWhiteSpace(path))
@@ -218,7 +255,7 @@ namespace GDM2026.Services
                       (payload == null ? "" : $"Payload: {Trim(payload)} ") +
                       (string.IsNullOrWhiteSpace(body) ? "" : $"Body: {Trim(body)}");
 
-            throw new HttpRequestException(msg);
+            throw new HttpRequestException(msg, null, response.StatusCode);
         }
 
         private static string Trim(string s, int max = 600)

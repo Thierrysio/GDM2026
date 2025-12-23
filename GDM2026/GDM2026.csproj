@@ -64,6 +64,7 @@
                 <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
                 <PackageReference Include="SkiaSharp" Version="3.119.2-preview.1" />
                 <PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.2-preview.1" />
+                <PackageReference Include="ZXing.Net.Maui.Controls" Version="0.4.0" />
         </ItemGroup>
 
         <ItemGroup>
@@ -77,6 +78,9 @@
             <Generator>MSBuild:Compile</Generator>
           </MauiXaml>
           <MauiXaml Update="Views\ProductsPage.xaml">
+            <Generator>MSBuild:Compile</Generator>
+          </MauiXaml>
+          <MauiXaml Update="Views\QrCodeScannerPage.xaml">
             <Generator>MSBuild:Compile</Generator>
           </MauiXaml>
           <MauiXaml Update="Views\ReservationsPage.xaml">

@@ -4,6 +4,7 @@ using Microsoft.Maui.Storage; // Preferences, SecureStorage
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -20,13 +21,18 @@ namespace GDM2026.Services
 
         public User CurrentUser => _currentUser;
         public string AuthToken => _authToken;
-        public bool IsAuthenticated => _currentUser != null;
+        
+        // Modification : IsAuthenticated vérifie aussi le token, pas seulement le user
+        public bool IsAuthenticated => _currentUser != null || !string.IsNullOrWhiteSpace(_authToken);
 
         public async Task<bool> LoadAsync()
         {
             try
             {
                 _authToken = await RetrieveTokenAsync();
+                
+                Debug.WriteLine($"[SESSION] Token retrieved: {!string.IsNullOrWhiteSpace(_authToken)}");
+                Debug.WriteLine($"[SESSION] Token length: {_authToken?.Length ?? 0}");
 
                 AppHttpClientFactory.SetBearerToken(_authToken);
 
@@ -34,10 +40,15 @@ namespace GDM2026.Services
                 var userJson = Preferences.Get(KeyUser, null);
                 _currentUser = string.IsNullOrWhiteSpace(userJson) ? null : JsonConvert.DeserializeObject<User>(userJson);
 
-                return _currentUser != null;
+                Debug.WriteLine($"[SESSION] User loaded: {_currentUser != null}");
+                Debug.WriteLine($"[SESSION] IsAuthenticated: {IsAuthenticated}");
+
+                // Retourne true si on a un token OU un user
+                return !string.IsNullOrWhiteSpace(_authToken) || _currentUser != null;
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"[SESSION] Error loading session: {ex.Message}");
                 _currentUser = null;
                 _authToken = null;
                 return false;
@@ -48,6 +59,8 @@ namespace GDM2026.Services
         {
             _currentUser = SanitizeUser(user);
             _authToken = NormalizeToken(token);
+
+            Debug.WriteLine($"[SESSION] Saving - Token: {!string.IsNullOrWhiteSpace(_authToken)}, User: {_currentUser?.Email}");
 
             var userJson = JsonConvert.SerializeObject(_currentUser);
 
@@ -60,6 +73,7 @@ namespace GDM2026.Services
 
         public async Task ClearAsync()
         {
+            Debug.WriteLine("[SESSION] Clearing session");
             _currentUser = null;
             _authToken = null;
 
@@ -93,15 +107,27 @@ namespace GDM2026.Services
                 var secureToken = await SecureStorage.GetAsync(KeyToken);
                 if (!string.IsNullOrWhiteSpace(secureToken))
                 {
+                    Debug.WriteLine("[SESSION] Token found in SecureStorage");
                     return NormalizeToken(secureToken);
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"[SESSION] SecureStorage error: {ex.Message}");
                 // Fallback vers Preferences si SecureStorage indisponible
             }
 
-            return NormalizeToken(Preferences.Get(KeyToken, null));
+            var prefToken = Preferences.Get(KeyToken, null);
+            if (!string.IsNullOrWhiteSpace(prefToken))
+            {
+                Debug.WriteLine("[SESSION] Token found in Preferences");
+            }
+            else
+            {
+                Debug.WriteLine("[SESSION] No token found");
+            }
+            
+            return NormalizeToken(prefToken);
         }
 
         private static async Task StoreTokenAsync(string token)
@@ -112,6 +138,7 @@ namespace GDM2026.Services
                 {
                     await SecureStorage.SetAsync(KeyToken, token);
                     Preferences.Remove(KeyToken);
+                    Debug.WriteLine("[SESSION] Token stored in SecureStorage");
                 }
                 else
                 {
@@ -119,8 +146,9 @@ namespace GDM2026.Services
                     Preferences.Remove(KeyToken);
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"[SESSION] SecureStorage store error: {ex.Message}, using Preferences");
                 if (!string.IsNullOrEmpty(token))
                 {
                     Preferences.Set(KeyToken, token);

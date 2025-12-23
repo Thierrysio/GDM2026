@@ -2,6 +2,7 @@ using GDM2026.Services;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Http;
+using ZXing.Net.Maui.Controls;
 
 namespace GDM2026
 {
@@ -14,6 +15,7 @@ namespace GDM2026
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
+                .UseBarcodeReader() // Activation de ZXing pour le scan QR code
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

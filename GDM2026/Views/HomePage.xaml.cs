@@ -17,11 +17,5 @@ namespace GDM2026
             base.OnAppearing();
             await _viewModel.InitializeAsync();
         }
-
-        protected override void OnDisappearing()
-        {
-            base.OnDisappearing();
-            HomePageViewModel.OnDisappearing();
-        }
     }
 }

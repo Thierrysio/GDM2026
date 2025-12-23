@@ -1,5 +1,6 @@
 using GDM2026.Models;
 using GDM2026.Services;
+using GDM2026.Views;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using System;
@@ -70,6 +71,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         IncreaseLineQuantityCommand = new Command<OrderLine>(async line => await IncreaseLineQuantityAsync(line));
         DecreaseLineQuantityCommand = new Command<OrderLine>(async line => await DecreaseLineQuantityAsync(line));
         ShowMoreCommand = new Command(ShowMoreOrders);
+        OpenLoyaltyScannerCommand = new Command<OrderStatusEntry>(async order => await OpenLoyaltyScannerAsync(order));
 
         SelectReservationStatusCommand = new Command<ReservationStatusDisplay>(async status => await OnReservationStatusSelectedAsync(status));
         ApplyReservationFiltersCommand = new Command(async () => await ReloadWithFiltersAsync());
@@ -93,6 +95,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     public ICommand IncreaseLineQuantityCommand { get; }
     public ICommand DecreaseLineQuantityCommand { get; }
     public ICommand ShowMoreCommand { get; }
+    public ICommand OpenLoyaltyScannerCommand { get; }
     public ICommand SelectReservationStatusCommand { get; }
     public ICommand ApplyReservationFiltersCommand { get; }
     public ICommand DeleteReservationCommand { get; }
@@ -815,6 +818,74 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     {
         var newTotal = order.OrderLines.Sum(l => l.PrixRetenu * l.Quantite);
         order.TotalAmount = newTotal;
+    }
+
+    /// <summary>
+    /// Ouvre le scanner QR code pour appliquer une réduction fidélité
+    /// </summary>
+    private async Task OpenLoyaltyScannerAsync(OrderStatusEntry? order)
+    {
+        if (order is null) return;
+
+        // Vérifier que la commande n'est pas déjà livrée
+        if (string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase))
+        {
+            await ShowLoadErrorAsync("Impossible d'appliquer une réduction sur une commande déjà livrée.");
+            return;
+        }
+
+        // Vérifier qu'aucune réduction n'a déjà été appliquée
+        if (order.HasLoyaltyReduction)
+        {
+            await ShowLoadErrorAsync("Une réduction fidélité a déjà été appliquée sur cette commande.");
+            return;
+        }
+
+        // Calculer le montant maximum de réduction (le total de la commande)
+        var maxReduction = order.TotalAmount;
+
+        // Stocker l'ID de la commande en cours pour la mise à jour après le scan
+        _currentLoyaltyOrderId = order.OrderId;
+
+        // Créer la page de scan et s'abonner à l'événement
+        var scannerPage = new QrCodeScannerPage(order.OrderId, maxReduction);
+        if (scannerPage.BindingContext is QrCodeScannerViewModel viewModel)
+        {
+            viewModel.LoyaltyApplied += OnLoyaltyApplied;
+        }
+
+        // Naviguer vers le scanner QR code
+        if (Shell.Current != null)
+        {
+            await Shell.Current.Navigation.PushAsync(scannerPage);
+        }
+    }
+
+    private int _currentLoyaltyOrderId;
+
+    /// <summary>
+    /// Appelé quand une réduction fidélité est appliquée via le scanner
+    /// </summary>
+    private void OnLoyaltyApplied(object? sender, ApplyLoyaltyResponse response)
+    {
+        if (response == null || !response.Success) return;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            // Trouver la commande concernée
+            var order = Orders.FirstOrDefault(o => o.OrderId == _currentLoyaltyOrderId);
+            if (order == null) return;
+
+            // Mettre à jour la commande avec les infos de réduction
+            order.TotalAmount = response.NouveauMontantCommande + response.ReductionAppliquee; // Montant original
+            order.ApplyLoyaltyReduction(0, (int)(response.ReductionAppliquee / 0.01), response.ReductionAppliquee);
+        });
+
+        // Se désabonner de l'événement
+        if (sender is QrCodeScannerViewModel viewModel)
+        {
+            viewModel.LoyaltyApplied -= OnLoyaltyApplied;
+        }
     }
 
     private async Task CheckAndUpdateOrderCompletionAsync(OrderStatusEntry order)
