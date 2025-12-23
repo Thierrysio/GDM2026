@@ -906,7 +906,62 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         if (string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase)) return;
 
-        await UpdateOrderStatusAsync(order, "Livrée", isReverting: false);
+        var updated = await UpdateOrderStatusAsync(order, "Livrée", isReverting: false).ConfigureAwait(false);
+        if (updated)
+        {
+            await TryCreditReservationLoyaltyAsync(order).ConfigureAwait(false);
+        }
+    }
+
+    private async Task TryCreditReservationLoyaltyAsync(OrderStatusEntry order)
+    {
+        if (!IsReservationMode) return;
+        if (order.UserId is null || order.UserId <= 0) return;
+
+        var pointsToAdd = CalculateLoyaltyPoints(order);
+        if (pointsToAdd <= 0) return;
+
+        const string loyaltyEndpoint = "/api/mobile/creditFidelite";
+        var request = new FidelityCreditRequest
+        {
+            UserId = order.UserId.Value,
+            CommandeId = order.OrderId,
+            PointsToAdd = pointsToAdd
+        };
+
+        try
+        {
+            var success = await _apis.PostBoolAsync(loyaltyEndpoint, request).ConfigureAwait(false);
+            if (!success)
+            {
+                await ShowLoadErrorAsync("Impossible de créditer la fidélité pour cette réservation.");
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            await ShowLoadErrorAsync("Le crédit de fidélité a expiré. Veuillez vérifier votre connexion.");
+        }
+        catch (HttpRequestException)
+        {
+            await ShowLoadErrorAsync("Impossible de créditer la fidélité pour cette réservation.");
+        }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue empêche le crédit de fidélité.");
+        }
+    }
+
+    private static int CalculateLoyaltyPoints(OrderStatusEntry order)
+    {
+        if (order?.OrderLines == null || order.OrderLines.Count == 0)
+        {
+            return 0;
+        }
+
+        var totalAmount = order.OrderLines.Sum(l => l.PrixRetenu * l.Quantite);
+        var roundedPoints = (int)Math.Round(totalAmount, MidpointRounding.AwayFromZero);
+
+        return Math.Max(roundedPoints, 0);
     }
 
     private Task DebouncedApplyFiltersAsync()
@@ -1160,6 +1215,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             Etat = string.IsNullOrWhiteSpace(order.Etat) ? fallbackStatus : order.Etat,
             Valider = order.Valider,
             MontantTotal = order.MontantTotal,
+            UserId = order.UserId,
             DateCommande = TryParseDate(order.DateCommande),
             PlanningDetails = reservation?.Planning,
             Jour = reservation?.Date

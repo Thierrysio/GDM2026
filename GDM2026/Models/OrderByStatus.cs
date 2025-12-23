@@ -22,6 +22,12 @@ public class OrderByStatus
 
     public string? Etat { get; set; }
 
+    [JsonProperty("userId")]
+    public int? UserId { get; set; }
+
+    [JsonProperty("clientId")]
+    private int? ClientIdAlias { set => UserId = value; get => UserId; }
+
     public string? NomClient { get; set; }
 
     public string? PrenomClient { get; set; }
