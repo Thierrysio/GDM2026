@@ -44,6 +44,8 @@ public class OrderStatusEntry : INotifyPropertyChanged
 
     public ObservableCollection<OrderLine> OrderLines { get; } = [];
 
+    public int? UserId { get; set; }
+
     public DateTime OrderDate
     {
         get => _orderDate;
@@ -153,6 +155,7 @@ public class OrderStatusEntry : INotifyPropertyChanged
         OrderId = order.Id;
         OrderDate = order.DateCommande;
         TotalAmount = order.MontantTotal;
+        UserId = order.UserId;
         var status = order.Etat;
 
         if (string.IsNullOrWhiteSpace(status))
