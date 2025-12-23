@@ -927,7 +927,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private async Task TryCreditReservationLoyaltyAsync(OrderStatusEntry order)
     {
-        if (order.UserId is null || order.UserId <= 0) return;
+        var loyaltyUserId = ResolveLoyaltyUserId(order);
+        if (loyaltyUserId is null || loyaltyUserId <= 0) return;
 
         var pointsToAdd = CalculateLoyaltyPoints(order);
         if (pointsToAdd <= 0) return;
@@ -935,7 +936,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         const string loyaltyEndpoint = "/api/mobile/creditFidelite";
         var request = new FidelityCreditRequest
         {
-            UserId = order.UserId.Value,
+            UserId = loyaltyUserId.Value,
             CommandeId = order.OrderId,
             PointsToAdd = pointsToAdd
         };
@@ -976,6 +977,21 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         var roundedPoints = (int)Math.Round(totalAmount, MidpointRounding.AwayFromZero);
 
         return Math.Max(roundedPoints, 0);
+    }
+
+    private static int? ResolveLoyaltyUserId(OrderStatusEntry order)
+    {
+        if (order.UserId is > 0)
+        {
+            return order.UserId;
+        }
+
+        if (order.LoyaltyUserId > 0)
+        {
+            return order.LoyaltyUserId;
+        }
+
+        return null;
     }
 
     private Task DebouncedApplyFiltersAsync()
@@ -1230,6 +1246,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             Valider = order.Valider,
             MontantTotal = order.MontantTotal,
             UserId = order.UserId,
+            UserIdFidelite = order.UserIdFidelite,
             DateCommande = TryParseDate(order.DateCommande),
             PlanningDetails = reservation?.Planning,
             Jour = reservation?.Date
