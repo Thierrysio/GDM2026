@@ -876,9 +876,21 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             var order = Orders.FirstOrDefault(o => o.OrderId == _currentLoyaltyOrderId);
             if (order == null) return;
 
+            var loyaltyUserId = response.UserId > 0
+                ? response.UserId
+                : order.UserId ?? 0;
+
             // Mettre à jour la commande avec les infos de réduction
             order.TotalAmount = response.NouveauMontantCommande + response.ReductionAppliquee; // Montant original
-            order.ApplyLoyaltyReduction(0, (int)(response.ReductionAppliquee / 0.01), response.ReductionAppliquee);
+            if (loyaltyUserId > 0 && (order.UserId is null || order.UserId <= 0))
+            {
+                order.UserId = loyaltyUserId;
+            }
+
+            order.ApplyLoyaltyReduction(
+                loyaltyUserId,
+                (int)(response.ReductionAppliquee / 0.01),
+                response.ReductionAppliquee);
         });
 
         // Se désabonner de l'événement

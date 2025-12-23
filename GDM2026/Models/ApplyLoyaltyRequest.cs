@@ -3,12 +3,12 @@ using Newtonsoft.Json;
 namespace GDM2026.Models;
 
 /// <summary>
-/// RequÍte pour appliquer les points fidÈlitÈ sur une commande
+/// Requ√™te pour appliquer les points fid√©lit√© sur une commande
 /// </summary>
 public class ApplyLoyaltyRequest
 {
     /// <summary>
-    /// ID de la commande/rÈservation
+    /// ID de la commande/r√©servation
     /// </summary>
     [JsonProperty("commandeId")]
     public int CommandeId { get; set; }
@@ -20,55 +20,62 @@ public class ApplyLoyaltyRequest
     public int UserId { get; set; }
 
     /// <summary>
-    /// Nombre de couronnes ‡ utiliser
+    /// Nombre de couronnes √† utiliser
     /// </summary>
     [JsonProperty("couronnesUtilisees")]
     public int CouronnesUtilisees { get; set; }
 
     /// <summary>
-    /// Montant de la rÈduction en euros (calculÈ : couronnes * 0.01)
+    /// Montant de la r√©duction en euros (calcul√© : couronnes * 0.01)
     /// </summary>
     [JsonProperty("montantReduction")]
     public double MontantReduction { get; set; }
 }
 
 /// <summary>
-/// RÈponse de l'API aprËs application des points fidÈlitÈ
+/// R√©ponse de l'API apr√®s application des points fid√©lit√©
 /// </summary>
 public class ApplyLoyaltyResponse
 {
     [JsonProperty("success")]
     public bool Success { get; set; }
 
+    /// <summary>
+    /// ID de l'utilisateur pour lequel la r√©duction a √©t√© appliqu√©e.
+    /// Utilis√© pour propager l'information c√¥t√© client lorsque l'API ne la renvoie pas.
+    /// </summary>
+    [JsonProperty("userId")]
+    public int UserId { get; set; }
+
     [JsonProperty("message")]
     public string? Message { get; set; }
 
     /// <summary>
-    /// Nouveau solde de couronnes du client aprËs dÈduction
+    /// Nouveau solde de couronnes du client apr√®s d√©duction
     /// </summary>
     [JsonProperty("nouveauSoldeCouronnes")]
     public int NouveauSoldeCouronnes { get; set; }
 
     /// <summary>
-    /// Nouveau montant total de la commande aprËs rÈduction
+    /// Nouveau montant total de la commande apr√®s r√©duction
     /// </summary>
     [JsonProperty("nouveauMontantCommande")]
     public double NouveauMontantCommande { get; set; }
 
     /// <summary>
-    /// Montant de la rÈduction appliquÈe
+    /// Montant de la r√©duction appliqu√©e
     /// </summary>
     [JsonProperty("reductionAppliquee")]
     public double ReductionAppliquee { get; set; }
 }
 
 /// <summary>
-/// RequÍte pour rÈcupÈrer les infos fidÈlitÈ d'un client par son QR code
+/// Requ√™te pour r√©cup√©rer les infos fid√©lit√© d'un client par son QR code
 /// </summary>
 public class GetLoyaltyByQrCodeRequest
 {
     /// <summary>
-    /// Contenu du QR code scannÈ (gÈnÈralement l'ID utilisateur ou un token)
+    /// Contenu du QR code scann√© (g√©n√©ralement l'ID utilisateur ou un token)
     /// </summary>
     [JsonProperty("qrCode")]
     public string QrCode { get; set; } = string.Empty;
