@@ -13,6 +13,9 @@ public class ReservationOrder
     [JsonProperty("userId")]
     public int? UserId { get; set; }
 
+    [JsonProperty("user_id")]
+    private int? UserIdSnakeAlias { set => UserId = value; get => UserId; }
+
     [JsonProperty("userIdFidelite")]
     private int? UserIdFideliteCamelAlias { set => UserIdFidelite = value; get => UserIdFidelite; }
 

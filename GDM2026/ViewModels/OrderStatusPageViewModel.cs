@@ -538,6 +538,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                 .ConfigureAwait(false);
 
             var lines = details?.LesCommandes ?? new List<OrderLine>();
+            UpdateOrderUserIds(order, details);
             var isDeliveredOrder = string.Equals(order.CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase);
 
             await MainThread.InvokeOnMainThreadAsync(() =>
@@ -979,6 +980,21 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         return Math.Max(roundedPoints, 0);
     }
 
+    private static int? ResolveUserId(int? userId, int? loyaltyUserId)
+    {
+        if (userId is > 0)
+        {
+            return userId;
+        }
+
+        if (loyaltyUserId is > 0)
+        {
+            return loyaltyUserId;
+        }
+
+        return null;
+    }
+
     private static int? ResolveLoyaltyUserId(OrderStatusEntry order)
     {
         if (order.UserId is > 0)
@@ -992,6 +1008,24 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         }
 
         return null;
+    }
+
+    private static void UpdateOrderUserIds(OrderStatusEntry order, OrderDetailsResponse? details)
+    {
+        if (details is null)
+            return;
+
+        var resolvedUserId = ResolveUserId(details.UserId, details.UserIdFidelite);
+
+        if (resolvedUserId is > 0 && (order.UserId is null || order.UserId <= 0))
+        {
+            order.UserId = resolvedUserId;
+        }
+
+        if (details.UserIdFidelite is > 0 && order.LoyaltyUserId <= 0)
+        {
+            order.LoyaltyUserId = details.UserIdFidelite.Value;
+        }
     }
 
     private Task DebouncedApplyFiltersAsync()
