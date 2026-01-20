@@ -32,7 +32,7 @@ public class LoyaltyInfo
     /// <summary>
     /// Valeur en euros des couronnes (10 couronnes = 0.10€)
     /// </summary>
-    public double ValeurEnEuros => Couronnes * 0.01;
+    public decimal ValeurEnEuros => Couronnes * 0.01m;
 
     /// <summary>
     /// Affichage formaté des couronnes

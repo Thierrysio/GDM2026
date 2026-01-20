@@ -37,18 +37,21 @@
 
             <!-- Scanner QR -->
             <Border
-                IsVisible="{Binding IsScanning}"
-                Stroke="#000000"
-                StrokeThickness="1.5"
-                BackgroundColor="{StaticResource CardBackground}"
-                Padding="0"
-                StrokeShape="RoundRectangle 14">
-                <Grid HeightRequest="300">
-                    <zxing:CameraBarcodeReaderView
-                        x:Name="BarcodeReader"
-                        BarcodesDetected="OnBarcodesDetected" />
-                </Grid>
-            </Border>
+                 Stroke="#000000"
+                 StrokeThickness="1.5"
+                 BackgroundColor="{StaticResource CardBackground}"
+                 Padding="0"
+                 StrokeShape="RoundRectangle 14">
+                 <Grid HeightRequest="300">
+                     <zxing:CameraBarcodeReaderView
+                         x:Name="BarcodeReader"
+                        HorizontalOptions="FillAndExpand"
+                        VerticalOptions="FillAndExpand"
+                         IsDetecting="{Binding IsScanning}"
+                         Options="{Binding ScannerOptions}"
+                         BarcodesDetected="OnBarcodesDetected" />
+                 </Grid>
+             </Border>
 
             <!-- Loading Indicator -->
             <ActivityIndicator
