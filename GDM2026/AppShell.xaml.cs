@@ -28,6 +28,7 @@ namespace GDM2026
             Routing.RegisterRoute(nameof(HistoirePage), typeof(HistoirePage));
             Routing.RegisterRoute(nameof(QrCodeScannerPage), typeof(QrCodeScannerPage));
             Routing.RegisterRoute(nameof(UtiliserPointsFidelitePage), typeof(UtiliserPointsFidelitePage));
+            Routing.RegisterRoute(nameof(AjouterPointsFidelitePage), typeof(AjouterPointsFidelitePage));
         }
     }
 }
