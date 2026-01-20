@@ -25,6 +25,10 @@ public partial class UtiliserPointsFidelitePage : ContentPage
             Multiple = false,
             TryHarder = true
         };
+
+        BarcodeReader.CameraLocation = CameraLocation.Rear;
+        BarcodeReader.IsDetecting = _viewModel.IsScanning;
+        BarcodeReader.IsEnabled = true;
     }
 
     protected override async void OnAppearing()
