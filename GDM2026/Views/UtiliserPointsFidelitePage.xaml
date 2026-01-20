@@ -16,14 +16,22 @@
         <Color x:Key="CardBackground">#151515</Color>
     </ContentPage.Resources>
 
-    <ScrollView>
-        <VerticalStackLayout Spacing="24" Padding="24">
+    <Grid RowDefinitions="Auto,*">
 
-            <!-- Header -->
-            <VerticalStackLayout Spacing="8">
+        <!-- Section Scanner (occupe tout l'espace) -->
+        <Grid Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding IsScanning}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Header Scanner -->
+            <VerticalStackLayout Grid.Row="0" Padding="24,24,24,12" Spacing="8">
                 <Label
                     Text="Utiliser Points Fidélité"
-                    FontSize="28"
+                    FontSize="22"
                     FontAttributes="Bold"
                     TextColor="{StaticResource GoldText}"
                     HorizontalTextAlignment="Center" />
@@ -35,32 +43,70 @@
                     HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
 
-            <!-- Scanner QR -->
-            <Border
-                 Stroke="#000000"
-                 StrokeThickness="1.5"
-                 BackgroundColor="{StaticResource CardBackground}"
-                 Padding="0"
-                 StrokeShape="RoundRectangle 14">
-                 <Grid HeightRequest="300">
-                     <zxing:CameraBarcodeReaderView
-                         x:Name="BarcodeReader"
-                        HorizontalOptions="FillAndExpand"
-                        VerticalOptions="FillAndExpand"
-                         IsDetecting="{Binding IsScanning}"
-                         Options="{Binding ScannerOptions}"
-                         BarcodesDetected="OnBarcodesDetected" />
-                 </Grid>
-             </Border>
+            <!-- Scanner Camera -->
+            <zxing:CameraBarcodeReaderView
+                x:Name="BarcodeReader"
+                Grid.Row="1"
+                Margin="24"
+                BarcodesDetected="OnBarcodesDetected" />
 
-            <!-- Loading Indicator -->
-            <ActivityIndicator
-                IsRunning="{Binding IsLoading}"
-                IsVisible="{Binding IsLoading}"
-                Color="{StaticResource GoldText}"
-                HeightRequest="50" />
+            <!-- Status Loading -->
+            <VerticalStackLayout Grid.Row="2" Padding="24,12" Spacing="8">
+                <ActivityIndicator
+                    IsRunning="{Binding IsLoading}"
+                    IsVisible="{Binding IsLoading}"
+                    Color="{StaticResource GoldText}" />
+            </VerticalStackLayout>
 
-            <!-- Informations Client -->
+            <!-- Boutons Scanner -->
+            <HorizontalStackLayout Grid.Row="3"
+                                   Padding="24,12,24,24"
+                                   Spacing="12"
+                                   HorizontalOptions="Center">
+                <Button
+                    Text="Annuler"
+                    Command="{Binding CancelCommand}"
+                    BackgroundColor="Transparent"
+                    BorderColor="{StaticResource GoldText}"
+                    BorderWidth="1.5"
+                    TextColor="{StaticResource GoldText}"
+                    CornerRadius="10"
+                    WidthRequest="120"
+                    HeightRequest="50" />
+
+                <Button
+                    x:Name="TorchButton"
+                    Text="Torche"
+                    Clicked="OnTorchClicked"
+                    BackgroundColor="#1A1A1A"
+                    TextColor="{StaticResource GoldText}"
+                    CornerRadius="10"
+                    WidthRequest="120"
+                    HeightRequest="50" />
+            </HorizontalStackLayout>
+        </Grid>
+
+        <!-- Section Formulaires (quand le scanner est caché) -->
+        <ScrollView Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding ShowClientInfo}">
+            <VerticalStackLayout Spacing="24" Padding="24">
+
+                <!-- Header -->
+                <VerticalStackLayout Spacing="8">
+                    <Label
+                        Text="Utiliser Points Fidélité"
+                        FontSize="28"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource GoldText}"
+                        HorizontalTextAlignment="Center" />
+                    <Label
+                        Text="{Binding StatusMessage}"
+                        FontSize="14"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.8"
+                        HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+
+                <!-- Informations Client -->
             <Border
                 IsVisible="{Binding ShowClientInfo}"
                 Stroke="#000000"
@@ -230,33 +276,8 @@
                 </VerticalStackLayout>
             </Border>
 
-            <!-- Boutons de Contrôle -->
-            <HorizontalStackLayout
-                Spacing="12"
-                HorizontalOptions="Center"
-                IsVisible="{Binding IsScanning}">
-                <Button
-                    Text="Annuler"
-                    Command="{Binding CancelCommand}"
-                    BackgroundColor="Transparent"
-                    BorderColor="{StaticResource GoldText}"
-                    BorderWidth="1.5"
-                    TextColor="{StaticResource GoldText}"
-                    CornerRadius="10"
-                    WidthRequest="120"
-                    HeightRequest="50" />
+            </VerticalStackLayout>
+        </ScrollView>
 
-                <Button
-                    x:Name="TorchButton"
-                    Text="Torche"
-                    Clicked="OnTorchClicked"
-                    BackgroundColor="#1A1A1A"
-                    TextColor="{StaticResource GoldText}"
-                    CornerRadius="10"
-                    WidthRequest="120"
-                    HeightRequest="50" />
-            </HorizontalStackLayout>
-
-        </VerticalStackLayout>
-    </ScrollView>
+    </Grid>
 </ContentPage>
