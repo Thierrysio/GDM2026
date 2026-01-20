@@ -99,7 +99,8 @@ public partial class HomePageViewModel : BaseViewModel
             new("Planning", "Calendrier et organisation des activités."),
             new("Histoire", "Présentation et historique de Dantec Market."),
             new("Catalogue", "Consultation globale des offres."),
-            new("Points Fidélité", "Utiliser les points fidélité d'un client."),
+            new("Utiliser Points", "Utiliser les points fidélité d'un client."),
+            new("Ajouter Points", "Ajouter des points de fidélité à un client."),
         };
 
         foreach (var item in items)
@@ -218,9 +219,14 @@ public partial class HomePageViewModel : BaseViewModel
             return Shell.Current.GoToAsync(nameof(HistoirePage), animate: false);
         }
 
-        if (string.Equals(card.Title, "Points Fidélité", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(card.Title, "Utiliser Points", StringComparison.OrdinalIgnoreCase))
         {
             return Shell.Current.GoToAsync(nameof(UtiliserPointsFidelitePage), animate: false);
+        }
+
+        if (string.Equals(card.Title, "Ajouter Points", StringComparison.OrdinalIgnoreCase))
+        {
+            return Shell.Current.GoToAsync(nameof(AjouterPointsFidelitePage), animate: false);
         }
 
         return Shell.Current.GoToAsync(nameof(CategoryDetailPage), animate: false, new Dictionary<string, object>
