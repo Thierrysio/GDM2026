@@ -9,7 +9,7 @@ namespace GDM2026
             InitializeComponent();
 
             // Ne pas enregistrer MainPage, SplashPage, HomePage ici
-            // car ils sont déjà déclarés dans AppShell.xaml via ShellContent
+            // car ils sont dï¿½jï¿½ dï¿½clarï¿½s dans AppShell.xaml via ShellContent
 
             Routing.RegisterRoute(nameof(CategoryDetailPage), typeof(CategoryDetailPage));
             Routing.RegisterRoute(nameof(EvenementPage), typeof(EvenementPage));
@@ -27,6 +27,7 @@ namespace GDM2026
             Routing.RegisterRoute(nameof(PlanningPage), typeof(PlanningPage));
             Routing.RegisterRoute(nameof(HistoirePage), typeof(HistoirePage));
             Routing.RegisterRoute(nameof(QrCodeScannerPage), typeof(QrCodeScannerPage));
+            Routing.RegisterRoute(nameof(UtiliserPointsFidelitePage), typeof(UtiliserPointsFidelitePage));
         }
     }
 }

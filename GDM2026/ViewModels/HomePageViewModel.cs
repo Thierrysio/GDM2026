@@ -99,6 +99,7 @@ public partial class HomePageViewModel : BaseViewModel
             new("Planning", "Calendrier et organisation des activités."),
             new("Histoire", "Présentation et historique de Dantec Market."),
             new("Catalogue", "Consultation globale des offres."),
+            new("Points Fidélité", "Utiliser les points fidélité d'un client."),
         };
 
         foreach (var item in items)
@@ -215,6 +216,11 @@ public partial class HomePageViewModel : BaseViewModel
         if (string.Equals(card.Title, "Histoire", StringComparison.OrdinalIgnoreCase))
         {
             return Shell.Current.GoToAsync(nameof(HistoirePage), animate: false);
+        }
+
+        if (string.Equals(card.Title, "Points Fidélité", StringComparison.OrdinalIgnoreCase))
+        {
+            return Shell.Current.GoToAsync(nameof(UtiliserPointsFidelitePage), animate: false);
         }
 
         return Shell.Current.GoToAsync(nameof(CategoryDetailPage), animate: false, new Dictionary<string, object>
