@@ -203,14 +203,14 @@
                             Opacity="0.9" />
 
                         <Entry
-                            Text="{Binding AmountToPayText}"
-                            Placeholder="Ex: 25.50"
-                            Keyboard="Numeric"
-                            TextColor="{StaticResource GoldText}"
-                            PlaceholderColor="{StaticResource GoldText}"
-                            BackgroundColor="#1A1A1A"
-                            FontSize="16"
-                            HeightRequest="50" />
+                             Text="{Binding AmountToPayText}"
+                             Placeholder="Ex: 25.50"
+                             Keyboard="Text"
+                             TextColor="{StaticResource GoldText}"
+                             PlaceholderColor="{StaticResource GoldText}"
+                             BackgroundColor="#1A1A1A"
+                             FontSize="16"
+                             HeightRequest="50" />
                     </VerticalStackLayout>
 
                     <Button

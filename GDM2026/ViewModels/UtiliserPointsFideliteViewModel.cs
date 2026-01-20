@@ -5,6 +5,7 @@ using Microsoft.Maui.Controls;
 using System.Net.Http;
 using System.Windows.Input;
 using ZXing.Net.Maui;
+using System.Globalization;
 
 namespace GDM2026.ViewModels;
 
@@ -244,7 +245,18 @@ public class UtiliserPointsFideliteViewModel : BaseViewModel
             return;
         }
 
-        if (!decimal.TryParse(AmountToPayText.Replace(",", "."), out _amountToPay) || _amountToPay <= 0)
+        var raw = AmountToPayText.Trim()
+            .Replace("€", string.Empty)
+            .Replace(" ", string.Empty)
+            .Replace(',', '.');
+
+        if (!decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out _amountToPay))
+        {
+            await DialogService.DisplayAlertAsync("Erreur", "Veuillez saisir un montant valide.", "OK");
+            return;
+        }
+
+        if (_amountToPay <= 0)
         {
             await DialogService.DisplayAlertAsync("Erreur", "Veuillez saisir un montant valide.", "OK");
             return;
@@ -300,8 +312,6 @@ public class UtiliserPointsFideliteViewModel : BaseViewModel
             // S'assurer que le token est chargé
             await EnsureInitializedAsync().ConfigureAwait(false);
 
-            // Appeler la future API pour mettre à jour les points
-            // NOTE: Cette API n'existe pas encore, elle devra être implémentée côté serveur
             var request = new UsePointsRequest
             {
                 LoyaltyUserId = _currentClient.UserId,
@@ -309,30 +319,45 @@ public class UtiliserPointsFideliteViewModel : BaseViewModel
                 CouronnesUsed = _maxUsableInCouronnes
             };
 
-            // Pour l'instant, on simule une réponse réussie
-            // À remplacer par l'appel API réel quand il sera implémenté:
-            // var response = await _apis.PostAsync<UsePointsRequest, UsePointsResponse>(
-            //     "/api/mobile/usePoints", request).ConfigureAwait(false);
-
-            var newBalance = _currentClient.Couronnes - _maxUsableInCouronnes;
-            var newEuroValue = newBalance * 0.01m;
+            var response = await _apis
+                .PostAsync<UsePointsRequest, UsePointsResponse>(
+                    "/api/mobile/usePoints",
+                    request)
+                .ConfigureAwait(false);
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                var message = $"Points fidélité utilisés avec succès !\n\n" +
-                             $"Couronnes utilisées : {_maxUsableInCouronnes}\n" +
-                             $"Montant déduit : {_maxUsableInEuros:C}\n" +
-                             $"Nouveau solde : {newBalance} couronnes ({newEuroValue:C})";
-
-                if (_remainingAmount > 0)
+                if (response?.Success == true)
                 {
-                    message += $"\n\nMontant restant à payer : {_remainingAmount:C}";
+                    var nouveauSolde = response.NouveauSoldeCouronnes;
+                    var montantDeduit = response.MontantDeduit > 0 ? response.MontantDeduit : _maxUsableInEuros;
+                    var montantRestant = response.MontantRestant > 0 ? response.MontantRestant : _remainingAmount;
+
+                    var message = $"Points fidélité utilisés avec succès !\n\n" +
+                                 $"Couronnes utilisées : {_maxUsableInCouronnes}\n" +
+                                 $"Montant déduit : {montantDeduit:C}\n" +
+                                 $"Nouveau solde : {nouveauSolde} couronnes ({nouveauSolde * 0.01m:C})";
+
+                    if (montantRestant > 0)
+                    {
+                        message += $"\n\nMontant restant à payer : {montantRestant:C}";
+                    }
+
+                    await DialogService.DisplayAlertAsync("Succès", message, "OK");
+
+                    // Réinitialiser pour une nouvelle transaction
+                    StartNewTransaction();
                 }
+                else
+                {
+                    await DialogService.DisplayAlertAsync(
+                        "Erreur",
+                        response?.Message ?? "Impossible d'utiliser les points fidélité.",
+                        "OK");
 
-                await DialogService.DisplayAlertAsync("Succès", message, "OK");
-
-                // Réinitialiser pour une nouvelle transaction
-                StartNewTransaction();
+                    ShowConfirmation = false;
+                    ShowPaymentForm = true;
+                }
             });
         }
         catch (Exception ex)
