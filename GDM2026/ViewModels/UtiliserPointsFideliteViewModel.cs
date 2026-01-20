@@ -195,6 +195,7 @@ public class UtiliserPointsFideliteViewModel : BaseViewModel
             // Afficher les informations du client
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
+                IsScanning = false;
                 ShowClientInfo = true;
                 ShowPaymentForm = true;
                 ClientName = _currentClient.DisplayName;
