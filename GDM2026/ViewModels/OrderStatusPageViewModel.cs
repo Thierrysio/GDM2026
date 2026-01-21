@@ -890,7 +890,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
             order.ApplyLoyaltyReduction(
                 loyaltyUserId,
-                (int)(response.ReductionAppliquee / 0.01),
+                (int)(response.ReductionAppliquee * 15),
                 response.ReductionAppliquee);
         });
 

@@ -273,7 +273,7 @@ public class UtiliserPointsFideliteViewModel : BaseViewModel
 
         // Calculer le maximum utilisable
         _maxUsableInEuros = Math.Min(_currentClient.ValeurEnEuros, _amountToPay);
-        _maxUsableInCouronnes = (int)(_maxUsableInEuros / 0.01m);
+        _maxUsableInCouronnes = (int)(_maxUsableInEuros * 15m);
 
         // Si le montant à payer est couvert par les points
         if (_maxUsableInEuros >= _amountToPay)
@@ -336,7 +336,7 @@ public class UtiliserPointsFideliteViewModel : BaseViewModel
                     var message = $"Points fidélité utilisés avec succès !\n\n" +
                                  $"Couronnes utilisées : {_maxUsableInCouronnes}\n" +
                                  $"Montant déduit : {montantDeduit:C}\n" +
-                                 $"Nouveau solde : {nouveauSolde} couronnes ({nouveauSolde * 0.01m:C})";
+                                 $"Nouveau solde : {nouveauSolde} couronnes ({nouveauSolde / 15m:C})";
 
                     if (montantRestant > 0)
                     {

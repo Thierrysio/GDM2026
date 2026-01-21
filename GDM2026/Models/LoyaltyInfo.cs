@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 namespace GDM2026.Models;
 
 /// <summary>
-/// Informations de fidélité d'un client récupérées après scan du QR code
+/// Informations de fidï¿½litï¿½ d'un client rï¿½cupï¿½rï¿½es aprï¿½s scan du QR code
 /// </summary>
 public class LoyaltyInfo
 {
@@ -30,18 +30,18 @@ public class LoyaltyInfo
         : Prenom ?? Nom ?? Email ?? $"Client #{UserId}";
 
     /// <summary>
-    /// Valeur en euros des couronnes (10 couronnes = 0.10€)
+    /// Valeur en euros des couronnes (15 couronnes = 1.00ï¿½)
     /// </summary>
-    public decimal ValeurEnEuros => Couronnes * 0.01m;
+    public decimal ValeurEnEuros => Couronnes / 15m;
 
     /// <summary>
-    /// Affichage formaté des couronnes
+    /// Affichage formatï¿½ des couronnes
     /// </summary>
     public string DisplayCouronnes => $"{Couronnes} couronne(s) = {ValeurEnEuros:C}";
 }
 
 /// <summary>
-/// Réponse de l'API lors de la récupération des infos fidélité par QR code
+/// Rï¿½ponse de l'API lors de la rï¿½cupï¿½ration des infos fidï¿½litï¿½ par QR code
 /// </summary>
 public class LoyaltyInfoResponse
 {

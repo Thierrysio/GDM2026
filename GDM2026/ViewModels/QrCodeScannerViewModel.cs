@@ -185,9 +185,9 @@ public class QrCodeScannerViewModel : BaseViewModel
         }
 
         // Calculer le maximum utilisable (limité par le montant de la commande)
-        var maxCouronnesParMontant = (int)(_maxReduction / 0.01); // Conversion euros -> couronnes
+        var maxCouronnesParMontant = (int)(_maxReduction * 15); // Conversion euros -> couronnes
         var maxCouronnesUtilisables = Math.Min(loyaltyInfo.Couronnes, maxCouronnesParMontant);
-        var maxReductionPossible = maxCouronnesUtilisables * 0.01;
+        var maxReductionPossible = maxCouronnesUtilisables / 15;
 
         var message = $"Client : {loyaltyInfo.DisplayName}\n" +
                       $"Points disponibles : {loyaltyInfo.Couronnes} couronnes\n" +
@@ -243,7 +243,7 @@ public class QrCodeScannerViewModel : BaseViewModel
             // S'assurer que le token est chargé
             await EnsureInitializedAsync().ConfigureAwait(false);
 
-            var reductionMontant = couronnes * 0.01;
+            var reductionMontant = couronnes / 15;
             var request = new ApplyLoyaltyRequest
             {
                 CommandeId = _orderId,

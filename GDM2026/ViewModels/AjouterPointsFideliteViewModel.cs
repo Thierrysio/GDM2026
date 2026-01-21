@@ -258,7 +258,7 @@ public class AjouterPointsFideliteViewModel : BaseViewModel
         _pointsToAdd = (int)Math.Round(_amountInEuros, MidpointRounding.AwayFromZero);
 
         var newBalance = _currentClient.Couronnes + _pointsToAdd;
-        var newEuroValue = newBalance * 0.01m;
+        var newEuroValue = newBalance / 15m;
 
         ConfirmationMessage = $"Client : {_currentClient.DisplayName}\n\n" +
                              $"Solde actuel : {_currentClient.Couronnes} couronnes ({_currentClient.ValeurEnEuros:C})\n\n" +
@@ -325,7 +325,7 @@ public class AjouterPointsFideliteViewModel : BaseViewModel
 
             /* Pour tester SANS l'API (à supprimer quand l'API sera implémentée):
             var newBalance = _currentClient.Couronnes + _pointsToAdd;
-            var newEuroValue = newBalance * 0.01m;
+            var newEuroValue = newBalance / 15m;
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
