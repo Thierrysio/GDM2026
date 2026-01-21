@@ -26,7 +26,7 @@ public class ApplyLoyaltyRequest
     public int CouronnesUtilisees { get; set; }
 
     /// <summary>
-    /// Montant de la réduction en euros (calculé : couronnes * 0.01)
+    /// Montant de la réduction en euros (calculé : couronnes / 15)
     /// </summary>
     [JsonProperty("montantReduction")]
     public double MontantReduction { get; set; }

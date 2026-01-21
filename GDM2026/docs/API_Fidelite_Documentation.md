@@ -1,4 +1,4 @@
-# Documentation API - Fonctionnalité Fidélité
+# Documentation API - Fonctionnalitï¿½ Fidï¿½litï¿½
 
 **Application** : GDM2026 - Dantec Market  
 **Version** : 1.0  
@@ -6,67 +6,67 @@
 
 ---
 
-## Table des matières
+## Table des matiï¿½res
 
 1. [Vue d'ensemble](#vue-densemble)
 2. [GET /api/mobile/getNombreCommandes](#1-get-apimobilegetnombrecommandes)
 3. [POST /api/mobile/getLoyaltyByQrCode](#2-post-apimobilegetloyaltybyqrcode)
 4. [POST /api/mobile/applyLoyaltyReduction](#3-post-apimobileapplyloyaltyreduction)
-5. [Modifications base de données](#modifications-base-de-données)
-6. [Entités Doctrine](#entités-doctrine)
+5. [Modifications base de donnï¿½es](#modifications-base-de-donnï¿½es)
+6. [Entitï¿½s Doctrine](#entitï¿½s-doctrine)
 7. [Correspondance des champs](#correspondance-des-champs)
-8. [Tests recommandés](#tests-recommandés)
+8. [Tests recommandï¿½s](#tests-recommandï¿½s)
 
 ---
 
 ## Vue d'ensemble
 
 ### Objectif
-Permettre aux administrateurs d'appliquer des réductions fidélité sur les commandes des clients en scannant leur QR code.
+Permettre aux administrateurs d'appliquer des rï¿½ductions fidï¿½litï¿½ sur les commandes des clients en scannant leur QR code.
 
-### Règle de conversion
-| Points fidélité | Valeur en euros |
+### Rï¿½gle de conversion
+| Points fidï¿½litï¿½ | Valeur en euros |
 |-----------------|-----------------|
-| 1 point | 0.01 € |
-| 10 points | 0.10 € |
-| 100 points | 1.00 € |
+| 1 point | 0.0667 ï¿½ |
+| 15 points | 1.00 ï¿½ |
+| 150 points | 10.00 ï¿½ |
 
 ### Flux utilisateur
-1. L'admin ouvre une commande/réservation
-2. L'admin clique sur le bouton "Fidélité"
+1. L'admin ouvre une commande/rï¿½servation
+2. L'admin clique sur le bouton "Fidï¿½litï¿½"
 3. L'admin scanne le QR code du client
 4. L'app affiche les points disponibles du client
 5. L'admin choisit combien de points utiliser
-6. La réduction est appliquée et les points sont déduits
+6. La rï¿½duction est appliquï¿½e et les points sont dï¿½duits
 
 ---
 
 ## 1. GET /api/mobile/getNombreCommandes
 
 ### Description
-Retourne le nombre de commandes/réservations groupées par état.
+Retourne le nombre de commandes/rï¿½servations groupï¿½es par ï¿½tat.
 
 ### Authentification
 ? **Requise** (Bearer Token)
 
-### Requête
+### Requï¿½te
 ```http
 GET /api/mobile/getNombreCommandes
 Authorization: Bearer <token>
 ```
 
-### Réponse - Succès (200)
+### Rï¿½ponse - Succï¿½s (200)
 ```json
 {
-    "Confirmée": 12,
+    "Confirmï¿½e": 12,
     "En cours de traitement": 5,
-    "Traitée": 8,
-    "Livrée": 45,
+    "Traitï¿½e": 8,
+    "Livrï¿½e": 45,
     "A confirmer": 3
 }
 ```
 
-### Implémentation Symfony
+### Implï¿½mentation Symfony
 ```php
 #[Route('/api/mobile/getNombreCommandes', name: 'get_nombre_commandes', methods: ['GET'])]
 public function getNombreCommandes(): JsonResponse
@@ -91,34 +91,34 @@ public function getNombreCommandes(): JsonResponse
 ## 2. POST /api/mobile/getLoyaltyByQrCode
 
 ### Description
-Récupère les informations de fidélité d'un client à partir du contenu de son QR code.
+Rï¿½cupï¿½re les informations de fidï¿½litï¿½ d'un client ï¿½ partir du contenu de son QR code.
 
 ### Authentification
 ? **Requise** (Bearer Token)
 
-### Requête
+### Requï¿½te
 ```http
 POST /api/mobile/getLoyaltyByQrCode
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
-### Corps de la requête
+### Corps de la requï¿½te
 ```json
 {
     "qrCode": "string"
 }
 ```
 
-| Paramètre | Type | Obligatoire | Description |
+| Paramï¿½tre | Type | Obligatoire | Description |
 |-----------|------|-------------|-------------|
-| `qrCode` | string | ? | Contenu du QR code scanné |
+| `qrCode` | string | ? | Contenu du QR code scannï¿½ |
 
-### Réponse - Succès (200) - Client trouvé
+### Rï¿½ponse - Succï¿½s (200) - Client trouvï¿½
 ```json
 {
     "success": true,
-    "message": "Client trouvé",
+    "message": "Client trouvï¿½",
     "data": {
         "userId": 123,
         "nom": "Dupont",
@@ -129,9 +129,9 @@ Content-Type: application/json
 }
 ```
 
-> ?? **Note** : Le champ JSON s'appelle `couronnes` pour l'app mobile, mais côté Symfony vous utilisez `fidelite`.
+> ?? **Note** : Le champ JSON s'appelle `couronnes` pour l'app mobile, mais cï¿½tï¿½ Symfony vous utilisez `fidelite`.
 
-### Réponse - Échec (200) - Client non trouvé
+### Rï¿½ponse - ï¿½chec (200) - Client non trouvï¿½
 ```json
 {
     "success": false,
@@ -140,7 +140,7 @@ Content-Type: application/json
 }
 ```
 
-### Réponse - Échec (200) - QR code manquant
+### Rï¿½ponse - ï¿½chec (200) - QR code manquant
 ```json
 {
     "success": false,
@@ -149,16 +149,16 @@ Content-Type: application/json
 }
 ```
 
-### Implémentation Symfony
+### Implï¿½mentation Symfony
 ```php
 #[Route('/api/mobile/getLoyaltyByQrCode', name: 'get_loyalty_by_qrcode', methods: ['POST'])]
 public function getLoyaltyByQrCode(Request $request): JsonResponse
 {
-    // 1. Décoder le JSON
+    // 1. Dï¿½coder le JSON
     $data = json_decode($request->getContent(), true);
     $qrCode = $data['qrCode'] ?? null;
 
-    // 2. Valider le paramètre
+    // 2. Valider le paramï¿½tre
     if (empty($qrCode)) {
         return $this->json([
             'success' => false,
@@ -177,7 +177,7 @@ public function getLoyaltyByQrCode(Request $request): JsonResponse
     // Option C : Le QR code contient l'email
     // $user = $this->userRepository->findOneBy(['email' => $qrCode]);
 
-    // 4. Vérifier si trouvé
+    // 4. Vï¿½rifier si trouvï¿½
     if (!$user) {
         return $this->json([
             'success' => false,
@@ -186,10 +186,10 @@ public function getLoyaltyByQrCode(Request $request): JsonResponse
         ]);
     }
 
-    // 5. Retourner les infos fidélité
+    // 5. Retourner les infos fidï¿½litï¿½
     return $this->json([
         'success' => true,
-        'message' => 'Client trouvé',
+        'message' => 'Client trouvï¿½',
         'data' => [
             'userId' => $user->getId(),
             'nom' => $user->getNom(),
@@ -206,19 +206,19 @@ public function getLoyaltyByQrCode(Request $request): JsonResponse
 ## 3. POST /api/mobile/applyLoyaltyReduction
 
 ### Description
-Applique une réduction fidélité sur une commande en utilisant les points fidélité du client.
+Applique une rï¿½duction fidï¿½litï¿½ sur une commande en utilisant les points fidï¿½litï¿½ du client.
 
 ### Authentification
 ? **Requise** (Bearer Token)
 
-### Requête
+### Requï¿½te
 ```http
 POST /api/mobile/applyLoyaltyReduction
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
-### Corps de la requête
+### Corps de la requï¿½te
 ```json
 {
     "commandeId": 456,
@@ -228,29 +228,29 @@ Content-Type: application/json
 }
 ```
 
-| Paramètre | Type | Obligatoire | Description |
+| Paramï¿½tre | Type | Obligatoire | Description |
 |-----------|------|-------------|-------------|
-| `commandeId` | int | ? | ID de la commande/réservation |
+| `commandeId` | int | ? | ID de la commande/rï¿½servation |
 | `userId` | int | ? | ID du client |
-| `couronnesUtilisees` | int | ? | Nombre de points à déduire |
-| `montantReduction` | double | ? | Montant de la réduction (points × 0.01) |
+| `couronnesUtilisees` | int | ? | Nombre de points ï¿½ dï¿½duire |
+| `montantReduction` | double | ? | Montant de la rï¿½duction (points / 15) |
 
-### Réponse - Succès (200)
+### Rï¿½ponse - Succï¿½s (200)
 ```json
 {
     "success": true,
-    "message": "Réduction appliquée avec succès",
+    "message": "Rï¿½duction appliquï¿½e avec succï¿½s",
     "nouveauSoldeCouronnes": 50,
     "nouveauMontantCommande": 24.50,
     "reductionAppliquee": 1.00
 }
 ```
 
-### Réponse - Échec (200)
+### Rï¿½ponse - ï¿½chec (200)
 ```json
 {
     "success": false,
-    "message": "Solde de points fidélité insuffisant",
+    "message": "Solde de points fidï¿½litï¿½ insuffisant",
     "nouveauSoldeCouronnes": 0,
     "nouveauMontantCommande": 0,
     "reductionAppliquee": 0
@@ -261,55 +261,55 @@ Content-Type: application/json
 
 | Situation | Message |
 |-----------|---------|
-| Commande non trouvée | "Commande introuvable" |
-| Client non trouvé | "Client introuvable" |
-| Commande déjà livrée | "Impossible d'appliquer une réduction sur une commande livrée" |
-| Réduction déjà appliquée | "Une réduction fidélité a déjà été appliquée sur cette commande" |
-| Solde insuffisant | "Solde de points fidélité insuffisant" |
-| Montant invalide | "Le montant de réduction dépasse le montant de la commande" |
-| Paramètres invalides | "Paramètres invalides" |
+| Commande non trouvï¿½e | "Commande introuvable" |
+| Client non trouvï¿½ | "Client introuvable" |
+| Commande dï¿½jï¿½ livrï¿½e | "Impossible d'appliquer une rï¿½duction sur une commande livrï¿½e" |
+| Rï¿½duction dï¿½jï¿½ appliquï¿½e | "Une rï¿½duction fidï¿½litï¿½ a dï¿½jï¿½ ï¿½tï¿½ appliquï¿½e sur cette commande" |
+| Solde insuffisant | "Solde de points fidï¿½litï¿½ insuffisant" |
+| Montant invalide | "Le montant de rï¿½duction dï¿½passe le montant de la commande" |
+| Paramï¿½tres invalides | "Paramï¿½tres invalides" |
 
-### Schéma de flux
+### Schï¿½ma de flux
 
 ```
 ???????????????????????????????????????????????????????????????????
-?                         DÉBUT API                                ?
+?                         Dï¿½BUT API                                ?
 ???????????????????????????????????????????????????????????????????
                               ?
                               ?
 ???????????????????????????????????????????????????????????????????
-?  1. Récupérer la commande par commandeId                        ?
-?     ? Si non trouvée ? Erreur "Commande introuvable"            ?
+?  1. Rï¿½cupï¿½rer la commande par commandeId                        ?
+?     ? Si non trouvï¿½e ? Erreur "Commande introuvable"            ?
 ???????????????????????????????????????????????????????????????????
                               ?
                               ?
 ???????????????????????????????????????????????????????????????????
-?  2. Récupérer l'utilisateur par userId                          ?
-?     ? Si non trouvé ? Erreur "Client introuvable"               ?
+?  2. Rï¿½cupï¿½rer l'utilisateur par userId                          ?
+?     ? Si non trouvï¿½ ? Erreur "Client introuvable"               ?
 ???????????????????????????????????????????????????????????????????
                               ?
                               ?
 ???????????????????????????????????????????????????????????????????
-?  3. Vérifier que commande.etat ? "Livrée"                       ?
-?     ? Si livrée ? Erreur "Commande déjà livrée"                 ?
+?  3. Vï¿½rifier que commande.etat ? "Livrï¿½e"                       ?
+?     ? Si livrï¿½e ? Erreur "Commande dï¿½jï¿½ livrï¿½e"                 ?
 ???????????????????????????????????????????????????????????????????
                               ?
                               ?
 ???????????????????????????????????????????????????????????????????
-?  4. Vérifier que commande.reductionFidelite == null ou 0        ?
-?     ? Si déjà appliquée ? Erreur "Réduction déjà appliquée"     ?
+?  4. Vï¿½rifier que commande.reductionFidelite == null ou 0        ?
+?     ? Si dï¿½jï¿½ appliquï¿½e ? Erreur "Rï¿½duction dï¿½jï¿½ appliquï¿½e"     ?
 ???????????????????????????????????????????????????????????????????
                               ?
                               ?
 ???????????????????????????????????????????????????????????????????
-?  5. Vérifier user.fidelite >= couronnesUtilisees                ?
+?  5. Vï¿½rifier user.fidelite >= couronnesUtilisees                ?
 ?     ? Si insuffisant ? Erreur "Solde insuffisant"               ?
 ???????????????????????????????????????????????????????????????????
                               ?
                               ?
 ???????????????????????????????????????????????????????????????????
-?  6. Vérifier montantReduction <= commande.montantTotal          ?
-?     ? Si trop élevé ? Ajuster automatiquement                   ?
+?  6. Vï¿½rifier montantReduction <= commande.montantTotal          ?
+?     ? Si trop ï¿½levï¿½ ? Ajuster automatiquement                   ?
 ???????????????????????????????????????????????????????????????????
                               ?
                               ?
@@ -327,12 +327,12 @@ Content-Type: application/json
 ?  8. Retourner :                                                  ?
 ?     - success: true                                              ?
 ?     - nouveauSoldeCouronnes: user.fidelite                      ?
-?     - nouveauMontantCommande: montantOriginal - réduction       ?
+?     - nouveauMontantCommande: montantOriginal - rï¿½duction       ?
 ?     - reductionAppliquee: montantReduction                      ?
 ???????????????????????????????????????????????????????????????????
 ```
 
-### Implémentation Symfony
+### Implï¿½mentation Symfony
 ```php
 #[Route('/api/mobile/applyLoyaltyReduction', name: 'apply_loyalty_reduction', methods: ['POST'])]
 public function applyLoyaltyReduction(
@@ -340,7 +340,7 @@ public function applyLoyaltyReduction(
     EntityManagerInterface $em
 ): JsonResponse
 {
-    // 1. Décoder le JSON
+    // 1. Dï¿½coder le JSON
     $data = json_decode($request->getContent(), true);
     
     $commandeId = $data['commandeId'] ?? null;
@@ -348,18 +348,18 @@ public function applyLoyaltyReduction(
     $pointsUtilises = $data['couronnesUtilisees'] ?? 0;
     $montantReduction = $data['montantReduction'] ?? 0;
 
-    // 2. Valider les paramètres
+    // 2. Valider les paramï¿½tres
     if (!$commandeId || !$userId || $pointsUtilises <= 0) {
         return $this->json([
             'success' => false,
-            'message' => 'Paramètres invalides',
+            'message' => 'Paramï¿½tres invalides',
             'nouveauSoldeCouronnes' => 0,
             'nouveauMontantCommande' => 0,
             'reductionAppliquee' => 0
         ]);
     }
 
-    // 3. Récupérer la commande
+    // 3. Rï¿½cupï¿½rer la commande
     $commande = $this->commandeRepository->find($commandeId);
     if (!$commande) {
         return $this->json([
@@ -371,7 +371,7 @@ public function applyLoyaltyReduction(
         ]);
     }
 
-    // 4. Récupérer l'utilisateur
+    // 4. Rï¿½cupï¿½rer l'utilisateur
     $user = $this->userRepository->find($userId);
     if (!$user) {
         return $this->json([
@@ -383,56 +383,56 @@ public function applyLoyaltyReduction(
         ]);
     }
 
-    // 5. Vérifier que la commande n'est pas déjà livrée
-    if ($commande->getEtat() === 'Livrée') {
+    // 5. Vï¿½rifier que la commande n'est pas dï¿½jï¿½ livrï¿½e
+    if ($commande->getEtat() === 'Livrï¿½e') {
         return $this->json([
             'success' => false,
-            'message' => 'Impossible d\'appliquer une réduction sur une commande livrée',
+            'message' => 'Impossible d\'appliquer une rï¿½duction sur une commande livrï¿½e',
             'nouveauSoldeCouronnes' => $user->getFidelite(),
             'nouveauMontantCommande' => $commande->getMontantTotal(),
             'reductionAppliquee' => 0
         ]);
     }
 
-    // 6. Vérifier qu'aucune réduction n'a déjà été appliquée
+    // 6. Vï¿½rifier qu'aucune rï¿½duction n'a dï¿½jï¿½ ï¿½tï¿½ appliquï¿½e
     if ($commande->getReductionFidelite() > 0) {
         return $this->json([
             'success' => false,
-            'message' => 'Une réduction fidélité a déjà été appliquée sur cette commande',
+            'message' => 'Une rï¿½duction fidï¿½litï¿½ a dï¿½jï¿½ ï¿½tï¿½ appliquï¿½e sur cette commande',
             'nouveauSoldeCouronnes' => $user->getFidelite(),
             'nouveauMontantCommande' => $commande->getMontantTotal(),
             'reductionAppliquee' => 0
         ]);
     }
 
-    // 7. Vérifier le solde fidélité
+    // 7. Vï¿½rifier le solde fidï¿½litï¿½
     $soldeFidelite = $user->getFidelite() ?? 0;
     if ($soldeFidelite < $pointsUtilises) {
         return $this->json([
             'success' => false,
-            'message' => 'Solde de points fidélité insuffisant',
+            'message' => 'Solde de points fidï¿½litï¿½ insuffisant',
             'nouveauSoldeCouronnes' => $soldeFidelite,
             'nouveauMontantCommande' => $commande->getMontantTotal(),
             'reductionAppliquee' => 0
         ]);
     }
 
-    // 8. Vérifier que la réduction ne dépasse pas le montant
+    // 8. Vï¿½rifier que la rï¿½duction ne dï¿½passe pas le montant
     $montantOriginal = $commande->getMontantTotal();
     if ($montantReduction > $montantOriginal) {
         $montantReduction = $montantOriginal;
-        $pointsUtilises = (int) ($montantReduction / 0.01);
+        $pointsUtilises = (int) ($montantReduction * 15);
     }
 
-    // 9. Appliquer la réduction (TRANSACTION)
+    // 9. Appliquer la rï¿½duction (TRANSACTION)
     try {
         $em->beginTransaction();
 
-        // Déduire les points fidélité du client
+        // Dï¿½duire les points fidï¿½litï¿½ du client
         $nouveauSolde = $soldeFidelite - $pointsUtilises;
         $user->setFidelite($nouveauSolde);
 
-        // Enregistrer la réduction sur la commande
+        // Enregistrer la rï¿½duction sur la commande
         $commande->setReductionFidelite($montantReduction);
         $commande->setUserIdFidelite($userId);
         $commande->setPointsFideliteUtilises($pointsUtilises);
@@ -448,7 +448,7 @@ public function applyLoyaltyReduction(
 
         return $this->json([
             'success' => true,
-            'message' => 'Réduction appliquée avec succès',
+            'message' => 'Rï¿½duction appliquï¿½e avec succï¿½s',
             'nouveauSoldeCouronnes' => $nouveauSolde,
             'nouveauMontantCommande' => $nouveauMontant,
             'reductionAppliquee' => $montantReduction
@@ -459,7 +459,7 @@ public function applyLoyaltyReduction(
         
         return $this->json([
             'success' => false,
-            'message' => 'Erreur lors de l\'application de la réduction',
+            'message' => 'Erreur lors de l\'application de la rï¿½duction',
             'nouveauSoldeCouronnes' => $user->getFidelite(),
             'nouveauMontantCommande' => $commande->getMontantTotal(),
             'reductionAppliquee' => 0
@@ -470,11 +470,11 @@ public function applyLoyaltyReduction(
 
 ---
 
-## Modifications base de données
+## Modifications base de donnï¿½es
 
 ### Table `user`
 ```sql
--- Si le champ fidelite n'existe pas déjà
+-- Si le champ fidelite n'existe pas dï¿½jï¿½
 ALTER TABLE user ADD COLUMN fidelite INT DEFAULT 0;
 ```
 
@@ -487,7 +487,7 @@ ALTER TABLE commande ADD COLUMN points_fidelite_utilises INT DEFAULT 0;
 
 ---
 
-## Entités Doctrine
+## Entitï¿½s Doctrine
 
 ### User.php
 ```php
@@ -557,50 +557,50 @@ public function setPointsFideliteUtilises(int $points): self
 
 | App Mobile (JSON) | Symfony (Entity) | Description |
 |-------------------|------------------|-------------|
-| `couronnes` | `fidelite` | Points fidélité du client |
-| `couronnesUtilisees` | `pointsFideliteUtilises` | Points utilisés pour la réduction |
-| `nouveauSoldeCouronnes` | `fidelite` (après déduction) | Nouveau solde après réduction |
+| `couronnes` | `fidelite` | Points fidï¿½litï¿½ du client |
+| `couronnesUtilisees` | `pointsFideliteUtilises` | Points utilisï¿½s pour la rï¿½duction |
+| `nouveauSoldeCouronnes` | `fidelite` (aprï¿½s dï¿½duction) | Nouveau solde aprï¿½s rï¿½duction |
 
 ---
 
-## Tests recommandés
+## Tests recommandï¿½s
 
 ### Tests fonctionnels
 
-| # | Scénario | Résultat attendu |
+| # | Scï¿½nario | Rï¿½sultat attendu |
 |---|----------|------------------|
-| 1 | Scanner un QR code valide | Client trouvé avec ses points fidélité |
+| 1 | Scanner un QR code valide | Client trouvï¿½ avec ses points fidï¿½litï¿½ |
 | 2 | Scanner un QR code invalide | Erreur "Client introuvable" |
-| 3 | Appliquer une réduction avec solde suffisant | Succès, points déduits |
-| 4 | Appliquer une réduction avec solde insuffisant | Erreur "Solde insuffisant" |
-| 5 | Appliquer une réduction sur commande livrée | Erreur "Commande livrée" |
-| 6 | Appliquer une seconde réduction sur même commande | Erreur "Déjà appliquée" |
-| 7 | Réduction supérieure au montant commande | Ajustement automatique |
+| 3 | Appliquer une rï¿½duction avec solde suffisant | Succï¿½s, points dï¿½duits |
+| 4 | Appliquer une rï¿½duction avec solde insuffisant | Erreur "Solde insuffisant" |
+| 5 | Appliquer une rï¿½duction sur commande livrï¿½e | Erreur "Commande livrï¿½e" |
+| 6 | Appliquer une seconde rï¿½duction sur mï¿½me commande | Erreur "Dï¿½jï¿½ appliquï¿½e" |
+| 7 | Rï¿½duction supï¿½rieure au montant commande | Ajustement automatique |
 
-### Tests de sécurité
+### Tests de sï¿½curitï¿½
 
-| # | Test | Vérification |
+| # | Test | Vï¿½rification |
 |---|------|--------------|
 | 1 | Appel sans token | Erreur 401 Unauthorized |
-| 2 | Appel avec token expiré | Erreur 401 Unauthorized |
+| 2 | Appel avec token expirï¿½ | Erreur 401 Unauthorized |
 | 3 | commandeId inexistant | Erreur "Commande introuvable" |
 | 4 | userId inexistant | Erreur "Client introuvable" |
 
 ---
 
-## Résumé des règles métier
+## Rï¿½sumï¿½ des rï¿½gles mï¿½tier
 
-| Règle | Valeur |
+| Rï¿½gle | Valeur |
 |-------|--------|
 | Champ Symfony pour les points | `fidelite` |
 | Champ JSON pour l'app | `couronnes` |
-| Conversion points ? euros | **10 points = 0.10 €** |
-| 1 point = | **0.01 €** |
-| Réduction max par commande | Montant total de la commande |
-| États autorisant la réduction | Confirmée, En cours, Traitée |
-| État bloquant la réduction | Livrée |
-| Une seule réduction fidélité par commande | ? Oui |
+| Conversion points ? euros | **15 points = 1.00 ï¿½** |
+| 1 point = | **0.0667 ï¿½** |
+| Rï¿½duction max par commande | Montant total de la commande |
+| ï¿½tats autorisant la rï¿½duction | Confirmï¿½e, En cours, Traitï¿½e |
+| ï¿½tat bloquant la rï¿½duction | Livrï¿½e |
+| Une seule rï¿½duction fidï¿½litï¿½ par commande | ? Oui |
 
 ---
 
-*Document généré pour le projet GDM2026 - Dantec Market*
+*Document gï¿½nï¿½rï¿½ pour le projet GDM2026 - Dantec Market*
