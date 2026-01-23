@@ -285,10 +285,13 @@ public class ImageUploadViewModel : BaseViewModel
             await using var uploadStream = File.OpenRead(_selectedFilePath);
             var uploadResult = await _uploadService.UploadAsync(uploadStream, finalFileName, "images");
 
+            // Extraire uniquement le nom du fichier sans le préfixe /images/
+            var imageFileName = uploadResult.FileName;
+
             var payload = new
             {
-                url = uploadResult.RelativeUrl,
-                imageName = uploadResult.FileName
+                url = imageFileName,  // Envoyer uniquement le nom du fichier
+                imageName = imageFileName
             };
 
             var success = await _apis.PostBoolAsync("/api/crud/images/create", payload);
