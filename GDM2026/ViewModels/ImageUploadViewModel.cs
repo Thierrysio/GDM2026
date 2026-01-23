@@ -26,6 +26,8 @@ public class ImageUploadViewModel : BaseViewModel
     private ImageSource? _selectedImage;
     private string? _selectedFilePath;
     private string _fileName = string.Empty;
+    private string _editableFileName = string.Empty;
+    private bool _showOriginalFileName;
 
     public ImageUploadViewModel()
     {
@@ -65,6 +67,18 @@ public class ImageUploadViewModel : BaseViewModel
     {
         get => _statusColor;
         set => SetProperty(ref _statusColor, value);
+    }
+
+    public string EditableFileName
+    {
+        get => _editableFileName;
+        set => SetProperty(ref _editableFileName, value);
+    }
+
+    public bool ShowOriginalFileName
+    {
+        get => _showOriginalFileName;
+        set => SetProperty(ref _showOriginalFileName, value);
     }
 
     private async Task PickPhotoAsync(bool fromCamera)
@@ -121,6 +135,15 @@ public class ImageUploadViewModel : BaseViewModel
             _selectedFilePath = optimizedFilePath;
             SelectedImage = ImageSource.FromFile(optimizedFilePath);
             FileName = Path.GetFileName(optimizedFilePath);
+
+            // Extraire le nom sans extension et sans le GUID pour l'édition
+            var nameWithoutExtension = Path.GetFileNameWithoutExtension(FileName);
+            // Retirer le GUID (format: nom-guid)
+            var lastDashIndex = nameWithoutExtension.LastIndexOf('-');
+            var cleanName = lastDashIndex > 0 ? nameWithoutExtension.Substring(0, lastDashIndex) : nameWithoutExtension;
+            EditableFileName = cleanName;
+            ShowOriginalFileName = true;
+
             StatusMessage = "Image compressée et prête à être envoyée.";
             StatusColor = Colors.Gold;
         }
@@ -231,8 +254,14 @@ public class ImageUploadViewModel : BaseViewModel
                 return;
             }
 
+            // Construire le nouveau nom de fichier avec le nom éditable
+            var extension = Path.GetExtension(_selectedFilePath);
+            var finalFileName = string.IsNullOrWhiteSpace(EditableFileName)
+                ? FileName
+                : $"{EditableFileName.Trim()}{extension}";
+
             await using var uploadStream = File.OpenRead(_selectedFilePath);
-            var uploadResult = await _uploadService.UploadAsync(uploadStream, FileName, "images");
+            var uploadResult = await _uploadService.UploadAsync(uploadStream, finalFileName, "images");
 
             var payload = new
             {
