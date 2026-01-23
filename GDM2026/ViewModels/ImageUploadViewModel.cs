@@ -256,9 +256,31 @@ public class ImageUploadViewModel : BaseViewModel
 
             // Construire le nouveau nom de fichier avec le nom éditable
             var extension = Path.GetExtension(_selectedFilePath);
-            var finalFileName = string.IsNullOrWhiteSpace(EditableFileName)
-                ? FileName
-                : $"{EditableFileName.Trim()}{extension}";
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                extension = ".jpg"; // Extension par défaut
+            }
+
+            var finalFileName = FileName; // Utiliser le nom original par défaut
+
+            if (!string.IsNullOrWhiteSpace(EditableFileName))
+            {
+                // Nettoyer le nom éditable des caractères invalides
+                var cleanedName = EditableFileName.Trim();
+                var invalidChars = Path.GetInvalidFileNameChars();
+                foreach (var c in invalidChars)
+                {
+                    cleanedName = cleanedName.Replace(c, '_');
+                }
+
+                if (!string.IsNullOrWhiteSpace(cleanedName))
+                {
+                    finalFileName = $"{cleanedName}{extension}";
+                }
+            }
+
+            Debug.WriteLine($"[UPLOAD] Nom de fichier final : {finalFileName}");
+            Debug.WriteLine($"[UPLOAD] Chemin du fichier : {_selectedFilePath}");
 
             await using var uploadStream = File.OpenRead(_selectedFilePath);
             var uploadResult = await _uploadService.UploadAsync(uploadStream, finalFileName, "images");
