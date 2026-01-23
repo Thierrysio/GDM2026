@@ -97,11 +97,25 @@
                                        BackgroundColor="#0B0B0B" />
                             </Border>
 
+                            <Label Text="Nom du fichier"
+                                   TextColor="{StaticResource GoldText}"
+                                   FontSize="13"
+                                   Opacity="0.85" />
+
+                            <Entry Text="{Binding EditableFileName}"
+                                   Placeholder="Saisissez le nom du fichier"
+                                   PlaceholderColor="#666"
+                                   TextColor="{StaticResource GoldText}"
+                                   BackgroundColor="#111"
+                                   FontSize="14"
+                                   HorizontalTextAlignment="Center" />
+
                             <Label Text="{Binding FileName}"
                                    TextColor="{StaticResource GoldText}"
-                                   FontSize="14"
+                                   FontSize="12"
                                    HorizontalTextAlignment="Center"
-                                   Opacity="0.85" />
+                                   Opacity="0.65"
+                                   IsVisible="{Binding ShowOriginalFileName}" />
                         </VerticalStackLayout>
                     </Frame>
 
