@@ -17,6 +17,7 @@ public partial class HomePageViewModel : BaseViewModel
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
     private string _welcomeText = "Bonjour!";
+    private CancellationTokenSource? _refreshCts;
 
     public HomePageViewModel()
     {
@@ -63,6 +64,40 @@ public partial class HomePageViewModel : BaseViewModel
         
         Debug.WriteLine("[HOME] Token set, calling LoadOrderStatusesAsync");
         await LoadOrderStatusesAsync();
+    }
+
+    public void StartAutoRefresh()
+    {
+        StopAutoRefresh();
+        _refreshCts = new CancellationTokenSource();
+        var token = _refreshCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(20), token);
+                    if (!token.IsCancellationRequested)
+                    {
+                        Debug.WriteLine("[HOME] Auto-refresh: reloading order statuses");
+                        await LoadOrderStatusesAsync();
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+            }
+        }, token);
+    }
+
+    public void StopAutoRefresh()
+    {
+        _refreshCts?.Cancel();
+        _refreshCts?.Dispose();
+        _refreshCts = null;
     }
 
     private async Task<bool> LoadSessionAsync()
