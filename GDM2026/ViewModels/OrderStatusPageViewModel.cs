@@ -53,6 +53,8 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     private const int ReservationPageSize = 5;
 
     private ObservableCollection<OrderStatusEntry> _orders = [];
+    private OrderStatusEntry? _scannedOrderEntry;
+    private bool _isSearchingOrder;
 
     // PERF : debounce recherche
     private CancellationTokenSource? _searchCts;
@@ -73,6 +75,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         ShowMoreCommand = new Command(ShowMoreOrders);
         OpenLoyaltyScannerCommand = new Command<OrderStatusEntry>(async order => await OpenLoyaltyScannerAsync(order));
         ScanOrderQrCodeCommand = new Command(async () => await ScanOrderQrCodeAsync());
+        DismissScannedOrderCommand = new Command(() => ScannedOrderEntry = null);
 
         SelectReservationStatusCommand = new Command<ReservationStatusDisplay>(async status => await OnReservationStatusSelectedAsync(status));
         ApplyReservationFiltersCommand = new Command(async () => await ReloadWithFiltersAsync());
@@ -98,6 +101,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     public ICommand ShowMoreCommand { get; }
     public ICommand OpenLoyaltyScannerCommand { get; }
     public ICommand ScanOrderQrCodeCommand { get; }
+    public ICommand DismissScannedOrderCommand { get; }
     public ICommand SelectReservationStatusCommand { get; }
     public ICommand ApplyReservationFiltersCommand { get; }
     public ICommand DeleteReservationCommand { get; }
@@ -185,6 +189,24 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         private set => SetProperty(ref _canShowMore, value);
     }
 
+    public OrderStatusEntry? ScannedOrderEntry
+    {
+        get => _scannedOrderEntry;
+        private set
+        {
+            if (SetProperty(ref _scannedOrderEntry, value))
+                OnPropertyChanged(nameof(IsScannedOrderVisible));
+        }
+    }
+
+    public bool IsScannedOrderVisible => ScannedOrderEntry != null;
+
+    public bool IsSearchingOrder
+    {
+        get => _isSearchingOrder;
+        private set => SetProperty(ref _isSearchingOrder, value);
+    }
+
     public async Task InitializeAsync()
     {
         if (_hasInitialized)
@@ -200,7 +222,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             PageTitle = "Réservations";
-            Subtitle = "Choisissez une période et un état puis lancez le chargement.";
+            Subtitle = "Chargement automatique en cours...";
         });
     }
 
@@ -887,26 +909,71 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         MainThread.BeginInvokeOnMainThread(async () =>
         {
+            IsSearchingOrder = true;
+
             // Chercher la commande dans la liste déjà chargée
             var order = _allOrders.FirstOrDefault(o => o.OrderId == orderId)
                         ?? Orders.FirstOrDefault(o => o.OrderId == orderId);
 
+            if (order == null)
+            {
+                // Recherche élargie : chercher dans tous les statuts via API
+                order = await FindOrderAcrossStatusesAsync(orderId);
+            }
+
+            IsSearchingOrder = false;
+
             if (order != null)
             {
-                // S'assurer que la commande est visible dans la liste affichée
-                if (!Orders.Contains(order))
-                {
-                    Orders.Insert(0, order);
-                }
-
-                // Ouvrir le détail de la commande
-                await ToggleOrderDetailsAsync(order);
+                // Afficher le résultat dans la section dédiée sous la recherche
+                ScannedOrderEntry = order;
+                order.IsExpanded = true;
+                await LoadOrderDetailsAsync(order);
             }
             else
             {
-                await ShowLoadErrorAsync($"Commande #{orderId} introuvable dans les réservations chargées. Vérifiez la période et l'état sélectionnés puis rechargez.");
+                await ShowLoadErrorAsync($"Commande #{orderId} introuvable.");
             }
         });
+    }
+
+    private async Task<OrderStatusEntry?> FindOrderAcrossStatusesAsync(int orderId)
+    {
+        var endpoint = "/reserver/commandes/etat";
+        var wideStartDate = DateTime.Today.AddDays(-60).ToString("yyyy-MM-dd");
+        var wideEndDate = DateTime.Today.AddDays(30).ToString("yyyy-MM-dd");
+
+        var tasks = _availableStatuses.Select(async status =>
+        {
+            try
+            {
+                var request = new ReservationStatusRequest
+                {
+                    Etat = status,
+                    DateDebut = wideStartDate,
+                    DateFin = wideEndDate
+                };
+
+                var reservationOrders = await _apis
+                    .PostAsync<ReservationStatusRequest, List<ReservationOrder>>(endpoint, request)
+                    .ConfigureAwait(false) ?? new List<ReservationOrder>();
+
+                var match = reservationOrders.FirstOrDefault(o => o.Id == orderId);
+                if (match != null)
+                {
+                    var mapped = MapReservationOrder(match, status);
+                    var entry = new OrderStatusEntry();
+                    entry.PopulateFromOrder(mapped, status);
+                    return entry;
+                }
+            }
+            catch { /* continue */ }
+
+            return null;
+        }).ToList();
+
+        var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+        return results.FirstOrDefault(r => r != null);
     }
 
     private int _currentLoyaltyOrderId;
@@ -1154,9 +1221,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                 Orders.Add(o);
 
             Subtitle = IsReservationMode
-                ? _hasAppliedFilters
-                    ? $"Réservations affichées : {finalOrders.Count} sur {_allOrders.Count}"
-                    : "Choisissez une période, un état puis lancez la recherche"
+                ? $"Réservations affichées : {finalOrders.Count} sur {_allOrders.Count}"
                 : $"Commandes : {finalOrders.Count}";
         });
     }
@@ -1283,6 +1348,9 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             tile.IsSelected = ReferenceEquals(tile, status);
 
         Status = status.Status;
+
+        // Recharger automatiquement avec le nouveau statut
+        await ReloadWithFiltersAsync();
     }
 
     public Task ReloadWithFiltersAsync()
@@ -1304,10 +1372,6 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     private void MarkFiltersPending()
     {
         _hasAppliedFilters = false;
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            Subtitle = "Choisissez une période, un état puis lancez la recherche";
-        });
     }
 
     private void EnsureValidDateRange()

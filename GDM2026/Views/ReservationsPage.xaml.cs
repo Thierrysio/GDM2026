@@ -17,7 +17,7 @@ public partial class ReservationsPage : ContentPage
             if (!string.IsNullOrWhiteSpace(value))
             {
                 _viewModel.Status = value;
-                // Sélectionner le statut correspondant dans les tuiles
+                // Sï¿½lectionner le statut correspondant dans les tuiles
                 _viewModel.SelectStatusByName(value);
             }
         }
@@ -36,11 +36,8 @@ public partial class ReservationsPage : ContentPage
         {
             await _viewModel.InitializeAsync();
 
-            // Si un statut est pré-sélectionné, charger automatiquement les réservations
-            if (!string.IsNullOrWhiteSpace(_viewModel.Status))
-            {
-                await _viewModel.ReloadWithFiltersAsync();
-            }
+            // Chargement automatique des rÃ©servations Ã  chaque apparition de la page
+            await _viewModel.ReloadWithFiltersAsync();
         }
         catch (System.Exception ex)
         {

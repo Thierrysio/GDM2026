@@ -50,7 +50,7 @@
                         FontSize="14"
                         HorizontalTextAlignment="Center"
                         Opacity="0.85"
-                        Text="Sélectionnez la période puis l'état, le chargement ne démarre qu'après l'appui sur le bouton."
+                        Text="Les réservations se chargent automatiquement. Utilisez le scanner QR ou la recherche pour trouver une commande."
                         TextColor="{StaticResource GoldText}" />
                 </VerticalStackLayout>
             </Border>
@@ -82,9 +82,138 @@
                 </Grid>
             </Frame>
 
+            <!-- Résultat du scan QR : affiché directement sous la recherche -->
+            <Border
+                Background="#121212"
+                Stroke="{StaticResource GoldText}"
+                StrokeThickness="2"
+                Padding="18"
+                IsVisible="{Binding IsScannedOrderVisible}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label
+                            Grid.Column="0"
+                            Text="Résultat du scan"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource GoldText}" />
+                        <Button
+                            Grid.Column="1"
+                            Text="✕"
+                            Command="{Binding DismissScannedOrderCommand}"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource GoldText}"
+                            FontSize="18"
+                            WidthRequest="40"
+                            HeightRequest="40"
+                            Padding="0" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
+                        <Label
+                            Grid.Row="0" Grid.Column="0"
+                            Text="{Binding ScannedOrderEntry.OrderLabel}"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource GoldText}" />
+                        <Label
+                            Grid.Row="0" Grid.Column="1"
+                            Text="{Binding ScannedOrderEntry.DisplayAmountWithReduction}"
+                            FontSize="15"
+                            TextColor="{StaticResource GoldText}"
+                            HorizontalOptions="End" />
+                        <Label
+                            Grid.Row="1" Grid.Column="0"
+                            Text="{Binding ScannedOrderEntry.DisplayDate}"
+                            FontSize="13"
+                            Opacity="0.7"
+                            TextColor="{StaticResource GoldText}" />
+                        <Border
+                            Grid.Row="1" Grid.Column="1"
+                            Stroke="{StaticResource GoldText}"
+                            StrokeThickness="1"
+                            Padding="8,4"
+                            BackgroundColor="#1A1A1A"
+                            HorizontalOptions="End">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Label
+                                Text="{Binding ScannedOrderEntry.CurrentStatus}"
+                                FontSize="12"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}" />
+                        </Border>
+                        <Label
+                            Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                            Text="{Binding ScannedOrderEntry.PickupDateDisplay}"
+                            FontSize="13"
+                            Opacity="0.7"
+                            TextColor="{StaticResource GoldText}"
+                            IsVisible="{Binding ScannedOrderEntry.HasPickupDate}" />
+                    </Grid>
+
+                    <!-- Détails de la commande scannée -->
+                    <ActivityIndicator
+                        IsRunning="{Binding ScannedOrderEntry.IsLoadingDetails}"
+                        IsVisible="{Binding ScannedOrderEntry.IsLoadingDetails}" />
+                    <Label
+                        Text="{Binding ScannedOrderEntry.DetailsError}"
+                        TextColor="Tomato"
+                        IsVisible="{Binding ScannedOrderEntry.HasDetailsError}" />
+
+                    <CollectionView
+                        ItemsSource="{Binding ScannedOrderEntry.OrderLines}"
+                        SelectionMode="None"
+                        IsVisible="{Binding ScannedOrderEntry.HasLoadedDetails}">
+                        <CollectionView.EmptyView>
+                            <Label Text="Aucun détail trouvé pour cette commande." />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*" Padding="8">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding LeProduit.NomProduit}" FontAttributes="Bold" />
+                                        <Label Text="{Binding Quantite, StringFormat='Quantité : {0}'}" Opacity="0.8" />
+                                        <Label Text="{Binding PrixRetenu, StringFormat='Prix : {0:C}'}" Opacity="0.8" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <!-- Boutons d'action sur la commande scannée -->
+                    <FlexLayout Wrap="Wrap" JustifyContent="End" AlignItems="Start" AlignContent="Start">
+                        <Picker
+                            ItemsSource="{Binding AvailableStatuses}"
+                            SelectedItem="{Binding ScannedOrderEntry.SelectedStatusOption, Mode=TwoWay}"
+                            BackgroundColor="#121212"
+                            Title="Modifier l'état"
+                            FontSize="14"
+                            TextColor="{StaticResource GoldText}"
+                            TitleColor="{StaticResource GoldText}"
+                            WidthRequest="200" />
+                        <Button
+                            Text="Supprimer"
+                            Command="{Binding DeleteReservationCommand}"
+                            CommandParameter="{Binding ScannedOrderEntry}"
+                            BackgroundColor="Transparent"
+                            BorderColor="Tomato"
+                            BorderWidth="1.5"
+                            CornerRadius="10"
+                            WidthRequest="110"
+                            Margin="5,5,0,0"
+                            TextColor="Tomato" />
+                    </FlexLayout>
+                </VerticalStackLayout>
+            </Border>
+
             <Frame BackgroundColor="#1E1E1E" Padding="16" CornerRadius="16" BorderColor="#2D2D2D" HasShadow="False">
                 <VerticalStackLayout Spacing="12">
-                    <Label Text="1. Sélectionnez la période" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
+                    <Label Text="Période" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="6" Grid.Column="0">
                             <Label Text="Date début" FontAttributes="Bold" />
@@ -96,7 +225,7 @@
                         </VerticalStackLayout>
                     </Grid>
                     <Label
-                        Text="Ajustez la période, puis choisissez l'état avant de lancer le chargement."
+                        Text="Ajustez la période et l'état pour filtrer les réservations."
                         FontSize="13"
                         TextColor="{StaticResource GoldText}"
                         Opacity="0.75" />
@@ -105,7 +234,7 @@
 
             <Frame BackgroundColor="#1E1E1E" Padding="16" CornerRadius="16" BorderColor="#2D2D2D" HasShadow="False">
                 <VerticalStackLayout Spacing="12">
-                    <Label Text="2. Choisissez l'état de réservation" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
+                    <Label Text="État de réservation" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
                     <CollectionView ItemsSource="{Binding ReservationStatuses}" SelectionMode="None">
                         <CollectionView.ItemsLayout>
                             <GridItemsLayout Orientation="Vertical" Span="2" />
@@ -150,22 +279,8 @@
                 </VerticalStackLayout>
             </Frame>
 
-            <Frame BackgroundColor="#1E1E1E" Padding="16" CornerRadius="16" BorderColor="#2D2D2D" HasShadow="False">
-                <VerticalStackLayout Spacing="10">
-                    <Button
-                        Text="Charger les réservations"
-                        Command="{Binding ApplyReservationFiltersCommand}"
-                        BackgroundColor="#303030"
-                        TextColor="{StaticResource GoldText}" />
-                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
-                    <Label
-                        Text="Le chargement est lancé uniquement après l'appui sur le bouton."
-                        FontSize="13"
-                        TextColor="{StaticResource GoldText}"
-                        Opacity="0.75"
-                        HorizontalTextAlignment="Center" />
-                </VerticalStackLayout>
-            </Frame>
+            <!-- Indicateur de chargement automatique -->
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HeightRequest="30" />
 
             <CollectionView ItemsSource="{Binding Orders}" SelectionMode="None">
                 <CollectionView.EmptyView>
