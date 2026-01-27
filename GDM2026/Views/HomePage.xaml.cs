@@ -16,6 +16,13 @@ namespace GDM2026
         {
             base.OnAppearing();
             await _viewModel.InitializeAsync();
+            _viewModel.StartAutoRefresh();
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            _viewModel.StopAutoRefresh();
         }
     }
 }
