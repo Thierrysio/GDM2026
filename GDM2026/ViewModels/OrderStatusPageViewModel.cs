@@ -72,6 +72,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         DecreaseLineQuantityCommand = new Command<OrderLine>(async line => await DecreaseLineQuantityAsync(line));
         ShowMoreCommand = new Command(ShowMoreOrders);
         OpenLoyaltyScannerCommand = new Command<OrderStatusEntry>(async order => await OpenLoyaltyScannerAsync(order));
+        ScanOrderQrCodeCommand = new Command(async () => await ScanOrderQrCodeAsync());
 
         SelectReservationStatusCommand = new Command<ReservationStatusDisplay>(async status => await OnReservationStatusSelectedAsync(status));
         ApplyReservationFiltersCommand = new Command(async () => await ReloadWithFiltersAsync());
@@ -96,6 +97,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     public ICommand DecreaseLineQuantityCommand { get; }
     public ICommand ShowMoreCommand { get; }
     public ICommand OpenLoyaltyScannerCommand { get; }
+    public ICommand ScanOrderQrCodeCommand { get; }
     public ICommand SelectReservationStatusCommand { get; }
     public ICommand ApplyReservationFiltersCommand { get; }
     public ICommand DeleteReservationCommand { get; }
@@ -860,6 +862,51 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         {
             await Shell.Current.Navigation.PushAsync(scannerPage);
         }
+    }
+
+    /// <summary>
+    /// Ouvre le scanner QR code pour rechercher une commande par son QR (format commande-XXX)
+    /// </summary>
+    private async Task ScanOrderQrCodeAsync()
+    {
+        var scannerPage = new Views.OrderQrScannerPage();
+        scannerPage.OrderScanned += OnOrderQrScanned;
+
+        if (Shell.Current != null)
+        {
+            await Shell.Current.Navigation.PushAsync(scannerPage);
+        }
+    }
+
+    private void OnOrderQrScanned(object? sender, int orderId)
+    {
+        if (sender is Views.OrderQrScannerPage page)
+        {
+            page.OrderScanned -= OnOrderQrScanned;
+        }
+
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            // Chercher la commande dans la liste déjà chargée
+            var order = _allOrders.FirstOrDefault(o => o.OrderId == orderId)
+                        ?? Orders.FirstOrDefault(o => o.OrderId == orderId);
+
+            if (order != null)
+            {
+                // S'assurer que la commande est visible dans la liste affichée
+                if (!Orders.Contains(order))
+                {
+                    Orders.Insert(0, order);
+                }
+
+                // Ouvrir le détail de la commande
+                await ToggleOrderDetailsAsync(order);
+            }
+            else
+            {
+                await ShowLoadErrorAsync($"Commande #{orderId} introuvable dans les réservations chargées. Vérifiez la période et l'état sélectionnés puis rechargez.");
+            }
+        });
     }
 
     private int _currentLoyaltyOrderId;
