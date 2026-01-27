@@ -41,7 +41,7 @@ public partial class QrCodeScannerPage : ContentPage
     {
         base.OnAppearing();
         
-        // Demander la permission caméra si nécessaire
+        // Demander la permission camï¿½ra si nï¿½cessaire
         var status = await Permissions.CheckStatusAsync<Permissions.Camera>();
         if (status != PermissionStatus.Granted)
         {
@@ -55,8 +55,8 @@ public partial class QrCodeScannerPage : ContentPage
         }
         else
         {
-            await DisplayAlert("Permission requise", 
-                "L'accès à la caméra est nécessaire pour scanner les QR codes.", 
+            await DisplayAlertAsync("Permission requise",
+                "L'accï¿½s ï¿½ la camï¿½ra est nï¿½cessaire pour scanner les QR codes.", 
                 "OK");
             await Navigation.PopAsync();
         }
@@ -74,10 +74,10 @@ public partial class QrCodeScannerPage : ContentPage
         var result = e.Results?.FirstOrDefault();
         if (result != null && !string.IsNullOrWhiteSpace(result.Value))
         {
-            // Arrêter le scan immédiatement
+            // Arrï¿½ter le scan immï¿½diatement
             BarcodeReader.IsDetecting = false;
             
-            // Traiter le résultat sur le thread UI
+            // Traiter le rï¿½sultat sur le thread UI
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 await _viewModel.ProcessScannedCodeAsync(result.Value);

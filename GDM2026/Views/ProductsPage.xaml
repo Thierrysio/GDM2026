@@ -47,13 +47,14 @@
                             Clicked="OnEditProductClicked" />
                     </VerticalStackLayout>
 
-                    <Frame
+                    <Border
                         IsVisible="{Binding IsFormVisible}"
-                        BackgroundColor="#1E1E1E"
+                        Background="#1E1E1E"
                         Padding="14"
-                        HasShadow="False"
-                        CornerRadius="14"
-                        BorderColor="#2D2D2D">
+                        Stroke="#2D2D2D">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
                         <VerticalStackLayout Spacing="12">
                             <Label
                                 Text="Nouveau produit"
@@ -213,14 +214,15 @@
                                        LineBreakMode="WordWrap" />
                             </VerticalStackLayout>
                         </VerticalStackLayout>
-                    </Frame>
+                    </Border>
 
-                    <Frame
-                        BackgroundColor="#1E1E1E"
+                    <Border
+                        Background="#1E1E1E"
                         Padding="14"
-                        HasShadow="False"
-                        CornerRadius="14"
-                        BorderColor="#2D2D2D">
+                        Stroke="#2D2D2D">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
                         <VerticalStackLayout Spacing="12">
                             <Label Text="Catalogue actuel" FontAttributes="Bold" TextColor="{StaticResource GoldText}" FontSize="20" />
                             <Label Text="Recherchez un produit, actualisez le catalogue puis parcourez la liste limitée avec un indicateur d'activité clair."
@@ -247,7 +249,10 @@
                                     </CollectionView.EmptyView>
                                     <CollectionView.ItemTemplate>
                                         <DataTemplate>
-                                            <Frame Padding="16" BackgroundColor="{StaticResource CardBackground}" BorderColor="#000000" HasShadow="False" CornerRadius="16">
+                                            <Border Padding="16" Background="{StaticResource CardBackground}" Stroke="#000000">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="16" />
+                                                </Border.StrokeShape>
                                                 <Grid ColumnDefinitions="120,*" ColumnSpacing="12">
                                                     <Border BackgroundColor="#111" Stroke="#2D2D2D" HeightRequest="120" WidthRequest="120" HorizontalOptions="Start" VerticalOptions="Start">
                                                         <Image Source="{Binding PrimaryImageFullUrl}" Aspect="AspectFill" HeightRequest="120" WidthRequest="120" SemanticProperties.Description="Image du produit" />
@@ -261,13 +266,13 @@
                                                         <Label Text="{Binding DisplayPrice}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
                                                     </VerticalStackLayout>
                                                 </Grid>
-                                            </Frame>
+                                            </Border>
                                         </DataTemplate>
                                     </CollectionView.ItemTemplate>
                                 </CollectionView>
                             </RefreshView>
                         </VerticalStackLayout>
-                    </Frame>
+                    </Border>
                 </VerticalStackLayout>
             </Border>
         </VerticalStackLayout>

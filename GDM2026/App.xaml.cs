@@ -31,7 +31,7 @@ namespace GDM2026
             {
                 if (Shell.Current != null)
                 {
-                    await Shell.Current.DisplayAlert(
+                    await Shell.Current.DisplayAlertAsync(
                         "Session expirée",
                         "Votre session a expiré. Veuillez vous reconnecter.",
                         "OK");

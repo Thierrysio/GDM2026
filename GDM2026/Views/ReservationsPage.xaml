@@ -56,7 +56,10 @@
             </Border>
 
             <!-- Recherche + Scanner QR -->
-            <Frame BackgroundColor="#1E1E1E" Padding="12" CornerRadius="16" BorderColor="#2D2D2D" HasShadow="False">
+            <Border Background="#1E1E1E" Padding="12" Stroke="#2D2D2D">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16" />
+                </Border.StrokeShape>
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                     <SearchBar
                         Grid.Column="0"
@@ -80,7 +83,7 @@
                         HeightRequest="44"
                         VerticalOptions="Center" />
                 </Grid>
-            </Frame>
+            </Border>
 
             <!-- Résultat du scan QR : affiché directement sous la recherche -->
             <Border
@@ -355,7 +358,10 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Frame BackgroundColor="#1E1E1E" Padding="16" CornerRadius="16" BorderColor="#2D2D2D" HasShadow="False">
+            <Border Background="#1E1E1E" Padding="16" Stroke="#2D2D2D">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16" />
+                </Border.StrokeShape>
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Période" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
@@ -374,9 +380,12 @@
                         TextColor="{StaticResource GoldText}"
                         Opacity="0.75" />
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
-            <Frame BackgroundColor="#1E1E1E" Padding="16" CornerRadius="16" BorderColor="#2D2D2D" HasShadow="False">
+            <Border Background="#1E1E1E" Padding="16" Stroke="#2D2D2D">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16" />
+                </Border.StrokeShape>
                 <VerticalStackLayout Spacing="12">
                     <Label Text="État de réservation" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
                     <CollectionView ItemsSource="{Binding ReservationStatuses}" SelectionMode="None">
@@ -421,7 +430,7 @@
                     </CollectionView>
                     <Label Text="{Binding Subtitle}" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.75" />
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
             <!-- Indicateur de chargement automatique -->
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HeightRequest="30" />

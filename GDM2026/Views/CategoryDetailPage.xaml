@@ -98,13 +98,14 @@
                             Command="{Binding ToggleCategorySectionCommand}" />
                     </VerticalStackLayout>
 
-                    <Frame
+                    <Border
                         IsVisible="{Binding IsParentFormVisible}"
-                        BackgroundColor="#1E1E1E"
+                        Background="#1E1E1E"
                         Padding="16"
-                        CornerRadius="14"
-                        HasShadow="False"
-                        BorderColor="#2D2D2D">
+                        Stroke="#2D2D2D">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
                         <VerticalStackLayout Spacing="12">
                             <Label
                                 Text="{Binding ParentFormHeader}"
@@ -183,17 +184,18 @@
                                 BackgroundColor="#C18F1A"
                                 TextColor="{StaticResource GoldText}" />
                         </VerticalStackLayout>
-                    </Frame>
+                    </Border>
                 </VerticalStackLayout>
             </Border>
 
-            <Frame
+            <Border
                 IsVisible="{Binding IsCategorySectionVisible}"
-                BackgroundColor="#1E1E1E"
+                Background="#1E1E1E"
                 Padding="18"
-                CornerRadius="18"
-                HasShadow="False"
-                BorderColor="#2D2D2D">
+                Stroke="#2D2D2D">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
                 <VerticalStackLayout Spacing="14">
                     <Label
                         Text="Gestion des catégories filles"
@@ -228,13 +230,14 @@
                             Command="{Binding ShowCategoryUpdateCommand}" />
                     </VerticalStackLayout>
 
-                    <Frame
+                    <Border
                         IsVisible="{Binding IsCategoryFormVisible}"
-                        BackgroundColor="#101010"
+                        Background="#101010"
                         Padding="16"
-                        CornerRadius="14"
-                        HasShadow="False"
-                        BorderColor="#2D2D2D">
+                        Stroke="#2D2D2D">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
                         <VerticalStackLayout Spacing="12">
                             <Label
                                 Text="{Binding CategoryFormHeader}"
@@ -326,9 +329,9 @@
                                 BackgroundColor="#C18F1A"
                                 TextColor="{StaticResource GoldText}" />
                         </VerticalStackLayout>
-                    </Frame>
+                    </Border>
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

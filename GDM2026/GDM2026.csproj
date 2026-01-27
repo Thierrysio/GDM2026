@@ -10,7 +10,7 @@
                 <SingleProject>true</SingleProject>
                 <ImplicitUsings>enable</ImplicitUsings>
                 <Nullable>enable</Nullable>
-                <NoWarn>$(NoWarn);CA1416</NoWarn>
+                <NoWarn>$(NoWarn);CA1416;XA0141</NoWarn>
                 <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- Display name -->
