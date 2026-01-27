@@ -86,13 +86,16 @@
             <Border
                 Background="#121212"
                 Stroke="{StaticResource GoldText}"
-                StrokeThickness="2"
+                StrokeThickness="2.5"
                 Padding="18"
                 IsVisible="{Binding IsScannedOrderVisible}">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="16" />
                 </Border.StrokeShape>
+
                 <VerticalStackLayout Spacing="10">
+
+                    <!-- Bandeau titre + fermer -->
                     <Grid ColumnDefinitions="*,Auto">
                         <Label
                             Grid.Column="0"
@@ -112,7 +115,8 @@
                             Padding="0" />
                     </Grid>
 
-                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
+                    <!-- En-tête commande : label, montant, date, statut -->
+                    <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto,auto,auto" ColumnSpacing="8">
                         <Label
                             Grid.Row="0" Grid.Column="0"
                             Text="{Binding ScannedOrderEntry.OrderLabel}"
@@ -125,14 +129,37 @@
                             FontSize="15"
                             TextColor="{StaticResource GoldText}"
                             HorizontalOptions="End" />
+
+                        <!-- Réduction fidélité -->
+                        <HorizontalStackLayout
+                            Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                            Spacing="8"
+                            IsVisible="{Binding ScannedOrderEntry.HasLoyaltyReduction}">
+                            <Label Text="👑" FontSize="14" VerticalOptions="Center" />
+                            <Label
+                                Text="{Binding ScannedOrderEntry.DisplayLoyaltyReduction}"
+                                FontSize="13" TextColor="#5BE35B" FontAttributes="Bold" VerticalOptions="Center" />
+                            <Label
+                                Text="{Binding ScannedOrderEntry.DisplayLoyaltyCouronnes}"
+                                FontSize="12" Opacity="0.8" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+
                         <Label
-                            Grid.Row="1" Grid.Column="0"
+                            Grid.Row="2" Grid.Column="0"
                             Text="{Binding ScannedOrderEntry.DisplayDate}"
-                            FontSize="13"
-                            Opacity="0.7"
+                            FontSize="13" Opacity="0.7"
                             TextColor="{StaticResource GoldText}" />
+
+                        <Label
+                            Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                            Text="{Binding ScannedOrderEntry.PickupDateDisplay}"
+                            FontSize="13" Opacity="0.7"
+                            TextColor="{StaticResource GoldText}"
+                            HorizontalOptions="Start"
+                            IsVisible="{Binding ScannedOrderEntry.HasPickupDate}" />
+
                         <Border
-                            Grid.Row="1" Grid.Column="1"
+                            Grid.Row="2" Grid.Column="1"
                             Stroke="{StaticResource GoldText}"
                             StrokeThickness="1"
                             Padding="8,4"
@@ -143,71 +170,168 @@
                             </Border.StrokeShape>
                             <Label
                                 Text="{Binding ScannedOrderEntry.CurrentStatus}"
-                                FontSize="12"
-                                FontAttributes="Bold"
+                                FontSize="12" FontAttributes="Bold"
                                 TextColor="{StaticResource GoldText}" />
                         </Border>
-                        <Label
-                            Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
-                            Text="{Binding ScannedOrderEntry.PickupDateDisplay}"
-                            FontSize="13"
-                            Opacity="0.7"
-                            TextColor="{StaticResource GoldText}"
-                            IsVisible="{Binding ScannedOrderEntry.HasPickupDate}" />
                     </Grid>
 
-                    <!-- Détails de la commande scannée -->
-                    <ActivityIndicator
-                        IsRunning="{Binding ScannedOrderEntry.IsLoadingDetails}"
-                        IsVisible="{Binding ScannedOrderEntry.IsLoadingDetails}" />
-                    <Label
-                        Text="{Binding ScannedOrderEntry.DetailsError}"
-                        TextColor="Tomato"
-                        IsVisible="{Binding ScannedOrderEntry.HasDetailsError}" />
+                    <!-- Actions : picker état + boutons -->
+                    <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto" ColumnSpacing="12" RowSpacing="6">
+                        <VerticalStackLayout Spacing="4" Grid.Row="0" Grid.Column="0">
+                            <Picker
+                                ItemsSource="{Binding AvailableStatuses}"
+                                SelectedItem="{Binding ScannedOrderEntry.SelectedStatusOption, Mode=TwoWay}"
+                                BackgroundColor="#121212"
+                                Title="Modifier l'état"
+                                FontSize="14"
+                                TextColor="{StaticResource GoldText}"
+                                TitleColor="{StaticResource GoldText}" />
+                        </VerticalStackLayout>
 
-                    <CollectionView
-                        ItemsSource="{Binding ScannedOrderEntry.OrderLines}"
-                        SelectionMode="None"
-                        IsVisible="{Binding ScannedOrderEntry.HasLoadedDetails}">
-                        <CollectionView.EmptyView>
-                            <Label Text="Aucun détail trouvé pour cette commande." />
-                        </CollectionView.EmptyView>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate>
-                                <Grid ColumnDefinitions="*" Padding="8">
-                                    <VerticalStackLayout Spacing="2">
-                                        <Label Text="{Binding LeProduit.NomProduit}" FontAttributes="Bold" />
-                                        <Label Text="{Binding Quantite, StringFormat='Quantité : {0}'}" Opacity="0.8" />
-                                        <Label Text="{Binding PrixRetenu, StringFormat='Prix : {0:C}'}" Opacity="0.8" />
-                                    </VerticalStackLayout>
-                                </Grid>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
+                        <FlexLayout
+                            Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                            Wrap="Wrap" JustifyContent="End"
+                            AlignItems="Start" AlignContent="Start">
 
-                    <!-- Boutons d'action sur la commande scannée -->
-                    <FlexLayout Wrap="Wrap" JustifyContent="End" AlignItems="Start" AlignContent="Start">
-                        <Picker
-                            ItemsSource="{Binding AvailableStatuses}"
-                            SelectedItem="{Binding ScannedOrderEntry.SelectedStatusOption, Mode=TwoWay}"
-                            BackgroundColor="#121212"
-                            Title="Modifier l'état"
-                            FontSize="14"
-                            TextColor="{StaticResource GoldText}"
-                            TitleColor="{StaticResource GoldText}"
-                            WidthRequest="200" />
-                        <Button
-                            Text="Supprimer"
-                            Command="{Binding DeleteReservationCommand}"
-                            CommandParameter="{Binding ScannedOrderEntry}"
-                            BackgroundColor="Transparent"
-                            BorderColor="Tomato"
-                            BorderWidth="1.5"
-                            CornerRadius="10"
-                            WidthRequest="110"
-                            Margin="5,5,0,0"
-                            TextColor="Tomato" />
-                    </FlexLayout>
+                            <Button
+                                Text="👑 Fidélité"
+                                Command="{Binding OpenLoyaltyScannerCommand}"
+                                CommandParameter="{Binding ScannedOrderEntry}"
+                                IsVisible="{Binding ScannedOrderEntry.CanUseLoyalty}"
+                                BackgroundColor="#2D2D2D"
+                                BorderColor="#FFD700"
+                                BorderWidth="1.5"
+                                CornerRadius="10"
+                                WidthRequest="110"
+                                Margin="5,5,0,0"
+                                TextColor="#FFD700" />
+
+                            <Button
+                                Text="Annuler"
+                                Command="{Binding RevertStatusCommand}"
+                                CommandParameter="{Binding ScannedOrderEntry}"
+                                IsVisible="{Binding ScannedOrderEntry.CanRevert}"
+                                BackgroundColor="Transparent"
+                                BorderColor="{StaticResource GoldText}"
+                                BorderWidth="1.5"
+                                CornerRadius="10"
+                                WidthRequest="110"
+                                Margin="5,5,0,0"
+                                TextColor="{StaticResource GoldText}" />
+
+                            <Button
+                                Text="Supprimer"
+                                Command="{Binding DeleteReservationCommand}"
+                                CommandParameter="{Binding ScannedOrderEntry}"
+                                BackgroundColor="Transparent"
+                                BorderColor="Tomato"
+                                BorderWidth="1.5"
+                                CornerRadius="10"
+                                WidthRequest="110"
+                                Margin="5,5,0,0"
+                                TextColor="Tomato" />
+                        </FlexLayout>
+                    </Grid>
+
+                    <!-- Détails expandés : lignes de commande -->
+                    <Border BackgroundColor="#0D0D0D" Padding="10" StrokeThickness="0">
+                        <VerticalStackLayout Spacing="6">
+
+                            <Grid ColumnDefinitions="auto,*" ColumnSpacing="8"
+                                  IsVisible="{Binding ScannedOrderEntry.IsLoadingDetails}">
+                                <ActivityIndicator Grid.Column="0" IsVisible="True" IsRunning="True" />
+                                <Label Grid.Column="1" Text="Chargement des détails..." Opacity="0.8" />
+                            </Grid>
+
+                            <Label
+                                Text="{Binding ScannedOrderEntry.DetailsError}"
+                                TextColor="Tomato"
+                                IsVisible="{Binding ScannedOrderEntry.HasDetailsError}" />
+
+                            <CollectionView
+                                x:Name="ScannedOrderLinesView"
+                                ItemsSource="{Binding ScannedOrderEntry.OrderLines}"
+                                SelectionMode="None"
+                                IsVisible="{Binding ScannedOrderEntry.HasLoadedDetails}">
+                                <CollectionView.EmptyView>
+                                    <Label Text="Aucun détail trouvé pour cette commande." />
+                                </CollectionView.EmptyView>
+
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*,auto" RowDefinitions="auto,auto" Padding="8" ColumnSpacing="12">
+                                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                                <Label Text="{Binding LeProduit.NomProduit}" FontAttributes="Bold" />
+                                                <Label Text="{Binding Quantite, StringFormat='Quantité : {0}'}" Opacity="0.8" />
+                                                <Label Text="{Binding PrixRetenu, StringFormat='Prix : {0:C}'}" Opacity="0.8" />
+                                                <Label Text="À traiter" Opacity="0.8">
+                                                    <Label.Triggers>
+                                                        <DataTrigger TargetType="Label" Binding="{Binding Traite}" Value="True">
+                                                            <Setter Property="Text" Value="Traité" />
+                                                            <Setter Property="TextColor" Value="#5BE35B" />
+                                                            <Setter Property="Opacity" Value="1" />
+                                                        </DataTrigger>
+                                                    </Label.Triggers>
+                                                </Label>
+                                                <Label Text="Livré" TextColor="#5BE35B" FontAttributes="Bold" IsVisible="False">
+                                                    <Label.Triggers>
+                                                        <DataTrigger TargetType="Label" Binding="{Binding Livree}" Value="True">
+                                                            <Setter Property="IsVisible" Value="True" />
+                                                        </DataTrigger>
+                                                    </Label.Triggers>
+                                                </Label>
+                                            </VerticalStackLayout>
+
+                                            <Grid Grid.Column="1" ColumnDefinitions="auto" RowDefinitions="auto,auto" RowSpacing="6">
+                                                <ImageButton
+                                                    Grid.Row="0"
+                                                    Command="{Binding BindingContext.MarkLineTreatedCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="#1A1A1A"
+                                                    CornerRadius="12"
+                                                    Padding="10"
+                                                    HorizontalOptions="End"
+                                                    VerticalOptions="Center">
+                                                    <ImageButton.Source>
+                                                        <FontImageSource Glyph="&#x2713;" Color="{StaticResource GoldText}" Size="22" />
+                                                    </ImageButton.Source>
+                                                    <ImageButton.Triggers>
+                                                        <DataTrigger TargetType="ImageButton" Binding="{Binding Traite}" Value="True">
+                                                            <Setter Property="Opacity" Value="0.4" />
+                                                            <Setter Property="IsEnabled" Value="False" />
+                                                        </DataTrigger>
+                                                    </ImageButton.Triggers>
+                                                </ImageButton>
+
+                                                <ImageButton
+                                                    Grid.Row="1"
+                                                    Command="{Binding BindingContext.MarkLineDeliveredCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="#1A1A1A"
+                                                    CornerRadius="12"
+                                                    Padding="10"
+                                                    HorizontalOptions="End"
+                                                    VerticalOptions="Center"
+                                                    IsVisible="False">
+                                                    <ImageButton.Source>
+                                                        <FontImageSource Glyph="&#x1F464;" Color="{StaticResource GoldText}" Size="22" />
+                                                    </ImageButton.Source>
+                                                    <ImageButton.Triggers>
+                                                        <DataTrigger TargetType="ImageButton" Binding="{Binding Livree}" Value="True">
+                                                            <Setter Property="Opacity" Value="0.4" />
+                                                            <Setter Property="IsEnabled" Value="False" />
+                                                        </DataTrigger>
+                                                    </ImageButton.Triggers>
+                                                </ImageButton>
+                                            </Grid>
+                                        </Grid>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+
+                        </VerticalStackLayout>
+                    </Border>
+
                 </VerticalStackLayout>
             </Border>
 
