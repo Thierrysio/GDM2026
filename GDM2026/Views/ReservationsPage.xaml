@@ -300,6 +300,16 @@
                                                             <Setter Property="Opacity" Value="0.4" />
                                                             <Setter Property="IsEnabled" Value="False" />
                                                         </DataTrigger>
+                                                        <DataTrigger TargetType="ImageButton"
+                                                                     Binding="{Binding BindingContext.ScannedOrderEntry.CurrentStatus, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                                                     Value="Traitée">
+                                                            <Setter Property="IsVisible" Value="False" />
+                                                        </DataTrigger>
+                                                        <DataTrigger TargetType="ImageButton"
+                                                                     Binding="{Binding BindingContext.ScannedOrderEntry.CurrentStatus, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                                                     Value="Livrée">
+                                                            <Setter Property="IsVisible" Value="False" />
+                                                        </DataTrigger>
                                                     </ImageButton.Triggers>
                                                 </ImageButton>
 
@@ -317,6 +327,16 @@
                                                         <FontImageSource Glyph="&#x1F464;" Color="{StaticResource GoldText}" Size="22" />
                                                     </ImageButton.Source>
                                                     <ImageButton.Triggers>
+                                                        <DataTrigger TargetType="ImageButton"
+                                                                     Binding="{Binding BindingContext.ScannedOrderEntry.CurrentStatus, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                                                     Value="Traitée">
+                                                            <Setter Property="IsVisible" Value="True" />
+                                                        </DataTrigger>
+                                                        <DataTrigger TargetType="ImageButton"
+                                                                     Binding="{Binding BindingContext.ScannedOrderEntry.CurrentStatus, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                                                     Value="Livrée">
+                                                            <Setter Property="IsVisible" Value="True" />
+                                                        </DataTrigger>
                                                         <DataTrigger TargetType="ImageButton" Binding="{Binding Livree}" Value="True">
                                                             <Setter Property="Opacity" Value="0.4" />
                                                             <Setter Property="IsEnabled" Value="False" />
