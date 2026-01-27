@@ -606,11 +606,17 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         }
     }
 
+    private OrderStatusEntry? FindOrderForLine(OrderLine line)
+    {
+        return Orders.FirstOrDefault(o => o.OrderId == line.OrderId)
+               ?? (ScannedOrderEntry?.OrderId == line.OrderId ? ScannedOrderEntry : null);
+    }
+
     private async Task MarkLineTreatedAsync(OrderLine? line)
     {
         if (line is null || line.Traite) return;
 
-        var order = Orders.FirstOrDefault(o => o.OrderId == line.OrderId);
+        var order = FindOrderForLine(line);
         if (order is null) return;
 
         var endpoint = "https://dantecmarket.com/api/mobile/changerEtatCommander";
@@ -650,7 +656,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     {
         if (line is null || line.Livree) return;
 
-        var order = Orders.FirstOrDefault(o => o.OrderId == line.OrderId);
+        var order = FindOrderForLine(line);
         if (order is null) return;
 
         var endpoint = "https://dantecmarket.com/api/mobile/changerEtatCommander";
@@ -721,7 +727,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     {
         if (line is null) return;
 
-        var order = Orders.FirstOrDefault(o => o.OrderId == line.OrderId);
+        var order = FindOrderForLine(line);
         if (order is null) return;
 
         // Ne pas permettre la modification si la commande est déjà livrée
@@ -735,7 +741,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     {
         if (line is null) return;
 
-        var order = Orders.FirstOrDefault(o => o.OrderId == line.OrderId);
+        var order = FindOrderForLine(line);
         if (order is null) return;
 
         // Ne pas permettre la modification si la commande est déjà livrée
