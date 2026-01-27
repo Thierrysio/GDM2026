@@ -57,13 +57,14 @@
                             Command="{Binding LoadPartnersCommand}" />
                     </VerticalStackLayout>
 
-                    <Frame
+                    <Border
                         IsVisible="{Binding IsUpdateMode}"
-                        BackgroundColor="#1E1E1E"
+                        Background="#1E1E1E"
                         Padding="14"
-                        HasShadow="False"
-                        CornerRadius="14"
-                        BorderColor="#2D2D2D">
+                        Stroke="#2D2D2D">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
                         <VerticalStackLayout Spacing="12">
                             <Label
                                 Text="Sélectionnez un partenaire à modifier"
@@ -131,15 +132,16 @@
                                 TextColor="{StaticResource GoldText}"
                                 IsEnabled="{Binding HasPartnerSelection}" />
                         </VerticalStackLayout>
-                    </Frame>
+                    </Border>
 
-                    <Frame
+                    <Border
                         IsVisible="{Binding IsFormSectionVisible}"
-                        BackgroundColor="#1E1E1E"
+                        Background="#1E1E1E"
                         Padding="14"
-                        HasShadow="False"
-                        CornerRadius="14"
-                        BorderColor="#2D2D2D">
+                        Stroke="#2D2D2D">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
                         <VerticalStackLayout Spacing="12">
                             <Label
                                 Text="{Binding FormHeader}"
@@ -261,7 +263,7 @@
                                 TextColor="{StaticResource GoldText}"
                                 IsEnabled="{Binding IsFormInputEnabled}" />
                         </VerticalStackLayout>
-                    </Frame>
+                    </Border>
 
                     <Label
                         Text="{Binding StatusMessage}"

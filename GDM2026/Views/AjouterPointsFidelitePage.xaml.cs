@@ -45,7 +45,7 @@ public partial class AjouterPointsFidelitePage : ContentPage
         }
         else
         {
-            await DisplayAlert("Permission requise",
+            await DisplayAlertAsync("Permission requise",
                 "L'accès à la caméra est nécessaire pour scanner les QR codes.",
                 "OK");
             await Navigation.PopAsync();

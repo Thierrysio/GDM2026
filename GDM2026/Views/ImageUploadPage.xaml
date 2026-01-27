@@ -38,11 +38,12 @@
                            TextColor="{StaticResource GoldText}"
                            Opacity="0.75" />
 
-                    <Frame BackgroundColor="#1E1E1E"
-                           HasShadow="False"
+                    <Border Background="#1E1E1E"
                            Padding="14"
-                           CornerRadius="14"
-                           BorderColor="#2D2D2D">
+                           Stroke="#2D2D2D">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
                         <VerticalStackLayout Spacing="12">
                             <Label Text="Choix de la source"
                                    FontAttributes="Bold"
@@ -70,13 +71,14 @@
                                    HorizontalTextAlignment="Center"
                                    LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
-                    </Frame>
+                    </Border>
 
-                    <Frame BackgroundColor="#1E1E1E"
-                           HasShadow="False"
+                    <Border Background="#1E1E1E"
                            Padding="14"
-                           CornerRadius="14"
-                           BorderColor="#2D2D2D">
+                           Stroke="#2D2D2D">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
                         <VerticalStackLayout Spacing="12">
                             <Label Text="Aperçu optimisé"
                                    FontAttributes="Bold"
@@ -117,13 +119,14 @@
                                    Opacity="0.65"
                                    IsVisible="{Binding ShowOriginalFileName}" />
                         </VerticalStackLayout>
-                    </Frame>
+                    </Border>
 
-                    <Frame BackgroundColor="#1E1E1E"
-                           HasShadow="False"
+                    <Border Background="#1E1E1E"
                            Padding="14"
-                           CornerRadius="14"
-                           BorderColor="#2D2D2D">
+                           Stroke="#2D2D2D">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
                         <VerticalStackLayout Spacing="12">
                             <Label Text="Envoyer"
                                    FontAttributes="Bold"
@@ -139,7 +142,7 @@
                                    TextColor="{StaticResource GoldText}"
                                    Opacity="0.75" />
                         </VerticalStackLayout>
-                    </Frame>
+                    </Border>
 
                 </VerticalStackLayout>
             </Border>

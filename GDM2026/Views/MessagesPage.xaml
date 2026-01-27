@@ -72,11 +72,12 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Frame BackgroundColor="#1E1E1E"
-                   HasShadow="False"
+            <Border Background="#1E1E1E"
                    Padding="14"
-                   CornerRadius="16"
-                   BorderColor="#2D2D2D">
+                   Stroke="#2D2D2D">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16" />
+                </Border.StrokeShape>
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Messages affichés"
                            FontAttributes="Bold"
@@ -177,14 +178,15 @@
                            HorizontalTextAlignment="Center"
                            Opacity="0.75" />
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
-            <Frame BackgroundColor="#1E1E1E"
-                   HasShadow="False"
+            <Border Background="#1E1E1E"
                    Padding="14"
-                   CornerRadius="16"
-                   BorderColor="#2D2D2D"
+                   Stroke="#2D2D2D"
                    IsVisible="{Binding IsReplySectionVisible}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16" />
+                </Border.StrokeShape>
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Répondre au message sélectionné"
                            FontAttributes="Bold"
@@ -222,7 +224,7 @@
                                        Color="{StaticResource GoldText}"
                                        HorizontalOptions="Center" />
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
             <BoxView HeightRequest="40"
                      InputTransparent="True" />

@@ -45,8 +45,6 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     private string _subtitle = string.Empty;
     private string _searchQuery = string.Empty;
 
-    private bool _hasAppliedFilters;
-
     private bool _isShowingLimitedOrders = true;
     private bool _canShowMore;
     private int _displayedReservationsCount = 5;
@@ -111,8 +109,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         get => _status;
         set
         {
-            if (SetProperty(ref _status, value))
-                MarkFiltersPending();
+            SetProperty(ref _status, value);
         }
     }
 
@@ -124,7 +121,6 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             if (SetProperty(ref _startDate, value))
             {
                 EnsureValidDateRange();
-                MarkFiltersPending();
             }
         }
     }
@@ -137,7 +133,6 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             if (SetProperty(ref _endDate, value))
             {
                 EnsureValidDateRange();
-                MarkFiltersPending();
             }
         }
     }
@@ -269,8 +264,6 @@ public partial class OrderStatusPageViewModel : BaseViewModel
                     ? $"{Status} · période du {StartDate:dd/MM/yyyy} au {EndDate:dd/MM/yyyy}"
                     : "Commandes : en cours de chargement...";
             });
-
-            _hasAppliedFilters = true;
 
             List<OrderByStatus> orders;
 
@@ -1373,11 +1366,6 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             await InitializeAsync().ConfigureAwait(false);
 
         await LoadStatusAsync().ConfigureAwait(false);
-    }
-
-    private void MarkFiltersPending()
-    {
-        _hasAppliedFilters = false;
     }
 
     private void EnsureValidDateRange()

@@ -152,11 +152,13 @@
             </Border>
 
             <!-- ================= FORMULAIRE ================= -->
-            <Frame IsVisible="{Binding IsEditFormVisible}"
+            <Border IsVisible="{Binding IsEditFormVisible}"
                    Padding="18"
-                   CornerRadius="18"
-                   BackgroundColor="{StaticResource CardBackground}"
-                   BorderColor="#000">
+                   Background="{StaticResource CardBackground}"
+                   Stroke="#000">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
 
                 <VerticalStackLayout Spacing="12">
 
@@ -349,7 +351,7 @@
                                        Color="{StaticResource GoldText}" />
 
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
         </VerticalStackLayout>
     </ScrollView>
