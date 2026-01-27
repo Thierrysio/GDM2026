@@ -55,6 +55,33 @@
                 </VerticalStackLayout>
             </Border>
 
+            <!-- Recherche + Scanner QR -->
+            <Frame BackgroundColor="#1E1E1E" Padding="12" CornerRadius="16" BorderColor="#2D2D2D" HasShadow="False">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                    <SearchBar
+                        Grid.Column="0"
+                        Placeholder="Rechercher une commande"
+                        Text="{Binding SearchQuery}"
+                        PlaceholderColor="{StaticResource GoldText}"
+                        TextColor="{StaticResource GoldText}"
+                        BackgroundColor="#121212"
+                        CancelButtonColor="{StaticResource GoldText}"
+                        SearchCommand="{x:Null}" />
+                    <Button
+                        Grid.Column="1"
+                        Text="📷 QR"
+                        Command="{Binding ScanOrderQrCodeCommand}"
+                        BackgroundColor="#2D2D2D"
+                        BorderColor="{StaticResource GoldText}"
+                        BorderWidth="1.5"
+                        CornerRadius="10"
+                        TextColor="{StaticResource GoldText}"
+                        WidthRequest="80"
+                        HeightRequest="44"
+                        VerticalOptions="Center" />
+                </Grid>
+            </Frame>
+
             <Frame BackgroundColor="#1E1E1E" Padding="16" CornerRadius="16" BorderColor="#2D2D2D" HasShadow="False">
                 <VerticalStackLayout Spacing="12">
                     <Label Text="1. Sélectionnez la période" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
@@ -139,15 +166,6 @@
                         HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
             </Frame>
-
-            <SearchBar
-                Placeholder="Rechercher une commande"
-                Text="{Binding SearchQuery}"
-                PlaceholderColor="{StaticResource GoldText}"
-                TextColor="{StaticResource GoldText}"
-                BackgroundColor="#121212"
-                CancelButtonColor="{StaticResource GoldText}"
-                SearchCommand="{x:Null}" />
 
             <CollectionView ItemsSource="{Binding Orders}" SelectionMode="None">
                 <CollectionView.EmptyView>
