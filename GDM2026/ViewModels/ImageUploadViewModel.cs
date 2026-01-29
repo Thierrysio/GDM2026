@@ -138,11 +138,7 @@ public class ImageUploadViewModel : BaseViewModel
 
             Debug.WriteLine($"[PHOTO] Copie immédiate du fichier: {originalFileName}");
 
-            await using (var sourceStream = await fileResult.OpenReadAsync())
-            await using (var destStream = File.Create(tempFilePath))
-            {
-                await sourceStream.CopyToAsync(destStream);
-            }
+            await CopyFileResultToTempAsync(fileResult, tempFilePath);
 
             Debug.WriteLine($"[PHOTO] Fichier copié vers: {tempFilePath}, taille: {new FileInfo(tempFilePath).Length} octets");
 
@@ -182,6 +178,11 @@ public class ImageUploadViewModel : BaseViewModel
             StatusMessage = "Sélection annulée.";
             StatusColor = Colors.Gold;
         }
+        catch (ObjectDisposedException)
+        {
+            StatusMessage = "Impossible de lire la photo sélectionnée. Réessayez.";
+            StatusColor = Colors.OrangeRed;
+        }
         catch (Exception ex)
         {
             Debug.WriteLine($"[PHOTO] Erreur lors de la sélection: {ex.GetType().Name}: {ex.Message}");
@@ -208,6 +209,49 @@ public class ImageUploadViewModel : BaseViewModel
             IsBusy = false;
             (UploadCommand as Command)?.ChangeCanExecute();
         }
+    }
+
+    private static async Task CopyFileResultToTempAsync(FileResult fileResult, string tempFilePath)
+    {
+        var attempts = 0;
+        while (attempts < 2)
+        {
+            attempts++;
+            try
+            {
+                if (File.Exists(tempFilePath))
+                {
+                    File.Delete(tempFilePath);
+                }
+
+                await using (var sourceStream = await fileResult.OpenReadAsync())
+                await using (var destStream = File.Create(tempFilePath))
+                {
+                    await sourceStream.CopyToAsync(destStream);
+                }
+
+                return;
+            }
+            catch (ObjectDisposedException)
+            {
+                Debug.WriteLine($"[PHOTO] Stream fermé lors de la tentative {attempts}.");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(fileResult.FullPath) && File.Exists(fileResult.FullPath))
+        {
+            if (File.Exists(tempFilePath))
+            {
+                File.Delete(tempFilePath);
+            }
+
+            await using var sourceStream = File.OpenRead(fileResult.FullPath);
+            await using var destStream = File.Create(tempFilePath);
+            await sourceStream.CopyToAsync(destStream);
+            return;
+        }
+
+        throw new IOException("Impossible de lire la photo sélectionnée.");
     }
 
     private static async Task<bool> EnsurePermissionsAsync(bool fromCamera)
