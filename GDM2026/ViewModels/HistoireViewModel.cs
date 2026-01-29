@@ -579,7 +579,7 @@ public class HistoireViewModel : BaseViewModel
             return;
         }
 
-        throw new IOException("Impossible de lire la photo sélectionnée.");
+        throw new IOException("Impossible de lire la photo sélectionnée. Réessayez.");
     }
 
     private async Task UploadSelectedImageAsync()
