@@ -501,16 +501,31 @@ public class ImageUploadViewModel : BaseViewModel
 
     private static async Task<string> OptimizeAndSaveAsync(FileResult fileResult)
     {
-        await using var sourceStream = await fileResult.OpenReadAsync();
+        // Capturer le nom du fichier avant d'entrer dans Task.Run (évite les problèmes d'accès cross-thread)
+        var originalFileName = fileResult.FileName;
 
-        // Copier le flux en mémoire pour pouvoir le lire plusieurs fois (orientation EXIF + décodage)
-        using var memoryStream = new MemoryStream();
-        await sourceStream.CopyToAsync(memoryStream);
+        // Lire complètement le fichier dans un byte array sur le thread principal.
+        // Sur Android 13+ avec le Photo Picker, le stream peut être fermé prématurément
+        // si on ne le lit pas immédiatement et complètement.
+        byte[] imageData;
+        await using (var sourceStream = await fileResult.OpenReadAsync())
+        {
+            using var tempMemory = new MemoryStream();
+            await sourceStream.CopyToAsync(tempMemory);
+            imageData = tempMemory.ToArray();
+        }
+
+        if (imageData.Length == 0)
+        {
+            throw new InvalidOperationException("Le fichier image est vide ou n'a pas pu être lu.");
+        }
 
         var resultPath = await Task.Run(() =>
         {
+            // Créer un nouveau MemoryStream à partir du byte array (thread-safe)
+            using var memoryStream = new MemoryStream(imageData);
+
             // Lire l'orientation EXIF avec SKCodec
-            memoryStream.Position = 0;
             var orientation = SKEncodedOrigin.TopLeft;
             using (var codec = SKCodec.Create(memoryStream))
             {
@@ -530,7 +545,7 @@ public class ImageUploadViewModel : BaseViewModel
 
             var resizedBitmap = ResizeBitmap(orientedBitmap, 1280);
 
-            var newFileName = $"{Path.GetFileNameWithoutExtension(fileResult.FileName)}-{Guid.NewGuid():N}.jpg";
+            var newFileName = $"{Path.GetFileNameWithoutExtension(originalFileName)}-{Guid.NewGuid():N}.jpg";
             var newFilePath = Path.Combine(FileSystem.CacheDirectory, newFileName);
 
             using var image = SKImage.FromBitmap(resizedBitmap);
