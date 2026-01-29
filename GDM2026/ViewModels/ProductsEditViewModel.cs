@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -813,15 +814,36 @@ public class ProductsEditViewModel : BaseViewModel
             && !string.IsNullOrWhiteSpace(product.Categorie)
             && string.Equals(c.Name, product.Categorie, StringComparison.OrdinalIgnoreCase));
 
-        _selectedImageUrl = product.PrimaryImage;
-        if (ImageLibrary.Any() && !string.IsNullOrWhiteSpace(_selectedImageUrl))
+        var productImageUrl = product.PrimaryImage;
+        AdminImage? matchedImage = null;
+
+        if (!string.IsNullOrWhiteSpace(productImageUrl) && ImageLibrary.Any())
         {
-            SelectedLibraryImage = ImageLibrary.FirstOrDefault(img => string.Equals(img.Url, _selectedImageUrl, StringComparison.OrdinalIgnoreCase));
+            matchedImage = ImageLibrary.FirstOrDefault(img =>
+                string.Equals(img.Url, productImageUrl, StringComparison.OrdinalIgnoreCase));
+
+            if (matchedImage is null)
+            {
+                var fileName = Path.GetFileName(productImageUrl.Trim());
+                if (!string.IsNullOrWhiteSpace(fileName))
+                {
+                    matchedImage = ImageLibrary.FirstOrDefault(img =>
+                        string.Equals(Path.GetFileName(img.Url), fileName, StringComparison.OrdinalIgnoreCase));
+                }
+            }
         }
 
-        SelectedImageName = string.IsNullOrWhiteSpace(_selectedImageUrl)
-            ? "Aucune image sélectionnée."
-            : $"Image sélectionnée : {_selectedImageUrl}";
+        if (matchedImage is not null)
+        {
+            SelectedLibraryImage = matchedImage;
+        }
+        else
+        {
+            _selectedImageUrl = productImageUrl;
+            SelectedImageName = string.IsNullOrWhiteSpace(_selectedImageUrl)
+                ? "Aucune image sélectionnée."
+                : $"Image sélectionnée : {_selectedImageUrl}";
+        }
 
         RefreshImageLibraryFilter();
     }
