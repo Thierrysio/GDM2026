@@ -590,21 +590,17 @@ public class ImageUploadViewModel : BaseViewModel
     {
         var resultPath = await Task.Run(() =>
         {
-            // Lire le fichier directement depuis le disque
-            byte[] imageData = File.ReadAllBytes(localFilePath);
-
-            if (imageData.Length == 0)
+            var fileInfo = new FileInfo(localFilePath);
+            if (!fileInfo.Exists || fileInfo.Length == 0)
             {
                 throw new InvalidOperationException("Le fichier image est vide ou n'a pas pu être lu.");
             }
 
-            Debug.WriteLine($"[PHOTO] Optimisation de l'image: {imageData.Length} octets");
-
-            using var memoryStream = new MemoryStream(imageData);
+            Debug.WriteLine($"[PHOTO] Optimisation de l'image: {fileInfo.Length} octets");
 
             // Lire l'orientation EXIF avec SKCodec
             var orientation = SKEncodedOrigin.TopLeft;
-            using (var codec = SKCodec.Create(memoryStream))
+            using (var codec = SKCodec.Create(localFilePath))
             {
                 if (codec != null)
                 {
@@ -612,10 +608,8 @@ public class ImageUploadViewModel : BaseViewModel
                 }
             }
 
-            // Remettre le flux au début pour le décodage
-            memoryStream.Position = 0;
-            using var managedStream = new SKManagedStream(memoryStream);
-            using var originalBitmap = SKBitmap.Decode(managedStream) ?? throw new InvalidOperationException("Impossible de lire l'image sélectionnée.");
+            using var originalBitmap = SKBitmap.Decode(localFilePath)
+                ?? throw new InvalidOperationException("Impossible de lire l'image sélectionnée.");
 
             // Appliquer l'orientation EXIF pour corriger la rotation
             var orientedBitmap = ApplyExifOrientation(originalBitmap, orientation);
