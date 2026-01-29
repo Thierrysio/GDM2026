@@ -485,9 +485,30 @@ public class HistoireViewModel : BaseViewModel
                 return;
             }
 
+            // CRITIQUE: Copier le fichier IMMÉDIATEMENT après la capture.
+            // Sur Android 13+, le stream du FileResult peut être fermé très rapidement.
+            var originalFileName = fileResult.FileName;
+            var tempFileName = $"capture-{Guid.NewGuid():N}.tmp";
+            var tempFilePath = Path.Combine(FileSystem.CacheDirectory, tempFileName);
+
+            Debug.WriteLine($"[HISTOIRE] Copie immédiate du fichier: {originalFileName}");
+
+            await using (var sourceStream = await fileResult.OpenReadAsync())
+            await using (var destStream = File.Create(tempFilePath))
+            {
+                await sourceStream.CopyToAsync(destStream);
+            }
+
+            Debug.WriteLine($"[HISTOIRE] Fichier copié vers: {tempFilePath}, taille: {new FileInfo(tempFilePath).Length} octets");
+
             ImageStatusMessage = "Optimisation de l'image…";
 
-            _selectedLocalFile = await SaveFileToLocalAsync(fileResult);
+            // Maintenant on peut optimiser depuis le fichier local
+            _selectedLocalFile = await OptimizeFromLocalFileAsync(tempFilePath, originalFileName);
+
+            // Nettoyer le fichier temporaire
+            try { File.Delete(tempFilePath); } catch { /* ignore */ }
+
             SelectedImagePreview = ImageSource.FromFile(_selectedLocalFile);
             SelectedImageLabel = Path.GetFileName(_selectedLocalFile);
             ImageStatusMessage = "Image prête à être envoyée.";
@@ -507,8 +528,9 @@ public class HistoireViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            ImageStatusMessage = "Impossible de sélectionner la photo.";
-            Debug.WriteLine($"[HISTOIRE] Sélection image échouée : {ex}");
+            ImageStatusMessage = $"Erreur: {ex.Message}";
+            Debug.WriteLine($"[HISTOIRE] Sélection image échouée : {ex.GetType().Name}: {ex.Message}");
+            Debug.WriteLine($"[HISTOIRE] StackTrace: {ex.StackTrace}");
         }
         finally
         {
@@ -567,112 +589,71 @@ public class HistoireViewModel : BaseViewModel
         }
     }
 
-    private static async Task<string> SaveFileToLocalAsync(FileResult fileResult)
+    /// <summary>
+    /// Optimise une image depuis un fichier local (déjà copié dans le cache).
+    /// Cette méthode travaille uniquement avec des fichiers locaux, évitant les problèmes
+    /// de stream fermé sur Android 13+.
+    /// </summary>
+    private static async Task<string> OptimizeFromLocalFileAsync(string localFilePath, string originalFileName)
     {
-        if (fileResult is null)
+        var resultPath = await Task.Run(() =>
         {
-            throw new ArgumentNullException(nameof(fileResult));
-        }
+            // Lire le fichier directement depuis le disque
+            byte[] imageData = File.ReadAllBytes(localFilePath);
 
-        return await OptimizeAndSaveAsync(fileResult);
-    }
-
-    private static async Task<string> OptimizeAndSaveAsync(FileResult fileResult)
-    {
-        // Capturer le nom du fichier avant d'entrer dans Task.Run (évite les problèmes d'accès cross-thread)
-        var originalFileName = fileResult.FileName;
-
-        // Sur Android 13+, le stream de FileResult peut être problématique.
-        // On utilise FullPath si disponible, sinon on copie d'abord le fichier localement.
-        string sourceFilePath;
-        bool shouldDeleteSource = false;
-
-        if (!string.IsNullOrEmpty(fileResult.FullPath) && File.Exists(fileResult.FullPath))
-        {
-            // FullPath disponible - utiliser directement
-            sourceFilePath = fileResult.FullPath;
-        }
-        else
-        {
-            // FullPath non disponible - copier le fichier dans le cache d'abord
-            var tempPath = Path.Combine(FileSystem.CacheDirectory, $"temp-{Guid.NewGuid():N}.tmp");
-            shouldDeleteSource = true;
-
-            await using (var sourceStream = await fileResult.OpenReadAsync())
-            await using (var destStream = File.Create(tempPath))
+            if (imageData.Length == 0)
             {
-                await sourceStream.CopyToAsync(destStream);
+                throw new InvalidOperationException("Le fichier image est vide ou n'a pas pu être lu.");
             }
 
-            sourceFilePath = tempPath;
-        }
+            Debug.WriteLine($"[HISTOIRE] Optimisation de l'image: {imageData.Length} octets");
 
-        try
-        {
-            var resultPath = await Task.Run(() =>
+            using var memoryStream = new MemoryStream(imageData);
+
+            // Lire l'orientation EXIF avec SKCodec
+            var orientation = SKEncodedOrigin.TopLeft;
+            using (var codec = SKCodec.Create(memoryStream))
             {
-                // Lire le fichier directement depuis le disque
-                byte[] imageData = File.ReadAllBytes(sourceFilePath);
-
-                if (imageData.Length == 0)
+                if (codec != null)
                 {
-                    throw new InvalidOperationException("Le fichier image est vide ou n'a pas pu être lu.");
+                    orientation = codec.EncodedOrigin;
                 }
-
-                using var memoryStream = new MemoryStream(imageData);
-
-                // Lire l'orientation EXIF avec SKCodec
-                var orientation = SKEncodedOrigin.TopLeft;
-                using (var codec = SKCodec.Create(memoryStream))
-                {
-                    if (codec != null)
-                    {
-                        orientation = codec.EncodedOrigin;
-                    }
-                }
-
-                // Remettre le flux au début pour le décodage
-                memoryStream.Position = 0;
-                using var managedStream = new SKManagedStream(memoryStream);
-                using var originalBitmap = SKBitmap.Decode(managedStream) ?? throw new InvalidOperationException("Impossible de lire l'image sélectionnée.");
-
-                // Appliquer l'orientation EXIF pour corriger la rotation
-                var orientedBitmap = ApplyExifOrientation(originalBitmap, orientation);
-
-                var resizedBitmap = ResizeBitmap(orientedBitmap, 1280);
-
-                var newFileName = $"{Path.GetFileNameWithoutExtension(originalFileName)}-{Guid.NewGuid():N}.jpg";
-                var newFilePath = Path.Combine(FileSystem.CacheDirectory, newFileName);
-
-                using var image = SKImage.FromBitmap(resizedBitmap);
-                using var data = image.Encode(SKEncodedImageFormat.Jpeg, 80);
-                using (var destStream = File.Open(newFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
-                {
-                    data.SaveTo(destStream);
-                }
-
-                if (!ReferenceEquals(resizedBitmap, orientedBitmap))
-                {
-                    resizedBitmap.Dispose();
-                }
-                if (!ReferenceEquals(orientedBitmap, originalBitmap))
-                {
-                    orientedBitmap.Dispose();
-                }
-
-                return newFilePath;
-            }).ConfigureAwait(false);
-
-            return resultPath;
-        }
-        finally
-        {
-            // Nettoyer le fichier temporaire si on en a créé un
-            if (shouldDeleteSource && File.Exists(sourceFilePath))
-            {
-                try { File.Delete(sourceFilePath); } catch { /* ignore */ }
             }
-        }
+
+            // Remettre le flux au début pour le décodage
+            memoryStream.Position = 0;
+            using var managedStream = new SKManagedStream(memoryStream);
+            using var originalBitmap = SKBitmap.Decode(managedStream) ?? throw new InvalidOperationException("Impossible de lire l'image sélectionnée.");
+
+            // Appliquer l'orientation EXIF pour corriger la rotation
+            var orientedBitmap = ApplyExifOrientation(originalBitmap, orientation);
+
+            var resizedBitmap = ResizeBitmap(orientedBitmap, 1280);
+
+            var newFileName = $"{Path.GetFileNameWithoutExtension(originalFileName)}-{Guid.NewGuid():N}.jpg";
+            var newFilePath = Path.Combine(FileSystem.CacheDirectory, newFileName);
+
+            using var image = SKImage.FromBitmap(resizedBitmap);
+            using var data = image.Encode(SKEncodedImageFormat.Jpeg, 80);
+            using (var destStream = File.Open(newFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                data.SaveTo(destStream);
+            }
+
+            if (!ReferenceEquals(resizedBitmap, orientedBitmap))
+            {
+                resizedBitmap.Dispose();
+            }
+            if (!ReferenceEquals(orientedBitmap, originalBitmap))
+            {
+                orientedBitmap.Dispose();
+            }
+
+            Debug.WriteLine($"[HISTOIRE] Image optimisée sauvegardée: {newFilePath}");
+            return newFilePath;
+        }).ConfigureAwait(false);
+
+        return resultPath;
     }
 
     private static SKBitmap ApplyExifOrientation(SKBitmap bitmap, SKEncodedOrigin origin)
