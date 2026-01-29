@@ -216,57 +216,75 @@ public class ImageUploadViewModel : BaseViewModel
         {
             if (fromCamera)
             {
-                // Pour la capture photo, seule la permission Camera est nécessaire.
-                // Sur Android 13+, MediaPicker.CapturePhotoAsync utilise l'intent caméra
-                // qui sauvegarde dans le stockage privé de l'app (pas besoin de permissions storage).
-                // Sur les anciennes versions, MAUI gère automatiquement les permissions storage via MediaPicker.
+                // Permission Camera toujours nécessaire
                 var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
                 if (cameraStatus != PermissionStatus.Granted)
                 {
                     cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
                 }
 
-                return cameraStatus == PermissionStatus.Granted;
+                if (cameraStatus != PermissionStatus.Granted)
+                {
+                    return false;
+                }
+
+                // Sur Android < 13 (API < 33), les permissions storage sont nécessaires
+                // pour accéder au fichier photo créé par l'intent caméra.
+                // Sur Android 13+, ces permissions sont obsolètes et non requises.
+#if ANDROID
+                if (Android.OS.Build.VERSION.SdkInt < Android.OS.BuildVersionCodes.Tiramisu)
+                {
+                    var storageWriteStatus = await Permissions.CheckStatusAsync<Permissions.StorageWrite>();
+                    if (storageWriteStatus != PermissionStatus.Granted)
+                    {
+                        storageWriteStatus = await Permissions.RequestAsync<Permissions.StorageWrite>();
+                    }
+
+                    var storageReadStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
+                    if (storageReadStatus != PermissionStatus.Granted)
+                    {
+                        storageReadStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
+                    }
+
+                    // Sur les anciennes versions, on a besoin des deux permissions
+                    return storageWriteStatus == PermissionStatus.Granted
+                        && storageReadStatus == PermissionStatus.Granted;
+                }
+#endif
+                return true; // Android 13+ ou autres plateformes
             }
 
-            // Pour la sélection depuis la galerie:
-            // Sur Android 13+ (API 33+), le Photo Picker est utilisé automatiquement
-            // et ne nécessite pas de permissions. On tente quand même Photos pour iOS/anciennes versions.
+            // Pour la sélection depuis la galerie
             var photosStatus = await Permissions.CheckStatusAsync<Permissions.Photos>();
             if (photosStatus != PermissionStatus.Granted)
             {
                 photosStatus = await Permissions.RequestAsync<Permissions.Photos>();
             }
 
-            // Si Photos est accordée ou si on est sur Android 13+ (où la permission n'est pas requise),
-            // on considère que c'est bon. Le Photo Picker fonctionne sans permission explicite.
             if (photosStatus == PermissionStatus.Granted || photosStatus == PermissionStatus.Limited)
             {
                 return true;
             }
 
-            // Fallback pour les anciennes versions Android (< 13) qui utilisent encore StorageRead
-            var storageReadStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
-            if (storageReadStatus != PermissionStatus.Granted)
+            // Fallback pour les anciennes versions Android
+            var readStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
+            if (readStatus != PermissionStatus.Granted)
             {
-                storageReadStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
+                readStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
             }
 
-            // Sur Android 13+, même si StorageRead retourne Denied, le Photo Picker fonctionnera.
-            // On retourne true pour laisser MediaPicker essayer avec le nouveau système.
 #if ANDROID
             if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.Tiramisu)
             {
-                return true; // Le Photo Picker ne nécessite pas de permissions sur Android 13+
+                return true; // Le Photo Picker fonctionne sans permission sur Android 13+
             }
 #endif
-            return storageReadStatus == PermissionStatus.Granted;
+            return readStatus == PermissionStatus.Granted;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // En cas d'erreur, on laisse MediaPicker tenter l'opération
-            // car il peut gérer les permissions en interne sur certaines plateformes
-            return true;
+            Debug.WriteLine($"[PHOTO] Erreur permissions: {ex.Message}");
+            return true; // Laisser MediaPicker tenter l'opération
         }
     }
 
