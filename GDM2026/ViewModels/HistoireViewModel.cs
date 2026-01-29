@@ -582,70 +582,97 @@ public class HistoireViewModel : BaseViewModel
         // Capturer le nom du fichier avant d'entrer dans Task.Run (évite les problèmes d'accès cross-thread)
         var originalFileName = fileResult.FileName;
 
-        // Lire complètement le fichier dans un byte array sur le thread principal.
-        // Sur Android 13+ avec le Photo Picker, le stream peut être fermé prématurément
-        // si on ne le lit pas immédiatement et complètement.
-        byte[] imageData;
-        await using (var sourceStream = await fileResult.OpenReadAsync())
+        // Sur Android 13+, le stream de FileResult peut être problématique.
+        // On utilise FullPath si disponible, sinon on copie d'abord le fichier localement.
+        string sourceFilePath;
+        bool shouldDeleteSource = false;
+
+        if (!string.IsNullOrEmpty(fileResult.FullPath) && File.Exists(fileResult.FullPath))
         {
-            using var tempMemory = new MemoryStream();
-            await sourceStream.CopyToAsync(tempMemory);
-            imageData = tempMemory.ToArray();
+            // FullPath disponible - utiliser directement
+            sourceFilePath = fileResult.FullPath;
         }
-
-        if (imageData.Length == 0)
+        else
         {
-            throw new InvalidOperationException("Le fichier image est vide ou n'a pas pu être lu.");
-        }
+            // FullPath non disponible - copier le fichier dans le cache d'abord
+            var tempPath = Path.Combine(FileSystem.CacheDirectory, $"temp-{Guid.NewGuid():N}.tmp");
+            shouldDeleteSource = true;
 
-        var resultPath = await Task.Run(() =>
-        {
-            // Créer un nouveau MemoryStream à partir du byte array (thread-safe)
-            using var memoryStream = new MemoryStream(imageData);
-
-            // Lire l'orientation EXIF avec SKCodec
-            var orientation = SKEncodedOrigin.TopLeft;
-            using (var codec = SKCodec.Create(memoryStream))
+            await using (var sourceStream = await fileResult.OpenReadAsync())
+            await using (var destStream = File.Create(tempPath))
             {
-                if (codec != null)
+                await sourceStream.CopyToAsync(destStream);
+            }
+
+            sourceFilePath = tempPath;
+        }
+
+        try
+        {
+            var resultPath = await Task.Run(() =>
+            {
+                // Lire le fichier directement depuis le disque
+                byte[] imageData = File.ReadAllBytes(sourceFilePath);
+
+                if (imageData.Length == 0)
                 {
-                    orientation = codec.EncodedOrigin;
+                    throw new InvalidOperationException("Le fichier image est vide ou n'a pas pu être lu.");
                 }
-            }
 
-            // Remettre le flux au début pour le décodage
-            memoryStream.Position = 0;
-            using var managedStream = new SKManagedStream(memoryStream);
-            using var originalBitmap = SKBitmap.Decode(managedStream) ?? throw new InvalidOperationException("Impossible de lire l'image sélectionnée.");
+                using var memoryStream = new MemoryStream(imageData);
 
-            // Appliquer l'orientation EXIF pour corriger la rotation
-            var orientedBitmap = ApplyExifOrientation(originalBitmap, orientation);
+                // Lire l'orientation EXIF avec SKCodec
+                var orientation = SKEncodedOrigin.TopLeft;
+                using (var codec = SKCodec.Create(memoryStream))
+                {
+                    if (codec != null)
+                    {
+                        orientation = codec.EncodedOrigin;
+                    }
+                }
 
-            var resizedBitmap = ResizeBitmap(orientedBitmap, 1280);
+                // Remettre le flux au début pour le décodage
+                memoryStream.Position = 0;
+                using var managedStream = new SKManagedStream(memoryStream);
+                using var originalBitmap = SKBitmap.Decode(managedStream) ?? throw new InvalidOperationException("Impossible de lire l'image sélectionnée.");
 
-            var newFileName = $"{Path.GetFileNameWithoutExtension(originalFileName)}-{Guid.NewGuid():N}.jpg";
-            var newFilePath = Path.Combine(FileSystem.CacheDirectory, newFileName);
+                // Appliquer l'orientation EXIF pour corriger la rotation
+                var orientedBitmap = ApplyExifOrientation(originalBitmap, orientation);
 
-            using var image = SKImage.FromBitmap(resizedBitmap);
-            using var data = image.Encode(SKEncodedImageFormat.Jpeg, 80);
-            using (var destStream = File.Open(newFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                var resizedBitmap = ResizeBitmap(orientedBitmap, 1280);
+
+                var newFileName = $"{Path.GetFileNameWithoutExtension(originalFileName)}-{Guid.NewGuid():N}.jpg";
+                var newFilePath = Path.Combine(FileSystem.CacheDirectory, newFileName);
+
+                using var image = SKImage.FromBitmap(resizedBitmap);
+                using var data = image.Encode(SKEncodedImageFormat.Jpeg, 80);
+                using (var destStream = File.Open(newFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    data.SaveTo(destStream);
+                }
+
+                if (!ReferenceEquals(resizedBitmap, orientedBitmap))
+                {
+                    resizedBitmap.Dispose();
+                }
+                if (!ReferenceEquals(orientedBitmap, originalBitmap))
+                {
+                    orientedBitmap.Dispose();
+                }
+
+                return newFilePath;
+            }).ConfigureAwait(false);
+
+            return resultPath;
+        }
+        finally
+        {
+            // Nettoyer le fichier temporaire si on en a créé un
+            if (shouldDeleteSource && File.Exists(sourceFilePath))
             {
-                data.SaveTo(destStream);
+                try { File.Delete(sourceFilePath); } catch { /* ignore */ }
             }
-
-            if (!ReferenceEquals(resizedBitmap, orientedBitmap))
-            {
-                resizedBitmap.Dispose();
-            }
-            if (!ReferenceEquals(orientedBitmap, originalBitmap))
-            {
-                orientedBitmap.Dispose();
-            }
-
-            return newFilePath;
-        }).ConfigureAwait(false);
-
-        return resultPath;
+        }
     }
 
     private static SKBitmap ApplyExifOrientation(SKBitmap bitmap, SKEncodedOrigin origin)
