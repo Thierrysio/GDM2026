@@ -389,14 +389,17 @@ public class ImageUploadViewModel : BaseViewModel
             await using var uploadStream = File.OpenRead(_selectedFilePath);
             var uploadResult = await _uploadService.UploadAsync(uploadStream, finalFileName, "images");
 
-            var relativeUrl = uploadResult.RelativeUrl;
-            var imageFileName = string.IsNullOrWhiteSpace(relativeUrl)
+            var relativeUrl = uploadResult.RelativeUrl?.Trim();
+            var normalizedRelativeUrl = string.IsNullOrWhiteSpace(relativeUrl)
+                ? relativeUrl
+                : relativeUrl.TrimStart('/');
+            var imageFileName = string.IsNullOrWhiteSpace(normalizedRelativeUrl)
                 ? uploadResult.FileName
-                : Path.GetFileName(relativeUrl.Trim());
+                : Path.GetFileName(normalizedRelativeUrl);
 
             var payload = new
             {
-                url = relativeUrl,  // Envoyer l'URL relative renvoyée par l'API
+                url = normalizedRelativeUrl,  // Envoyer l'URL relative sans slash initial
                 imageName = imageFileName
             };
 
