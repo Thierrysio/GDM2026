@@ -734,52 +734,52 @@ public class HistoireViewModel : BaseViewModel
         {
             if (fromCamera)
             {
+                // Pour la capture photo, seule la permission Camera est nécessaire.
+                // Sur Android 13+, MediaPicker.CapturePhotoAsync utilise l'intent caméra
+                // qui sauvegarde dans le stockage privé de l'app (pas besoin de permissions storage).
                 var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
                 if (cameraStatus != PermissionStatus.Granted)
                 {
                     cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
                 }
 
-                var writeStatus = await Permissions.CheckStatusAsync<Permissions.StorageWrite>();
-                if (writeStatus != PermissionStatus.Granted)
-                {
-                    writeStatus = await Permissions.RequestAsync<Permissions.StorageWrite>();
-                }
-
-                var readStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
-                if (readStatus != PermissionStatus.Granted)
-                {
-                    readStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
-                }
-
-                return cameraStatus == PermissionStatus.Granted
-                    && writeStatus == PermissionStatus.Granted
-                    && readStatus == PermissionStatus.Granted;
+                return cameraStatus == PermissionStatus.Granted;
             }
 
+            // Pour la sélection depuis la galerie:
+            // Sur Android 13+ (API 33+), le Photo Picker est utilisé automatiquement
+            // et ne nécessite pas de permissions.
             var photosStatus = await Permissions.CheckStatusAsync<Permissions.Photos>();
             if (photosStatus != PermissionStatus.Granted)
             {
                 photosStatus = await Permissions.RequestAsync<Permissions.Photos>();
             }
 
-            if (photosStatus == PermissionStatus.Granted)
+            if (photosStatus == PermissionStatus.Granted || photosStatus == PermissionStatus.Limited)
             {
                 return true;
             }
 
+            // Fallback pour les anciennes versions Android (< 13)
             var storageStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
             if (storageStatus != PermissionStatus.Granted)
             {
                 storageStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
             }
 
+#if ANDROID
+            if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.Tiramisu)
+            {
+                return true; // Le Photo Picker ne nécessite pas de permissions sur Android 13+
+            }
+#endif
             return storageStatus == PermissionStatus.Granted;
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[HISTOIRE] Permissions error: {ex}");
-            return false;
+            // En cas d'erreur, on laisse MediaPicker tenter l'opération
+            return true;
         }
     }
 
