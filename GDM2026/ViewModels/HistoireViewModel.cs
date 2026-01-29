@@ -493,11 +493,7 @@ public class HistoireViewModel : BaseViewModel
 
             Debug.WriteLine($"[HISTOIRE] Copie immédiate du fichier: {originalFileName}");
 
-            await using (var sourceStream = await fileResult.OpenReadAsync())
-            await using (var destStream = File.Create(tempFilePath))
-            {
-                await sourceStream.CopyToAsync(destStream);
-            }
+            await CopyFileResultToTempAsync(fileResult, tempFilePath);
 
             Debug.WriteLine($"[HISTOIRE] Fichier copié vers: {tempFilePath}, taille: {new FileInfo(tempFilePath).Length} octets");
 
@@ -526,6 +522,10 @@ public class HistoireViewModel : BaseViewModel
         {
             ImageStatusMessage = "Sélection annulée.";
         }
+        catch (ObjectDisposedException)
+        {
+            ImageStatusMessage = "Impossible de lire la photo sélectionnée. Réessayez.";
+        }
         catch (Exception ex)
         {
             ImageStatusMessage = $"Erreur: {ex.Message}";
@@ -537,6 +537,49 @@ public class HistoireViewModel : BaseViewModel
             IsBusy = false;
             (UploadImageCommand as Command)?.ChangeCanExecute();
         }
+    }
+
+    private static async Task CopyFileResultToTempAsync(FileResult fileResult, string tempFilePath)
+    {
+        var attempts = 0;
+        while (attempts < 2)
+        {
+            attempts++;
+            try
+            {
+                if (File.Exists(tempFilePath))
+                {
+                    File.Delete(tempFilePath);
+                }
+
+                await using (var sourceStream = await fileResult.OpenReadAsync())
+                await using (var destStream = File.Create(tempFilePath))
+                {
+                    await sourceStream.CopyToAsync(destStream);
+                }
+
+                return;
+            }
+            catch (ObjectDisposedException)
+            {
+                Debug.WriteLine($"[HISTOIRE] Stream fermé lors de la tentative {attempts}.");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(fileResult.FullPath) && File.Exists(fileResult.FullPath))
+        {
+            if (File.Exists(tempFilePath))
+            {
+                File.Delete(tempFilePath);
+            }
+
+            await using var sourceStream = File.OpenRead(fileResult.FullPath);
+            await using var destStream = File.Create(tempFilePath);
+            await sourceStream.CopyToAsync(destStream);
+            return;
+        }
+
+        throw new IOException("Impossible de lire la photo sélectionnée.");
     }
 
     private async Task UploadSelectedImageAsync()
