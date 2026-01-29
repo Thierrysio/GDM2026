@@ -126,6 +126,10 @@ public class ProductCatalogItem
         }
 
         var relative = raw.TrimStart('/');
+        if (!relative.Contains('/') && !relative.Contains('\\'))
+        {
+            relative = $"images/{relative}";
+        }
         return $"{baseUrl}/{relative}";
     }
 }

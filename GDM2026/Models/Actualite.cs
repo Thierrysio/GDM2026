@@ -50,6 +50,10 @@ public class Actualite
         }
 
         var trimmedPath = sanitized.TrimStart('/');
+        if (!trimmedPath.Contains('/') && !trimmedPath.Contains('\\'))
+        {
+            trimmedPath = $"images/{trimmedPath}";
+        }
         var baseAddress = Constantes.BaseImagesAddress.TrimEnd('/');
         return $"{baseAddress}/{trimmedPath}";
     }
