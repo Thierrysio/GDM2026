@@ -581,12 +581,32 @@ public class HistoireViewModel : BaseViewModel
     {
         await using var sourceStream = await fileResult.OpenReadAsync();
 
+        // Copier le flux en mémoire pour pouvoir le lire plusieurs fois (orientation EXIF + décodage)
+        using var memoryStream = new MemoryStream();
+        await sourceStream.CopyToAsync(memoryStream);
+
         var resultPath = await Task.Run(() =>
         {
-            using var managedStream = new SKManagedStream(sourceStream);
+            // Lire l'orientation EXIF avec SKCodec
+            memoryStream.Position = 0;
+            var orientation = SKEncodedOrigin.TopLeft;
+            using (var codec = SKCodec.Create(memoryStream))
+            {
+                if (codec != null)
+                {
+                    orientation = codec.EncodedOrigin;
+                }
+            }
+
+            // Remettre le flux au début pour le décodage
+            memoryStream.Position = 0;
+            using var managedStream = new SKManagedStream(memoryStream);
             using var originalBitmap = SKBitmap.Decode(managedStream) ?? throw new InvalidOperationException("Impossible de lire l'image sélectionnée.");
 
-            var resizedBitmap = ResizeBitmap(originalBitmap, 1280);
+            // Appliquer l'orientation EXIF pour corriger la rotation
+            var orientedBitmap = ApplyExifOrientation(originalBitmap, orientation);
+
+            var resizedBitmap = ResizeBitmap(orientedBitmap, 1280);
 
             var newFileName = $"{Path.GetFileNameWithoutExtension(fileResult.FileName)}-{Guid.NewGuid():N}.jpg";
             var newFilePath = Path.Combine(FileSystem.CacheDirectory, newFileName);
@@ -598,15 +618,98 @@ public class HistoireViewModel : BaseViewModel
                 data.SaveTo(destStream);
             }
 
-            if (!ReferenceEquals(resizedBitmap, originalBitmap))
+            if (!ReferenceEquals(resizedBitmap, orientedBitmap))
             {
                 resizedBitmap.Dispose();
+            }
+            if (!ReferenceEquals(orientedBitmap, originalBitmap))
+            {
+                orientedBitmap.Dispose();
             }
 
             return newFilePath;
         }).ConfigureAwait(false);
 
         return resultPath;
+    }
+
+    private static SKBitmap ApplyExifOrientation(SKBitmap bitmap, SKEncodedOrigin origin)
+    {
+        if (origin == SKEncodedOrigin.TopLeft || origin == SKEncodedOrigin.Default)
+        {
+            return bitmap;
+        }
+
+        SKBitmap rotated;
+        switch (origin)
+        {
+            case SKEncodedOrigin.TopRight: // Flip horizontal
+                rotated = new SKBitmap(bitmap.Width, bitmap.Height, bitmap.ColorType, bitmap.AlphaType);
+                using (var canvas = new SKCanvas(rotated))
+                {
+                    canvas.Scale(-1, 1, bitmap.Width / 2f, 0);
+                    canvas.DrawBitmap(bitmap, 0, 0);
+                }
+                break;
+            case SKEncodedOrigin.BottomRight: // Rotation 180°
+                rotated = new SKBitmap(bitmap.Width, bitmap.Height, bitmap.ColorType, bitmap.AlphaType);
+                using (var canvas = new SKCanvas(rotated))
+                {
+                    canvas.RotateDegrees(180, bitmap.Width / 2f, bitmap.Height / 2f);
+                    canvas.DrawBitmap(bitmap, 0, 0);
+                }
+                break;
+            case SKEncodedOrigin.BottomLeft: // Flip vertical
+                rotated = new SKBitmap(bitmap.Width, bitmap.Height, bitmap.ColorType, bitmap.AlphaType);
+                using (var canvas = new SKCanvas(rotated))
+                {
+                    canvas.Scale(1, -1, 0, bitmap.Height / 2f);
+                    canvas.DrawBitmap(bitmap, 0, 0);
+                }
+                break;
+            case SKEncodedOrigin.LeftTop: // Transpose (rotate 90 CW + flip horizontal)
+                rotated = new SKBitmap(bitmap.Height, bitmap.Width, bitmap.ColorType, bitmap.AlphaType);
+                using (var canvas = new SKCanvas(rotated))
+                {
+                    canvas.Translate(rotated.Width, 0);
+                    canvas.RotateDegrees(90);
+                    canvas.Scale(1, -1, 0, bitmap.Height / 2f);
+                    canvas.DrawBitmap(bitmap, 0, 0);
+                }
+                break;
+            case SKEncodedOrigin.RightTop: // Rotation 90° horaire
+                rotated = new SKBitmap(bitmap.Height, bitmap.Width, bitmap.ColorType, bitmap.AlphaType);
+                using (var canvas = new SKCanvas(rotated))
+                {
+                    canvas.Translate(rotated.Width, 0);
+                    canvas.RotateDegrees(90);
+                    canvas.DrawBitmap(bitmap, 0, 0);
+                }
+                break;
+            case SKEncodedOrigin.RightBottom: // Transverse (rotate 90 CCW + flip horizontal)
+                rotated = new SKBitmap(bitmap.Height, bitmap.Width, bitmap.ColorType, bitmap.AlphaType);
+                using (var canvas = new SKCanvas(rotated))
+                {
+                    canvas.Translate(0, rotated.Height);
+                    canvas.RotateDegrees(-90);
+                    canvas.Scale(1, -1, 0, bitmap.Height / 2f);
+                    canvas.DrawBitmap(bitmap, 0, 0);
+                }
+                break;
+            case SKEncodedOrigin.LeftBottom: // Rotation 90° anti-horaire
+                rotated = new SKBitmap(bitmap.Height, bitmap.Width, bitmap.ColorType, bitmap.AlphaType);
+                using (var canvas = new SKCanvas(rotated))
+                {
+                    canvas.Translate(0, rotated.Height);
+                    canvas.RotateDegrees(-90);
+                    canvas.DrawBitmap(bitmap, 0, 0);
+                }
+                break;
+            default:
+                return bitmap;
+        }
+
+        return rotated;
     }
 
     private static SKBitmap ResizeBitmap(SKBitmap originalBitmap, int maxSize)
