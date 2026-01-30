@@ -1,12 +1,19 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 namespace GDM2026.Models;
 
-public class ProductCatalogItem
+public class ProductCatalogItem : INotifyPropertyChanged
 {
+    private string? _imageUrl;
+    private List<string>? _images;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
     [JsonProperty("id")]
     public int Id { get; set; }
 
@@ -59,10 +66,36 @@ public class ProductCatalogItem
     }
 
     [JsonProperty("image")]
-    public string? ImageUrl { get; set; }
+    public string? ImageUrl
+    {
+        get => _imageUrl;
+        set
+        {
+            if (_imageUrl != value)
+            {
+                _imageUrl = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(PrimaryImage));
+                OnPropertyChanged(nameof(PrimaryImageFullUrl));
+            }
+        }
+    }
 
     [JsonProperty("images")]
-    public List<string>? Images { get; set; }
+    public List<string>? Images
+    {
+        get => _images;
+        set
+        {
+            if (_images != value)
+            {
+                _images = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(PrimaryImage));
+                OnPropertyChanged(nameof(PrimaryImageFullUrl));
+            }
+        }
+    }
 
     [JsonProperty("stock")]
     public int? Stock { get; set; }
@@ -132,4 +165,7 @@ public class ProductCatalogItem
         }
         return $"{baseUrl}/{relative}";
     }
+
+    private void OnPropertyChanged([CallerMemberName] string propertyName = "") =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
