@@ -32,6 +32,15 @@ public class AjouterPointsFideliteViewModel : BaseViewModel
     private bool _showConfirmation;
     private string _confirmationMessage = string.Empty;
 
+    // Rush Mode properties
+    private bool _isRushModeActive;
+    private bool _showRushConfig;
+    private string _rushAmountText = string.Empty;
+    private decimal _rushAmount;
+    private bool _showRushStatus;
+    private bool _rushStatusSuccess;
+    private string _rushStatusMessage = string.Empty;
+
     public AjouterPointsFideliteViewModel()
     {
         CancelCommand = new Command(async () => await CancelAsync());
@@ -40,6 +49,13 @@ public class AjouterPointsFideliteViewModel : BaseViewModel
         AddPointsCommand = new Command(async () => await AddPointsAsync());
         CancelAddCommand = new Command(CancelAdd);
         StartNewTransactionCommand = new Command(StartNewTransaction);
+
+        // Rush Mode commands
+        OpenRushConfigCommand = new Command(OpenRushConfig);
+        ValidateRushAmountCommand = new Command(ValidateRushAmount);
+        CloseRushConfigCommand = new Command(CloseRushConfig);
+        DeactivateRushModeCommand = new Command(DeactivateRushMode);
+        HideRushStatusCommand = new Command(HideRushStatus);
 
         ScannerOptions = new BarcodeReaderOptions
         {
@@ -57,6 +73,13 @@ public class AjouterPointsFideliteViewModel : BaseViewModel
     public ICommand AddPointsCommand { get; }
     public ICommand CancelAddCommand { get; }
     public ICommand StartNewTransactionCommand { get; }
+
+    // Rush Mode commands
+    public ICommand OpenRushConfigCommand { get; }
+    public ICommand ValidateRushAmountCommand { get; }
+    public ICommand CloseRushConfigCommand { get; }
+    public ICommand DeactivateRushModeCommand { get; }
+    public ICommand HideRushStatusCommand { get; }
 
     public bool IsScanning
     {
@@ -122,6 +145,49 @@ public class AjouterPointsFideliteViewModel : BaseViewModel
     {
         get => _confirmationMessage;
         set => SetProperty(ref _confirmationMessage, value);
+    }
+
+    // Rush Mode properties
+    public bool IsRushModeActive
+    {
+        get => _isRushModeActive;
+        set => SetProperty(ref _isRushModeActive, value);
+    }
+
+    public bool ShowRushConfig
+    {
+        get => _showRushConfig;
+        set => SetProperty(ref _showRushConfig, value);
+    }
+
+    public string RushAmountText
+    {
+        get => _rushAmountText;
+        set => SetProperty(ref _rushAmountText, value);
+    }
+
+    public decimal RushAmount
+    {
+        get => _rushAmount;
+        set => SetProperty(ref _rushAmount, value);
+    }
+
+    public bool ShowRushStatus
+    {
+        get => _showRushStatus;
+        set => SetProperty(ref _showRushStatus, value);
+    }
+
+    public bool RushStatusSuccess
+    {
+        get => _rushStatusSuccess;
+        set => SetProperty(ref _rushStatusSuccess, value);
+    }
+
+    public string RushStatusMessage
+    {
+        get => _rushStatusMessage;
+        set => SetProperty(ref _rushStatusMessage, value);
     }
 
     public void StartScanning()
@@ -396,5 +462,147 @@ public class AjouterPointsFideliteViewModel : BaseViewModel
             return Shell.Current.GoToAsync("..");
         }
         return Task.CompletedTask;
+    }
+
+    // Rush Mode methods
+    private void OpenRushConfig()
+    {
+        ShowRushConfig = true;
+        RushAmountText = RushAmount > 0 ? RushAmount.ToString("F2") : string.Empty;
+    }
+
+    private void ValidateRushAmount()
+    {
+        if (string.IsNullOrWhiteSpace(RushAmountText))
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await DialogService.DisplayAlertAsync("Erreur", "Veuillez saisir un montant.", "OK");
+            });
+            return;
+        }
+
+        if (!decimal.TryParse(RushAmountText.Replace(",", "."), out var amount) || amount <= 0)
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await DialogService.DisplayAlertAsync("Erreur", "Veuillez saisir un montant valide.", "OK");
+            });
+            return;
+        }
+
+        RushAmount = amount;
+        IsRushModeActive = true;
+        ShowRushConfig = false;
+        StatusMessage = $"Mode Rush activé - {RushAmount:C} par scan";
+    }
+
+    private void CloseRushConfig()
+    {
+        ShowRushConfig = false;
+    }
+
+    private void DeactivateRushMode()
+    {
+        IsRushModeActive = false;
+        RushAmount = 0;
+        RushAmountText = string.Empty;
+        StatusMessage = "Scannez le QR code du client";
+    }
+
+    private void HideRushStatus()
+    {
+        ShowRushStatus = false;
+    }
+
+    /// <summary>
+    /// Traite le scan en mode Rush - ajout direct des points sans confirmation
+    /// </summary>
+    public async Task ProcessRushScanAsync(string qrCodeValue)
+    {
+        if (_hasProcessedCode || string.IsNullOrWhiteSpace(qrCodeValue))
+            return;
+
+        _hasProcessedCode = true;
+        IsLoading = true;
+        ShowRushStatus = false;
+
+        try
+        {
+            await EnsureInitializedAsync().ConfigureAwait(false);
+
+            // 1. Récupérer les infos du client
+            var getRequest = new GetLoyaltyByQrCodeRequest { QrCode = qrCodeValue };
+            var getResponse = await _apis
+                .PostAsync<GetLoyaltyByQrCodeRequest, LoyaltyInfoResponse>(
+                    "/api/mobile/getLoyaltyByQrCode", getRequest)
+                .ConfigureAwait(false);
+
+            if (getResponse?.Success != true || getResponse.Data == null)
+            {
+                await ShowRushStatusAsync(false, getResponse?.Message ?? "Client non trouvé");
+                return;
+            }
+
+            var client = getResponse.Data;
+            var pointsToAdd = (int)Math.Round(RushAmount, MidpointRounding.AwayFromZero);
+
+            // 2. Ajouter directement les points
+            var addRequest = new AddPointsRequest
+            {
+                LoyaltyUserId = client.UserId,
+                AmountInEuros = RushAmount,
+                PointsToAdd = pointsToAdd
+            };
+
+            var addResponse = await _apis
+                .PostAsync<AddPointsRequest, AddPointsResponse>(
+                    "/api/mobile/addLoyaltyPoints", addRequest)
+                .ConfigureAwait(false);
+
+            if (addResponse?.Success == true)
+            {
+                await ShowRushStatusAsync(true, $"{client.DisplayName}\n+{addResponse.PointsAdded} couronnes");
+            }
+            else
+            {
+                await ShowRushStatusAsync(false, addResponse?.Message ?? "Erreur d'ajout");
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            var errorMsg = ex.StatusCode == System.Net.HttpStatusCode.Unauthorized
+                ? "Session expirée"
+                : "Erreur serveur";
+            await ShowRushStatusAsync(false, errorMsg);
+        }
+        catch (Exception)
+        {
+            await ShowRushStatusAsync(false, "Erreur inattendue");
+        }
+        finally
+        {
+            IsLoading = false;
+            // Réactiver le scan après un court délai
+            await Task.Delay(1500);
+            _hasProcessedCode = false;
+        }
+    }
+
+    private async Task ShowRushStatusAsync(bool success, string message)
+    {
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            RushStatusSuccess = success;
+            RushStatusMessage = message;
+            ShowRushStatus = true;
+        });
+
+        // Auto-masquer après 2 secondes
+        await Task.Delay(2000);
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            ShowRushStatus = false;
+        });
     }
 }

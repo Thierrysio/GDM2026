@@ -64,13 +64,25 @@ public partial class AjouterPointsFidelitePage : ContentPage
         var result = e.Results?.FirstOrDefault();
         if (result != null && !string.IsNullOrWhiteSpace(result.Value))
         {
-            // Arrêter le scan immédiatement
-            BarcodeReader.IsDetecting = false;
+            // En mode Rush, ne pas arrêter le scan définitivement
+            if (!_viewModel.IsRushModeActive)
+            {
+                BarcodeReader.IsDetecting = false;
+            }
 
             // Traiter le résultat sur le thread UI
             MainThread.BeginInvokeOnMainThread(async () =>
             {
-                await _viewModel.ProcessScannedCodeAsync(result.Value);
+                if (_viewModel.IsRushModeActive)
+                {
+                    // Mode Rush : ajout direct des points
+                    await _viewModel.ProcessRushScanAsync(result.Value);
+                }
+                else
+                {
+                    // Mode normal : workflow complet avec confirmation
+                    await _viewModel.ProcessScannedCodeAsync(result.Value);
+                }
             });
         }
     }
