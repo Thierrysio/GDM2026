@@ -2,6 +2,7 @@ using GDM2026.Models;
 using GDM2026.Services;
 using GDM2026.Views;
 using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.ApplicationModel.Communication;
 using Microsoft.Maui.Controls;
 using System;
 using System.Collections.Generic;
@@ -528,13 +529,6 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             return;
         }
 
-        var userId = ResolveLoyaltyUserId(order);
-        if (userId is null || userId <= 0)
-        {
-            await ShowLoadErrorAsync("Impossible d'envoyer une notification : utilisateur introuvable.");
-            return;
-        }
-
         var selection = await MainThread.InvokeOnMainThreadAsync(() =>
             DialogService.DisplayActionSheetAsync("Notifier le client", "Annuler", null, "SMS", "Notification"));
 
@@ -543,16 +537,25 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             return;
         }
 
-        var channel = string.Equals(selection, "SMS", StringComparison.OrdinalIgnoreCase)
-            ? "sms"
-            : "notification";
+        if (string.Equals(selection, "SMS", StringComparison.OrdinalIgnoreCase))
+        {
+            await ComposeOrderProcessedSmsAsync(order).ConfigureAwait(false);
+            return;
+        }
+
+        var userId = ResolveLoyaltyUserId(order);
+        if (userId is null || userId <= 0)
+        {
+            await ShowLoadErrorAsync("Impossible d'envoyer une notification : utilisateur introuvable.");
+            return;
+        }
 
         const string endpoint = "/api/mobile/notifyOrderProcessed";
         var request = new OrderStatusNotificationRequest
         {
             OrderId = order.OrderId,
             UserId = userId.Value,
-            Channel = channel
+            Channel = "notification"
         };
 
         try
@@ -580,6 +583,27 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         catch (Exception)
         {
             await ShowLoadErrorAsync("Une erreur inattendue empêche l'envoi de la notification.");
+        }
+    }
+
+    private async Task ComposeOrderProcessedSmsAsync(OrderStatusEntry order)
+    {
+        try
+        {
+            var message = new SmsMessage
+            {
+                Body = $"Bonjour, votre commande #{order.OrderId} est traitée."
+            };
+
+            await Sms.ComposeAsync(message);
+        }
+        catch (FeatureNotSupportedException)
+        {
+            await ShowLoadErrorAsync("L'envoi de SMS n'est pas supporté sur cet appareil.");
+        }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue empêche l'ouverture de l'application SMS.");
         }
     }
 
