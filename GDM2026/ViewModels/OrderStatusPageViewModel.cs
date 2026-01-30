@@ -488,6 +488,10 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             });
 
             OrderStatusDeltaTracker.RecordChange(previousStatus, newStatus);
+            if (ShouldNotifyOrderProcessed(previousStatus, newStatus))
+            {
+                await TryNotifyOrderProcessedAsync(order).ConfigureAwait(false);
+            }
             return true;
         }
         catch (TaskCanceledException)
@@ -509,6 +513,74 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         await ResetOrderStatusAsync(order, previousStatus);
         return false;
+    }
+
+    private bool ShouldNotifyOrderProcessed(string previousStatus, string newStatus)
+    {
+        return string.Equals(newStatus, "Traitée", StringComparison.OrdinalIgnoreCase)
+               && !string.Equals(previousStatus, "Traitée", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task TryNotifyOrderProcessedAsync(OrderStatusEntry order)
+    {
+        if (!IsReservationMode)
+        {
+            return;
+        }
+
+        var userId = ResolveLoyaltyUserId(order);
+        if (userId is null || userId <= 0)
+        {
+            await ShowLoadErrorAsync("Impossible d'envoyer une notification : utilisateur introuvable.");
+            return;
+        }
+
+        var selection = await MainThread.InvokeOnMainThreadAsync(() =>
+            DialogService.DisplayActionSheetAsync("Notifier le client", "Annuler", null, "SMS", "Notification"));
+
+        if (string.IsNullOrWhiteSpace(selection) || string.Equals(selection, "Annuler", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var channel = string.Equals(selection, "SMS", StringComparison.OrdinalIgnoreCase)
+            ? "sms"
+            : "notification";
+
+        const string endpoint = "/api/mobile/notifyOrderProcessed";
+        var request = new OrderStatusNotificationRequest
+        {
+            OrderId = order.OrderId,
+            UserId = userId.Value,
+            Channel = channel
+        };
+
+        try
+        {
+            var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
+            if (!success)
+            {
+                await ShowLoadErrorAsync("Impossible d'envoyer la notification au client.");
+                return;
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await DialogService.DisplayAlertAsync("Notification", "Le message a été envoyé au client.", "OK");
+            });
+        }
+        catch (TaskCanceledException)
+        {
+            await ShowLoadErrorAsync("L'envoi de la notification a expiré. Veuillez réessayer.");
+        }
+        catch (HttpRequestException)
+        {
+            await ShowLoadErrorAsync("Impossible d'envoyer la notification au client.");
+        }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue empêche l'envoi de la notification.");
+        }
     }
 
     private Task ResetOrderStatusAsync(OrderStatusEntry order, string status)
