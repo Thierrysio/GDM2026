@@ -52,6 +52,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private ObservableCollection<OrderStatusEntry> _orders = [];
     private OrderStatusEntry? _scannedOrderEntry;
+    private System.ComponentModel.PropertyChangedEventHandler? _scannedOrderPropertyChangedHandler;
     private bool _isSearchingOrder;
 
     // PERF : debounce recherche
@@ -189,8 +190,30 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         get => _scannedOrderEntry;
         private set
         {
+            // Détacher l'ancien handler si présent
+            if (_scannedOrderEntry != null && _scannedOrderPropertyChangedHandler != null)
+            {
+                _scannedOrderEntry.PropertyChanged -= _scannedOrderPropertyChangedHandler;
+            }
+
             if (SetProperty(ref _scannedOrderEntry, value))
+            {
                 OnPropertyChanged(nameof(IsScannedOrderVisible));
+
+                // Attacher un nouveau handler pour propager les changements de CurrentStatus
+                if (_scannedOrderEntry != null)
+                {
+                    _scannedOrderPropertyChangedHandler = (_, args) =>
+                    {
+                        if (args.PropertyName == nameof(OrderStatusEntry.CurrentStatus))
+                        {
+                            // Forcer le rafraîchissement des bindings XAML qui dépendent de ScannedOrderEntry
+                            OnPropertyChanged(nameof(ScannedOrderEntry));
+                        }
+                    };
+                    _scannedOrderEntry.PropertyChanged += _scannedOrderPropertyChangedHandler;
+                }
+            }
         }
     }
 
