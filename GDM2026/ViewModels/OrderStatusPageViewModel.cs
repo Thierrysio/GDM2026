@@ -80,6 +80,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         SelectReservationStatusCommand = new Command<ReservationStatusDisplay>(async status => await OnReservationStatusSelectedAsync(status));
         ApplyReservationFiltersCommand = new Command(async () => await ReloadWithFiltersAsync());
         DeleteReservationCommand = new Command<OrderStatusEntry>(async order => await ConfirmAndDeleteReservationAsync(order));
+        SendNotificationCommand = new Command<OrderStatusEntry>(async order => await SendManualNotificationAsync(order));
     }
 
     public ObservableCollection<OrderStatusEntry> Orders
@@ -105,6 +106,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
     public ICommand SelectReservationStatusCommand { get; }
     public ICommand ApplyReservationFiltersCommand { get; }
     public ICommand DeleteReservationCommand { get; }
+    public ICommand SendNotificationCommand { get; }
 
     public string? Status
     {
@@ -524,11 +526,31 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
     private async Task TryNotifyOrderProcessedAsync(OrderStatusEntry order)
     {
-        if (!IsReservationMode)
+        await SendFirebaseNotificationAsync(order, showSuccessAlert: true).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Envoie manuellement une notification Firebase au client pour une commande traitée.
+    /// </summary>
+    private async Task SendManualNotificationAsync(OrderStatusEntry? order)
+    {
+        if (order is null) return;
+
+        // Vérifier que la commande est en statut "Traitée"
+        if (!string.Equals(order.CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase))
         {
+            await ShowLoadErrorAsync("La notification ne peut être envoyée que pour les commandes traitées.");
             return;
         }
 
+        await SendFirebaseNotificationAsync(order, showSuccessAlert: true).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Envoie une notification Firebase au client.
+    /// </summary>
+    private async Task SendFirebaseNotificationAsync(OrderStatusEntry order, bool showSuccessAlert)
+    {
         var userId = ResolveLoyaltyUserId(order);
         if (userId is null || userId <= 0)
         {
@@ -555,7 +577,11 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await DialogService.DisplayAlertAsync("Notification", "La notification Firebase a été envoyée au client.", "OK");
+                order.NotificationSent = true;
+                if (showSuccessAlert)
+                {
+                    await DialogService.DisplayAlertAsync("Notification", "La notification Firebase a été envoyée au client.", "OK");
+                }
             });
         }
         catch (TaskCanceledException)
