@@ -2,6 +2,7 @@ using GDM2026.Models;
 using GDM2026.Services;
 using GDM2026.Views;
 using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.ApplicationModel.Communication;
 using Microsoft.Maui.Controls;
 using System;
 using System.Collections.Generic;

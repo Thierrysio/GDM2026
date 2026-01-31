@@ -17,6 +17,17 @@ public static class DialogService
         await page.DisplayAlertAsync(title, message, cancel);
     }
 
+    public static async Task<string?> DisplayActionSheetAsync(string title, string cancel, string? destruction, params string[] buttons)
+    {
+        var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+        if (page is null)
+        {
+            return null;
+        }
+
+        return await page.DisplayActionSheetAsync(title, cancel, destruction, buttons);
+    }
+
     public static async Task<bool> DisplayConfirmationAsync(string title, string message, string accept, string cancel)
     {
         var page = Application.Current?.Windows.FirstOrDefault()?.Page;
