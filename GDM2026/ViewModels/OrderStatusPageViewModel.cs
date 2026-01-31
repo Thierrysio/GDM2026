@@ -529,20 +529,6 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             return;
         }
 
-        var selection = await MainThread.InvokeOnMainThreadAsync(() =>
-            DialogService.DisplayActionSheetAsync("Notifier le client", "Annuler", null, "SMS", "Notification"));
-
-        if (string.IsNullOrWhiteSpace(selection) || string.Equals(selection, "Annuler", StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        if (string.Equals(selection, "SMS", StringComparison.OrdinalIgnoreCase))
-        {
-            await ComposeOrderProcessedSmsAsync(order).ConfigureAwait(false);
-            return;
-        }
-
         var userId = ResolveLoyaltyUserId(order);
         if (userId is null || userId <= 0)
         {
@@ -555,7 +541,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         {
             OrderId = order.OrderId,
             UserId = userId.Value,
-            Channel = "notification"
+            Channel = "firebase"
         };
 
         try
@@ -569,7 +555,7 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await DialogService.DisplayAlertAsync("Notification", "Le message a été envoyé au client.", "OK");
+                await DialogService.DisplayAlertAsync("Notification", "La notification Firebase a été envoyée au client.", "OK");
             });
         }
         catch (TaskCanceledException)
@@ -583,27 +569,6 @@ public partial class OrderStatusPageViewModel : BaseViewModel
         catch (Exception)
         {
             await ShowLoadErrorAsync("Une erreur inattendue empêche l'envoi de la notification.");
-        }
-    }
-
-    private async Task ComposeOrderProcessedSmsAsync(OrderStatusEntry order)
-    {
-        try
-        {
-            var message = new SmsMessage
-            {
-                Body = $"Bonjour, votre commande #{order.OrderId} est traitée."
-            };
-
-            await Sms.ComposeAsync(message);
-        }
-        catch (FeatureNotSupportedException)
-        {
-            await ShowLoadErrorAsync("L'envoi de SMS n'est pas supporté sur cet appareil.");
-        }
-        catch (Exception)
-        {
-            await ShowLoadErrorAsync("Une erreur inattendue empêche l'ouverture de l'application SMS.");
         }
     }
 
