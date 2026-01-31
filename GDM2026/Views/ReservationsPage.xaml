@@ -210,6 +210,19 @@
                                 TextColor="#FFD700" />
 
                             <Button
+                                Text="{Binding ScannedOrderEntry.NotificationButtonText}"
+                                Command="{Binding SendNotificationCommand}"
+                                CommandParameter="{Binding ScannedOrderEntry}"
+                                IsVisible="{Binding ScannedOrderEntry.CanSendNotification}"
+                                BackgroundColor="#2D2D2D"
+                                BorderColor="#4CAF50"
+                                BorderWidth="1.5"
+                                CornerRadius="10"
+                                WidthRequest="110"
+                                Margin="5,5,0,0"
+                                TextColor="#4CAF50" />
+
+                            <Button
                                 Text="Annuler"
                                 Command="{Binding RevertStatusCommand}"
                                 CommandParameter="{Binding ScannedOrderEntry}"
@@ -584,6 +597,20 @@
                                             WidthRequest="110"
                                             Margin="5,5,0,0"
                                             TextColor="#FFD700" />
+
+                                        <!-- Bouton Notifier le client (Firebase) -->
+                                        <Button
+                                            Text="{Binding NotificationButtonText}"
+                                            Command="{Binding BindingContext.SendNotificationCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding CanSendNotification}"
+                                            BackgroundColor="#2D2D2D"
+                                            BorderColor="#4CAF50"
+                                            BorderWidth="1.5"
+                                            CornerRadius="10"
+                                            WidthRequest="110"
+                                            Margin="5,5,0,0"
+                                            TextColor="#4CAF50" />
 
                                         <Button
                                             Text="Annuler"

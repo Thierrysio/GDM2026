@@ -22,6 +22,7 @@ public class OrderStatusEntry : INotifyPropertyChanged
     private double _loyaltyReduction;
     private int _loyaltyUserId;
     private int _loyaltyCouronnesUsed;
+    private bool _notificationSent;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -121,6 +122,32 @@ public class OrderStatusEntry : INotifyPropertyChanged
     public bool CanUseLoyalty => !string.Equals(CurrentStatus, "Livrée", StringComparison.OrdinalIgnoreCase)
                                  && !HasLoyaltyReduction;
 
+    /// <summary>
+    /// Indique si une notification a été envoyée pour cette commande
+    /// </summary>
+    public bool NotificationSent
+    {
+        get => _notificationSent;
+        set
+        {
+            if (SetProperty(ref _notificationSent, value))
+            {
+                OnPropertyChanged(nameof(CanSendNotification));
+                OnPropertyChanged(nameof(NotificationButtonText));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Indique si le bouton de notification peut être affiché (commande traitée)
+    /// </summary>
+    public bool CanSendNotification => string.Equals(CurrentStatus, "Traitée", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Texte du bouton de notification
+    /// </summary>
+    public string NotificationButtonText => NotificationSent ? "🔔 Renvoyer" : "🔔 Notifier";
+
     public ObservableCollection<OrderLine> OrderLines { get; } = [];
 
     public int? UserId { get; set; }
@@ -139,6 +166,7 @@ public class OrderStatusEntry : INotifyPropertyChanged
             if (SetProperty(ref _currentStatus, value))
             {
                 OnPropertyChanged(nameof(CanUseLoyalty));
+                OnPropertyChanged(nameof(CanSendNotification));
             }
         }
     }
