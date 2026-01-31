@@ -488,6 +488,10 @@ public partial class OrderStatusPageViewModel : BaseViewModel
             });
 
             OrderStatusDeltaTracker.RecordChange(previousStatus, newStatus);
+            if (ShouldNotifyOrderProcessed(previousStatus, newStatus))
+            {
+                await TryNotifyOrderProcessedAsync(order).ConfigureAwait(false);
+            }
             return true;
         }
         catch (TaskCanceledException)
@@ -509,6 +513,62 @@ public partial class OrderStatusPageViewModel : BaseViewModel
 
         await ResetOrderStatusAsync(order, previousStatus);
         return false;
+    }
+
+    private bool ShouldNotifyOrderProcessed(string previousStatus, string newStatus)
+    {
+        return string.Equals(newStatus, "Traitée", StringComparison.OrdinalIgnoreCase)
+               && !string.Equals(previousStatus, "Traitée", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task TryNotifyOrderProcessedAsync(OrderStatusEntry order)
+    {
+        if (!IsReservationMode)
+        {
+            return;
+        }
+
+        var userId = ResolveLoyaltyUserId(order);
+        if (userId is null || userId <= 0)
+        {
+            await ShowLoadErrorAsync("Impossible d'envoyer une notification : utilisateur introuvable.");
+            return;
+        }
+
+        const string endpoint = "/api/mobile/notifyOrderProcessed";
+        var request = new OrderStatusNotificationRequest
+        {
+            OrderId = order.OrderId,
+            UserId = userId.Value,
+            Channel = "firebase"
+        };
+
+        try
+        {
+            var success = await _apis.PostBoolAsync(endpoint, request).ConfigureAwait(false);
+            if (!success)
+            {
+                await ShowLoadErrorAsync("Impossible d'envoyer la notification au client.");
+                return;
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await DialogService.DisplayAlertAsync("Notification", "La notification Firebase a été envoyée au client.", "OK");
+            });
+        }
+        catch (TaskCanceledException)
+        {
+            await ShowLoadErrorAsync("L'envoi de la notification a expiré. Veuillez réessayer.");
+        }
+        catch (HttpRequestException)
+        {
+            await ShowLoadErrorAsync("Impossible d'envoyer la notification au client.");
+        }
+        catch (Exception)
+        {
+            await ShowLoadErrorAsync("Une erreur inattendue empêche l'envoi de la notification.");
+        }
     }
 
     private Task ResetOrderStatusAsync(OrderStatusEntry order, string status)
