@@ -25,6 +25,7 @@ public class PromoPageViewModel : BaseViewModel
     private bool _isCategoriesLoading;
     private bool _isCategoriesLoaded;
     private bool _isUpdateMode;
+    private bool _isCreateMode;
     private bool _isFormSectionVisible;
     private bool _isPromosLoading;
     private bool _isFlashMode;
@@ -93,6 +94,7 @@ public class PromoPageViewModel : BaseViewModel
         CategoryResults = new ObservableCollection<PromoCategory>();
         AvailableCategories = new ObservableCollection<PromoCategory>();
         FlashProductList = new ObservableCollection<PromoProduct>();
+        StandardProductList = new ObservableCollection<PromoProduct>();
 
         GoBackCommand = new Command(async () => await NavigateBackAsync());
         ShowCreatePanelCommand = new Command(ActivateCreateMode);
@@ -123,6 +125,7 @@ public class PromoPageViewModel : BaseViewModel
     public ObservableCollection<PromoCategory> CategoryResults { get; }
     public ObservableCollection<PromoCategory> AvailableCategories { get; }
     public ObservableCollection<PromoProduct> FlashProductList { get; }
+    public ObservableCollection<PromoProduct> StandardProductList { get; }
 
     public ICommand RefreshPromosCommand { get; }
     public ICommand SearchProductsCommand { get; }
@@ -201,6 +204,16 @@ public class PromoPageViewModel : BaseViewModel
         get => _isStandardModeVisible;
         set => SetProperty(ref _isStandardModeVisible, value);
     }
+
+    public bool IsCreateMode
+    {
+        get => _isCreateMode;
+        set => SetProperty(ref _isCreateMode, value);
+    }
+
+    public string SelectedProductPriceLabel => SelectedProduct is null
+        ? string.Empty
+        : $"Prix normal: {SelectedProduct.DisplayPrice}";
 
     public string CategoryPickerStatus
     {
@@ -370,6 +383,7 @@ public class PromoPageViewModel : BaseViewModel
             if (SetProperty(ref _selectedProduct, value))
             {
                 OnPropertyChanged(nameof(SelectedProductLabel));
+                OnPropertyChanged(nameof(SelectedProductPriceLabel));
                 RefreshCommands();
             }
         }
@@ -406,8 +420,8 @@ public class PromoPageViewModel : BaseViewModel
         : $"Produit #{SelectedProduct.Id} — {SelectedProduct.DisplayName}";
 
     public string SelectedCategoryLabel => SelectedCategory is null
-        ? "Aucune catégorie sélectionnée"
-        : $"Catégorie #{SelectedCategory.Id} — {SelectedCategory.DisplayName}";
+        ? "Non sélectionnée"
+        : SelectedCategory.DisplayName;
 
     public Task InitializeAsync()
     {
@@ -529,28 +543,76 @@ public class PromoPageViewModel : BaseViewModel
         }
     }
 
-    private void ActivateCreateMode()
+    private async void ActivateCreateMode()
     {
         IsUpdateMode = false;
+        IsCreateMode = true;
         IsFormSectionVisible = true;
-        FormHeader = "Créer une promotion";
-        FormHelperMessage = "Complétez le formulaire pour ajouter une nouvelle promotion.";
-        StatusMessage = "Choisissez un produit, une catégorie et une période.";
+        FormHeader = "Nouvelle promotion";
+        FormHelperMessage = "Sélectionnez un produit, définissez le prix et la période.";
+        StatusMessage = string.Empty;
         SelectedPromo = null;
+        SelectedProduct = null;
+        PrixText = string.Empty;
+        DateDebutDate = DateTime.Today;
+        DateDebutTime = new TimeSpan(8, 0, 0);
+        DateFinDate = DateTime.Today.AddDays(7);
+        DateFinTime = new TimeSpan(23, 59, 0);
+
+        await LoadStandardProductsAsync();
         RefreshCommands();
     }
 
-    private void ActivateUpdateMode()
+    private async void ActivateUpdateMode()
     {
         IsUpdateMode = true;
+        IsCreateMode = false;
         IsFormSectionVisible = true;
-        FormHeader = "Mettre à jour une promotion";
-        FormHelperMessage = "Sélectionnez une promotion puis ajustez ses informations.";
-        StatusMessage = "Choisissez une promotion à modifier.";
-        if (Promos.Count == 0)
-            _ = LoadPromosAsync();
+        FormHeader = "Modifier une promotion";
+        FormHelperMessage = "Sélectionnez d'abord une promotion existante ci-dessus.";
+        StatusMessage = string.Empty;
 
+        if (Promos.Count == 0)
+            await LoadPromosAsync();
+
+        await LoadStandardProductsAsync();
         RefreshCommands();
+    }
+
+    private async Task LoadStandardProductsAsync()
+    {
+        try
+        {
+            IsBusy = true;
+            StatusMessage = "Chargement des produits...";
+
+            if (!await EnsureSessionAsync())
+                return;
+
+            if (!_productsLoaded)
+            {
+                _allProducts = await FetchProductsAsync();
+                _productsLoaded = true;
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                StandardProductList.Clear();
+                foreach (var product in _allProducts.Take(100))
+                    StandardProductList.Add(product);
+
+                StatusMessage = string.Empty;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PROMO] standard products load error: {ex}");
+            StatusMessage = "Erreur chargement produits.";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private Task NavigateBackAsync()
