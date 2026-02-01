@@ -22,14 +22,20 @@ public class PromoPageViewModel : BaseViewModel
     private bool _sessionLoaded;
     private bool _productsLoaded;
     private bool _categoriesLoaded;
+    private bool _isCategoriesLoading;
+    private bool _isCategoriesLoaded;
     private bool _isUpdateMode;
     private bool _isFormSectionVisible;
     private bool _isPromosLoading;
+    private bool _isFlashMode;
+    private bool _isStandardModeVisible;
 
     private string _statusMessage = "Choisissez un mode pour commencer.";
     private string _formHeader = "Créer une promotion";
     private string _formHelperMessage = "Renseignez la période, le prix et les sélections avant de valider.";
     private string _promosStatusMessage = "Aucune promotion chargée.";
+    private string _categoryPickerStatus = "Chargement des catégories...";
+    private string _flashStatusMessage = string.Empty;
     private DateTime _dateDebutDate = DateTime.Today;
     private TimeSpan _dateDebutTime = TimeSpan.Zero;
     private DateTime _dateFinDate = DateTime.Today;
@@ -38,8 +44,20 @@ public class PromoPageViewModel : BaseViewModel
     private string _productSearchText = string.Empty;
     private string _categorySearchText = string.Empty;
 
+    // Champs pour le formulaire Flash
+    private PromoProduct? _flashSelectedProduct;
+    private string _flashPrix = string.Empty;
+    private int _flashQuantite = 50;
+    private DateTime _flashDateDebutDate = DateTime.Today;
+    private TimeSpan _flashDateDebutTime = new TimeSpan(8, 0, 0);
+    private DateTime _flashDateFinDate = DateTime.Today.AddDays(2);
+    private TimeSpan _flashDateFinTime = new TimeSpan(18, 0, 0);
+    private DateTime _flashDateDispoDate = DateTime.Today.AddDays(4);
+    private TimeSpan _flashDateDispoTime = new TimeSpan(10, 0, 0);
+
     private PromoProduct? _selectedProduct;
     private PromoCategory? _selectedCategory;
+    private PromoCategory? _selectedCategoryPicker;
     private Promo? _selectedPromo;
 
     private List<PromoProduct> _allProducts = new();
@@ -73,6 +91,8 @@ public class PromoPageViewModel : BaseViewModel
         Promos = new ObservableCollection<Promo>();
         ProductResults = new ObservableCollection<PromoProduct>();
         CategoryResults = new ObservableCollection<PromoCategory>();
+        AvailableCategories = new ObservableCollection<PromoCategory>();
+        FlashProductList = new ObservableCollection<PromoProduct>();
 
         GoBackCommand = new Command(async () => await NavigateBackAsync());
         ShowCreatePanelCommand = new Command(ActivateCreateMode);
@@ -83,7 +103,16 @@ public class PromoPageViewModel : BaseViewModel
         CreatePromoCommand = new Command(async () => await CreatePromoAsync(), CanCreatePromo);
         UpdatePromoCommand = new Command(async () => await UpdatePromoAsync(), CanUpdatePromo);
 
+        // Commandes Flash
+        CreateFlashPromoCommand = new Command(async () => await CreateFlashPromoAsync(), CanCreateFlashPromo);
+        IncrementQuantityCommand = new Command(() => FlashQuantite = Math.Min(FlashQuantite + 1, 999));
+        DecrementQuantityCommand = new Command(() => FlashQuantite = Math.Max(FlashQuantite - 1, 1));
+        SetQuantityCommand = new Command<string>(qty => { if (int.TryParse(qty, out var q)) FlashQuantite = q; });
+
         StatusMessage = "Choisissez un mode pour commencer.";
+
+        // Charger les catégories automatiquement
+        _ = LoadCategoriesForPickerAsync();
     }
 
     public ICommand GoBackCommand { get; }
@@ -92,12 +121,20 @@ public class PromoPageViewModel : BaseViewModel
     public ObservableCollection<Promo> Promos { get; }
     public ObservableCollection<PromoProduct> ProductResults { get; }
     public ObservableCollection<PromoCategory> CategoryResults { get; }
+    public ObservableCollection<PromoCategory> AvailableCategories { get; }
+    public ObservableCollection<PromoProduct> FlashProductList { get; }
 
     public ICommand RefreshPromosCommand { get; }
     public ICommand SearchProductsCommand { get; }
     public ICommand SearchCategoriesCommand { get; }
     public ICommand CreatePromoCommand { get; }
     public ICommand UpdatePromoCommand { get; }
+
+    // Commandes Flash
+    public ICommand CreateFlashPromoCommand { get; }
+    public ICommand IncrementQuantityCommand { get; }
+    public ICommand DecrementQuantityCommand { get; }
+    public ICommand SetQuantityCommand { get; }
 
     public string StatusMessage
     {
@@ -139,6 +176,128 @@ public class PromoPageViewModel : BaseViewModel
     {
         get => _isPromosLoading;
         set => SetProperty(ref _isPromosLoading, value);
+    }
+
+    public bool IsCategoriesLoading
+    {
+        get => _isCategoriesLoading;
+        set => SetProperty(ref _isCategoriesLoading, value);
+    }
+
+    public bool IsCategoriesLoaded
+    {
+        get => _isCategoriesLoaded;
+        set => SetProperty(ref _isCategoriesLoaded, value);
+    }
+
+    public bool IsFlashMode
+    {
+        get => _isFlashMode;
+        set => SetProperty(ref _isFlashMode, value);
+    }
+
+    public bool IsStandardModeVisible
+    {
+        get => _isStandardModeVisible;
+        set => SetProperty(ref _isStandardModeVisible, value);
+    }
+
+    public string CategoryPickerStatus
+    {
+        get => _categoryPickerStatus;
+        set => SetProperty(ref _categoryPickerStatus, value);
+    }
+
+    public string FlashStatusMessage
+    {
+        get => _flashStatusMessage;
+        set => SetProperty(ref _flashStatusMessage, value);
+    }
+
+    public PromoCategory? SelectedCategoryPicker
+    {
+        get => _selectedCategoryPicker;
+        set
+        {
+            if (SetProperty(ref _selectedCategoryPicker, value))
+            {
+                OnCategoryPickerChanged(value);
+            }
+        }
+    }
+
+    // Propriétés Flash
+    public PromoProduct? FlashSelectedProduct
+    {
+        get => _flashSelectedProduct;
+        set
+        {
+            if (SetProperty(ref _flashSelectedProduct, value))
+            {
+                OnPropertyChanged(nameof(FlashSelectedProductLabel));
+                RefreshCommands();
+            }
+        }
+    }
+
+    public string FlashSelectedProductLabel => FlashSelectedProduct is null
+        ? string.Empty
+        : $"Prix normal: {FlashSelectedProduct.DisplayPrice}";
+
+    public string FlashPrix
+    {
+        get => _flashPrix;
+        set
+        {
+            if (SetProperty(ref _flashPrix, value))
+                RefreshCommands();
+        }
+    }
+
+    public int FlashQuantite
+    {
+        get => _flashQuantite;
+        set
+        {
+            if (SetProperty(ref _flashQuantite, value))
+                RefreshCommands();
+        }
+    }
+
+    public DateTime FlashDateDebutDate
+    {
+        get => _flashDateDebutDate;
+        set => SetProperty(ref _flashDateDebutDate, value);
+    }
+
+    public TimeSpan FlashDateDebutTime
+    {
+        get => _flashDateDebutTime;
+        set => SetProperty(ref _flashDateDebutTime, value);
+    }
+
+    public DateTime FlashDateFinDate
+    {
+        get => _flashDateFinDate;
+        set => SetProperty(ref _flashDateFinDate, value);
+    }
+
+    public TimeSpan FlashDateFinTime
+    {
+        get => _flashDateFinTime;
+        set => SetProperty(ref _flashDateFinTime, value);
+    }
+
+    public DateTime FlashDateDispoDate
+    {
+        get => _flashDateDispoDate;
+        set => SetProperty(ref _flashDateDispoDate, value);
+    }
+
+    public TimeSpan FlashDateDispoTime
+    {
+        get => _flashDateDispoTime;
+        set => SetProperty(ref _flashDateDispoTime, value);
     }
 
     public DateTime DateDebutDate
@@ -256,6 +415,118 @@ public class PromoPageViewModel : BaseViewModel
             return LoadPromosAsync();
 
         return Task.CompletedTask;
+    }
+
+    private async Task LoadCategoriesForPickerAsync()
+    {
+        try
+        {
+            IsCategoriesLoading = true;
+            IsCategoriesLoaded = false;
+            CategoryPickerStatus = "Chargement des catégories...";
+
+            if (!await EnsureSessionAsync())
+            {
+                CategoryPickerStatus = "Session expirée.";
+                return;
+            }
+
+            _allCategories = await FetchCategoriesAsync();
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                AvailableCategories.Clear();
+                foreach (var cat in _allCategories)
+                    AvailableCategories.Add(cat);
+
+                IsCategoriesLoaded = true;
+                CategoryPickerStatus = _allCategories.Count == 0
+                    ? "Aucune catégorie disponible."
+                    : "Sélectionnez le type de promotion.";
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PROMO] category picker load error: {ex}");
+            CategoryPickerStatus = "Erreur de chargement des catégories.";
+        }
+        finally
+        {
+            IsCategoriesLoading = false;
+        }
+    }
+
+    private async void OnCategoryPickerChanged(PromoCategory? category)
+    {
+        // Reset des modes
+        IsFlashMode = false;
+        IsStandardModeVisible = false;
+        IsFormSectionVisible = false;
+        IsUpdateMode = false;
+
+        if (category == null)
+        {
+            CategoryPickerStatus = "Sélectionnez le type de promotion.";
+            return;
+        }
+
+        // Détection du mode flash (nom contient "flash" insensible à la casse)
+        var isFlash = category.Name?.ToLowerInvariant().Contains("flash") ?? false;
+
+        if (isFlash)
+        {
+            IsFlashMode = true;
+            FlashStatusMessage = string.Empty;
+            CategoryPickerStatus = $"Mode Flash activé - Catégorie: {category.DisplayName}";
+
+            // Charger les produits pour le picker flash
+            await LoadFlashProductsAsync();
+        }
+        else
+        {
+            IsStandardModeVisible = true;
+            CategoryPickerStatus = $"Catégorie: {category.DisplayName} - Choisissez une action.";
+            // Pré-sélectionner cette catégorie pour le formulaire standard
+            SelectedCategory = category;
+        }
+    }
+
+    private async Task LoadFlashProductsAsync()
+    {
+        try
+        {
+            IsBusy = true;
+            FlashStatusMessage = "Chargement des produits...";
+
+            if (!await EnsureSessionAsync())
+                return;
+
+            if (!_productsLoaded)
+            {
+                _allProducts = await FetchProductsAsync();
+                _productsLoaded = true;
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                FlashProductList.Clear();
+                foreach (var product in _allProducts.Take(100))
+                    FlashProductList.Add(product);
+
+                FlashStatusMessage = FlashProductList.Count == 0
+                    ? "Aucun produit disponible."
+                    : string.Empty;
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PROMO] flash products load error: {ex}");
+            FlashStatusMessage = "Erreur chargement produits.";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private void ActivateCreateMode()
@@ -650,6 +921,116 @@ public class PromoPageViewModel : BaseViewModel
         }
     }
 
+    private async Task CreateFlashPromoAsync()
+    {
+        if (IsBusy)
+            return;
+
+        if (!await EnsureSessionAsync())
+        {
+            FlashStatusMessage = "Session expirée, reconnectez-vous.";
+            return;
+        }
+
+        if (FlashSelectedProduct is null)
+        {
+            FlashStatusMessage = "Sélectionnez un produit.";
+            return;
+        }
+
+        if (SelectedCategoryPicker is null)
+        {
+            FlashStatusMessage = "Catégorie non sélectionnée.";
+            return;
+        }
+
+        if (!double.TryParse(FlashPrix, out var prix) || prix <= 0)
+        {
+            FlashStatusMessage = "Prix invalide.";
+            return;
+        }
+
+        var dateDebut = DateTime.SpecifyKind(FlashDateDebutDate.Date + FlashDateDebutTime, DateTimeKind.Local);
+        var dateFin = DateTime.SpecifyKind(FlashDateFinDate.Date + FlashDateFinTime, DateTimeKind.Local);
+        var dateDispo = DateTime.SpecifyKind(FlashDateDispoDate.Date + FlashDateDispoTime, DateTimeKind.Local);
+
+        if (dateFin <= dateDebut)
+        {
+            FlashStatusMessage = "La fin doit être après le début.";
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            FlashStatusMessage = "Création de la promo flash...";
+            RefreshCommands();
+
+            var payload = new
+            {
+                produitId = FlashSelectedProduct.Id,
+                categoriePromoId = SelectedCategoryPicker.Id,
+                dateDebut = dateDebut.ToString("yyyy-MM-dd HH:mm:ss"),
+                dateFin = dateFin.ToString("yyyy-MM-dd HH:mm:ss"),
+                prix,
+                quantite = FlashQuantite,
+                dateDisponibilite = dateDispo.ToString("yyyy-MM-dd HH:mm:ss")
+            };
+
+            var response = await _apis.PostAsync<object, FlashPromoResponse>("/api/mobile/AjoutPromo", payload);
+
+            if (response?.Success == true || response?.Data != null)
+            {
+                FlashStatusMessage = response?.Message ?? "Promo flash créée avec succès!";
+                NotifyPromoSaved(FlashStatusMessage);
+
+                // Reset du formulaire
+                FlashSelectedProduct = null;
+                FlashPrix = string.Empty;
+                FlashQuantite = 50;
+            }
+            else
+            {
+                FlashStatusMessage = response?.Message ?? "Erreur lors de la création.";
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Debug.WriteLine($"[PROMO FLASH] http error: {ex.Message}");
+            FlashStatusMessage = "Impossible de joindre le serveur.";
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PROMO FLASH] error: {ex}");
+            FlashStatusMessage = "Erreur inattendue.";
+        }
+        finally
+        {
+            IsBusy = false;
+            RefreshCommands();
+        }
+    }
+
+    private bool CanCreateFlashPromo()
+    {
+        return !IsBusy
+            && FlashSelectedProduct != null
+            && !string.IsNullOrWhiteSpace(FlashPrix)
+            && FlashQuantite > 0;
+    }
+
+    private sealed class FlashPromoResponse
+    {
+        [JsonProperty("success")]
+        public bool Success { get; set; }
+
+        [JsonProperty("message")]
+        public string? Message { get; set; }
+
+        [JsonProperty("data")]
+        public object? Data { get; set; }
+    }
+
     private bool TryParseForm(out DateTime debut, out DateTime fin, out double prix)
     {
         debut = default;
@@ -714,6 +1095,7 @@ public class PromoPageViewModel : BaseViewModel
     {
         (CreatePromoCommand as Command)?.ChangeCanExecute();
         (UpdatePromoCommand as Command)?.ChangeCanExecute();
+        (CreateFlashPromoCommand as Command)?.ChangeCanExecute();
     }
 
     private void NotifyPromoSaved(string message)
