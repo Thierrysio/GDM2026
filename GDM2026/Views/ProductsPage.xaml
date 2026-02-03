@@ -247,7 +247,6 @@
                                         Title="Choisir un produit à modifier..."
                                         ItemsSource="{Binding SortedProducts}"
                                         ItemDisplayBinding="{Binding DisplayName}"
-                                        SelectedItem="{Binding SelectedProductFromPicker}"
                                         SelectedIndexChanged="OnProductPickerSelectedIndexChanged"
                                         TextColor="{StaticResource GoldText}"
                                         TitleColor="#7E7030"
