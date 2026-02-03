@@ -328,6 +328,57 @@ public class ProductsEditViewModel : BaseViewModel
         await EnsureImageLibraryLoadedAsync().ConfigureAwait(false);
     }
 
+    public async Task LoadAndSelectProductByIdAsync(int productId)
+    {
+        try
+        {
+            StatusMessage = "Chargement du produit...";
+
+            // Charger le cache des produits si nécessaire
+            var products = await EnsureProductsCacheAsync().ConfigureAwait(false);
+
+            // Trouver le produit par ID
+            var product = products.FirstOrDefault(p => p.Id == productId);
+
+            if (product != null)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    // Ajouter le produit à la liste visible s'il n'y est pas déjà
+                    if (!VisibleProducts.Contains(product))
+                    {
+                        VisibleProducts.Clear();
+                        VisibleProducts.Add(product);
+                    }
+
+                    // Sélectionner le produit pour afficher le formulaire
+                    SelectedProduct = product;
+                    StatusMessage = $"Modification de : {product.DisplayName}";
+                });
+
+                Debug.WriteLine($"[PRODUCTS_EDIT] Produit chargé et sélectionné: {product.DisplayName}");
+            }
+            else
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    StatusMessage = $"Produit #{productId} introuvable.";
+                });
+
+                Debug.WriteLine($"[PRODUCTS_EDIT] Produit ID {productId} non trouvé dans le cache");
+            }
+        }
+        catch (Exception ex)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                StatusMessage = "Erreur lors du chargement du produit.";
+            });
+
+            Debug.WriteLine($"[PRODUCTS_EDIT] Erreur LoadAndSelectProductByIdAsync: {ex}");
+        }
+    }
+
     private async Task SearchAsync()
     {
         var query = SearchText?.Trim() ?? string.Empty;
