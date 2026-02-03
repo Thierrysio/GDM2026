@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
@@ -19,8 +20,14 @@ public class ProductsViewModel : BaseViewModel
 {
     private const bool ProductLoadingEnabled = true;
     private const string DefaultCreationMessage = "Remplissez le formulaire pour créer un produit.";
+    private const int SearchDebounceMs = 300;
+
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
+
+    private CancellationTokenSource? _searchCts;
+    private CancellationTokenSource? _imageSearchCts;
+    private CancellationTokenSource? _categoryFilterCts;
 
     private bool _sessionPrepared;
     private bool _hasLoaded;
@@ -113,7 +120,7 @@ public class ProductsViewModel : BaseViewModel
         {
             if (SetProperty(ref _searchText, value))
             {
-                ApplyFilter();
+                _ = ApplyFilterWithDebounceAsync();
             }
         }
     }
@@ -153,7 +160,7 @@ public class ProductsViewModel : BaseViewModel
         {
             if (SetProperty(ref _selectedCatalogCategory, value))
             {
-                ApplyFilter();
+                _ = ApplyFilterWithDebounceAsync(immediate: true);
             }
         }
     }
@@ -321,7 +328,7 @@ public class ProductsViewModel : BaseViewModel
         {
             if (SetProperty(ref _imageSearchTerm, value))
             {
-                RefreshImageLibraryFilter();
+                _ = RefreshImageLibraryFilterWithDebounceAsync();
             }
         }
     }
@@ -493,37 +500,77 @@ public class ProductsViewModel : BaseViewModel
         return new List<ProductCatalogItem>();
     }
 
+    private async Task ApplyFilterWithDebounceAsync(bool immediate = false)
+    {
+        // Annule la recherche précédente
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+        var token = _searchCts.Token;
+
+        try
+        {
+            // Debounce sauf si immediate
+            if (!immediate)
+            {
+                await Task.Delay(SearchDebounceMs, token).ConfigureAwait(false);
+            }
+
+            if (token.IsCancellationRequested) return;
+
+            // Capture les valeurs actuelles
+            var query = SearchText?.Trim();
+            var selectedCategoryName = SelectedCatalogCategory?.Name;
+            var productsList = Products.ToList();
+
+            // Exécute le filtrage en arrière-plan
+            var filtered = await Task.Run(() =>
+            {
+                IEnumerable<ProductCatalogItem> source = productsList;
+
+                // Filtre par catégorie si sélectionnée
+                if (!string.IsNullOrWhiteSpace(selectedCategoryName))
+                {
+                    source = source.Where(p =>
+                        !string.IsNullOrWhiteSpace(p.Categorie) &&
+                        p.Categorie.Equals(selectedCategoryName, StringComparison.OrdinalIgnoreCase));
+                }
+
+                // Filtre par texte de recherche
+                if (!string.IsNullOrWhiteSpace(query))
+                {
+                    var normalized = query.ToLowerInvariant();
+                    source = source.Where(p =>
+                        (p.DisplayName?.ToLowerInvariant().Contains(normalized) ?? false) ||
+                        (p.Description?.ToLowerInvariant().Contains(normalized) ?? false) ||
+                        (p.Categorie?.ToLowerInvariant().Contains(normalized) ?? false));
+                }
+
+                return source.ToList();
+            }, token).ConfigureAwait(false);
+
+            if (token.IsCancellationRequested) return;
+
+            // Met à jour l'UI sur le thread principal
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                FilteredProducts.Clear();
+                foreach (var item in filtered)
+                {
+                    FilteredProducts.Add(item);
+                }
+                UpdateFilterStatus(query, selectedCategoryName);
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Recherche annulée, ignorer
+        }
+    }
+
     private void ApplyFilter()
     {
-        IEnumerable<ProductCatalogItem> source = Products;
-        var query = SearchText?.Trim();
-        var selectedCategoryName = SelectedCatalogCategory?.Name;
-
-        // Filtre par catégorie si sélectionnée
-        if (!string.IsNullOrWhiteSpace(selectedCategoryName))
-        {
-            source = source.Where(p =>
-                !string.IsNullOrWhiteSpace(p.Categorie) &&
-                p.Categorie.Equals(selectedCategoryName, StringComparison.OrdinalIgnoreCase));
-        }
-
-        // Filtre par texte de recherche
-        if (!string.IsNullOrWhiteSpace(query))
-        {
-            var normalized = query.ToLowerInvariant();
-            source = source.Where(p =>
-                (p.DisplayName?.ToLowerInvariant().Contains(normalized) ?? false) ||
-                (p.Description?.ToLowerInvariant().Contains(normalized) ?? false) ||
-                (p.Categorie?.ToLowerInvariant().Contains(normalized) ?? false));
-        }
-
-        FilteredProducts.Clear();
-        foreach (var item in source)
-        {
-            FilteredProducts.Add(item);
-        }
-
-        UpdateFilterStatus(query, selectedCategoryName);
+        // Version synchrone pour les appels internes (ex: après chargement)
+        _ = ApplyFilterWithDebounceAsync(immediate: true);
     }
 
     private void UpdateFilterStatus(string? query, string? categoryName)
@@ -573,37 +620,64 @@ public class ProductsViewModel : BaseViewModel
         }
     }
 
+    private async Task RefreshSortedProductsAndCategoriesAsync()
+    {
+        var productsList = Products.ToList();
+
+        // Exécute le tri en arrière-plan
+        var (sortedProducts, uniqueCategories) = await Task.Run(() =>
+        {
+            var sorted = productsList
+                .OrderBy(p => p.DisplayName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var categories = productsList
+                .Where(p => !string.IsNullOrWhiteSpace(p.Categorie))
+                .Select(p => p.Categorie!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            return (sorted, categories);
+        }).ConfigureAwait(false);
+
+        // Met à jour l'UI sur le thread principal
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            SortedProducts.Clear();
+            foreach (var product in sortedProducts)
+            {
+                SortedProducts.Add(product);
+            }
+
+            CatalogCategories.Clear();
+            foreach (var categoryName in uniqueCategories)
+            {
+                CatalogCategories.Add(new SubCategory { Name = categoryName });
+            }
+        });
+    }
+
     private void RefreshSortedProductsAndCategories()
     {
-        // Met à jour la liste triée des produits (ordre alphabétique)
-        SortedProducts.Clear();
-        foreach (var product in Products.OrderBy(p => p.DisplayName, StringComparer.OrdinalIgnoreCase))
-        {
-            SortedProducts.Add(product);
-        }
-
-        // Extrait les catégories uniques des produits
-        var uniqueCategories = Products
-            .Where(p => !string.IsNullOrWhiteSpace(p.Categorie))
-            .Select(p => p.Categorie!)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        CatalogCategories.Clear();
-        foreach (var categoryName in uniqueCategories)
-        {
-            CatalogCategories.Add(new SubCategory { Name = categoryName });
-        }
+        // Lance en arrière-plan sans bloquer
+        _ = RefreshSortedProductsAndCategoriesAsync();
     }
 
     private void ClearFilters()
     {
-        SearchText = string.Empty;
-        SelectedCatalogCategory = null;
+        // Annule les recherches en cours
+        _searchCts?.Cancel();
+
+        _searchText = string.Empty;
+        OnPropertyChanged(nameof(SearchText));
+        _selectedCatalogCategory = null;
+        OnPropertyChanged(nameof(SelectedCatalogCategory));
         _selectedProductFromPicker = null;
         OnPropertyChanged(nameof(SelectedProductFromPicker));
-        ApplyFilter();
+
+        // Lance le filtre immédiatement
+        _ = ApplyFilterWithDebounceAsync(immediate: true);
         CatalogFilterStatus = Products.Count > 0
             ? $"Filtres réinitialisés • {Products.Count} produit(s)"
             : "Catalogue vide";
@@ -727,35 +801,71 @@ public class ProductsViewModel : BaseViewModel
         }
     }
 
+    private async Task RefreshImageLibraryFilterWithDebounceAsync()
+    {
+        // Annule la recherche précédente
+        _imageSearchCts?.Cancel();
+        _imageSearchCts = new CancellationTokenSource();
+        var token = _imageSearchCts.Token;
+
+        try
+        {
+            // Debounce
+            await Task.Delay(SearchDebounceMs, token).ConfigureAwait(false);
+
+            if (token.IsCancellationRequested) return;
+
+            var searchTerm = ImageSearchTerm;
+            var hasSearch = !string.IsNullOrWhiteSpace(searchTerm);
+            var normalized = searchTerm?.Trim().ToLowerInvariant();
+            var imageList = ImageLibrary.ToList();
+
+            // Exécute le filtrage en arrière-plan
+            var filtered = await Task.Run(() =>
+            {
+                IEnumerable<AdminImage> source = imageList;
+                if (hasSearch && normalized != null)
+                {
+                    source = source.Where(img =>
+                        (!string.IsNullOrWhiteSpace(img.DisplayName) && img.DisplayName.ToLowerInvariant().Contains(normalized)) ||
+                        (!string.IsNullOrWhiteSpace(img.Url) && img.Url.ToLowerInvariant().Contains(normalized)));
+                }
+                return source.ToList();
+            }, token).ConfigureAwait(false);
+
+            if (token.IsCancellationRequested) return;
+
+            // Met à jour l'UI sur le thread principal
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                FilteredImageLibrary.Clear();
+                foreach (var image in filtered)
+                {
+                    FilteredImageLibrary.Add(image);
+                }
+
+                if (hasSearch)
+                {
+                    ImageLibraryMessage = FilteredImageLibrary.Count == 0
+                        ? "Aucune image ne correspond à cette recherche."
+                        : $"{FilteredImageLibrary.Count} résultat(s) pour \"{searchTerm}\".";
+                }
+                else if (ImageLibrary.Count > 0)
+                {
+                    ImageLibraryMessage = "Sélectionnez une image ou utilisez la recherche.";
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Recherche annulée, ignorer
+        }
+    }
+
     private void RefreshImageLibraryFilter()
     {
-        var hasSearch = !string.IsNullOrWhiteSpace(ImageSearchTerm);
-        var normalized = ImageSearchTerm?.Trim().ToLowerInvariant();
-
-        IEnumerable<AdminImage> source = ImageLibrary;
-        if (hasSearch)
-        {
-            source = source.Where(img =>
-                (!string.IsNullOrWhiteSpace(img.DisplayName) && img.DisplayName.ToLowerInvariant().Contains(normalized)) ||
-                (!string.IsNullOrWhiteSpace(img.Url) && img.Url.ToLowerInvariant().Contains(normalized)));
-        }
-
-        FilteredImageLibrary.Clear();
-        foreach (var image in source)
-        {
-            FilteredImageLibrary.Add(image);
-        }
-
-        if (hasSearch)
-        {
-            ImageLibraryMessage = FilteredImageLibrary.Count == 0
-                ? "Aucune image ne correspond à cette recherche."
-                : $"{FilteredImageLibrary.Count} résultat(s) pour \"{ImageSearchTerm}\".";
-        }
-        else if (ImageLibrary.Count > 0)
-        {
-            ImageLibraryMessage = "Sélectionnez une image ou utilisez la recherche.";
-        }
+        // Version synchrone pour les appels internes
+        _ = RefreshImageLibraryFilterWithDebounceAsync();
     }
 
     private void ApplyImageSelection(AdminImage? image)
