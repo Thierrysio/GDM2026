@@ -2,8 +2,8 @@ using GDM2026.Models;
 using GDM2026.ViewModels;
 using Microsoft.Maui.Controls;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net;
 
 namespace GDM2026;
 
