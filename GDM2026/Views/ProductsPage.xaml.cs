@@ -75,8 +75,10 @@ public partial class ProductsPage : ContentPage
 
         try
         {
-            // Navigation directe sans paramètres pour tester
-            await Shell.Current.GoToAsync(nameof(ProductsEditPage));
+            // Navigation avec ProductId en paramètre
+            var route = $"{nameof(ProductsEditPage)}?ProductId={selectedProduct.Id}";
+            Debug.WriteLine($"[PRODUCTS PAGE] Navigation: {route}");
+            await Shell.Current.GoToAsync(route);
         }
         catch (Exception ex)
         {
