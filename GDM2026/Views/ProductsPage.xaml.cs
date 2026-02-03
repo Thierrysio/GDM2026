@@ -50,8 +50,24 @@ public partial class ProductsPage : ContentPage
         // Ignorer si aucune sélection valide
         if (picker.SelectedIndex < 0) return;
 
-        if (picker.SelectedItem is not ProductCatalogItem selectedProduct)
+        // Vérifier que la liste n'est pas vide
+        if (_viewModel.SortedProducts.Count == 0)
         {
+            await DisplayAlert("Erreur", "La liste des produits est vide", "OK");
+            return;
+        }
+
+        // Récupérer le produit sélectionné via le ViewModel
+        if (picker.SelectedIndex >= _viewModel.SortedProducts.Count)
+        {
+            await DisplayAlert("Erreur", $"Index {picker.SelectedIndex} hors limites (max: {_viewModel.SortedProducts.Count - 1})", "OK");
+            return;
+        }
+
+        var selectedProduct = _viewModel.SortedProducts[picker.SelectedIndex];
+        if (selectedProduct == null)
+        {
+            await DisplayAlert("Erreur", "Produit null", "OK");
             return;
         }
 
@@ -59,22 +75,15 @@ public partial class ProductsPage : ContentPage
 
         try
         {
-            Debug.WriteLine($"[PRODUCTS PAGE] Navigation vers produit: {selectedProduct.DisplayName} (ID: {selectedProduct.Id})");
-
-            if (Shell.Current != null)
-            {
-                var productName = WebUtility.UrlEncode(selectedProduct.DisplayName ?? string.Empty);
-                var route = $"{nameof(ProductsEditPage)}?ProductId={selectedProduct.Id}&ProductName={productName}";
-                await Shell.Current.GoToAsync(route, animate: false);
-            }
+            // Navigation directe sans paramètres pour tester
+            await Shell.Current.GoToAsync(nameof(ProductsEditPage));
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[PRODUCTS PAGE] Erreur navigation : {ex}");
+            await DisplayAlert("Erreur Navigation", ex.Message, "OK");
         }
         finally
         {
-            // Réinitialise le picker après navigation
             picker.SelectedIndex = -1;
             _isNavigating = false;
         }
