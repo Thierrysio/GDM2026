@@ -144,13 +144,7 @@ public class ProductsViewModel : BaseViewModel
     public ProductCatalogItem? SelectedProductFromPicker
     {
         get => _selectedProductFromPicker;
-        set
-        {
-            if (SetProperty(ref _selectedProductFromPicker, value) && value is not null)
-            {
-                ScrollToProduct(value);
-            }
-        }
+        set => SetProperty(ref _selectedProductFromPicker, value);
     }
 
     public SubCategory? SelectedCatalogCategory
@@ -383,69 +377,49 @@ public class ProductsViewModel : BaseViewModel
     {
         if (!ProductLoadingEnabled)
         {
-            StatusMessage = "Le chargement du catalogue est désactivé.";
-            IsRefreshing = false;
+            CatalogFilterStatus = "Chargement désactivé";
             IsBusy = false;
-            Products.Clear();
-            FilteredProducts.Clear();
             return;
         }
 
-        if (IsBusy)
-        {
-            return;
-        }
+        if (IsBusy) return;
 
         try
         {
             IsBusy = true;
-            IsRefreshing = forceRefresh;
-            StatusMessage = forceRefresh ? "Actualisation du catalogue" : "Chargement du catalogue";
+            CatalogFilterStatus = "Chargement des produits...";
 
-            var items = await FetchProductsAsync().ConfigureAwait(false);
+            // Fetch en arrière-plan
+            var items = await Task.Run(async () => await FetchProductsAsync()).ConfigureAwait(false);
 
+            // Tri en arrière-plan avant mise à jour UI
+            var sortedItems = await Task.Run(() =>
+                items.OrderBy(p => p.DisplayName, StringComparer.OrdinalIgnoreCase).ToList()
+            ).ConfigureAwait(false);
+
+            // Mise à jour UI minimale
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                Products.Clear();
-                foreach (var item in items)
+                SortedProducts.Clear();
+                foreach (var item in sortedItems)
                 {
-                    Products.Add(item);
+                    SortedProducts.Add(item);
                 }
 
                 _hasLoaded = true;
-                RefreshSortedProductsAndCategories();
-                ApplyFilter();
-
-                if (!Products.Any())
-                {
-                    StatusMessage = "Aucun produit à afficher pour le moment.";
-                    CatalogFilterStatus = "Catalogue vide";
-                }
-                else if (string.IsNullOrWhiteSpace(SearchText))
-                {
-                    StatusMessage = $"{Products.Count} produit(s) disponible(s).";
-                    CatalogFilterStatus = $"{SortedProducts.Count} produit(s) • {CatalogCategories.Count} catégorie(s)";
-                }
+                CatalogFilterStatus = SortedProducts.Count == 0
+                    ? "Aucun produit disponible"
+                    : $"{SortedProducts.Count} produit(s) disponible(s)";
             });
-        }
-        catch (TaskCanceledException)
-        {
-            StatusMessage = "Chargement annulé.";
-        }
-        catch (HttpRequestException ex)
-        {
-            StatusMessage = "Impossible de récupérer les produits.";
-            Debug.WriteLine($"[PRODUCTS] Erreur HTTP : {ex}");
         }
         catch (Exception ex)
         {
-            StatusMessage = "Une erreur est survenue lors du chargement du catalogue.";
-            Debug.WriteLine($"[PRODUCTS] Erreur inattendue : {ex}");
+            CatalogFilterStatus = "Erreur de chargement";
+            Debug.WriteLine($"[PRODUCTS] Erreur : {ex}");
         }
         finally
         {
             IsBusy = false;
-            IsRefreshing = false;
         }
     }
 
