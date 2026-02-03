@@ -50,36 +50,40 @@ public partial class ProductsPage : ContentPage
         // Ignorer si aucune sélection valide
         if (picker.SelectedIndex < 0) return;
 
+        // Vérifier que la liste n'est pas vide
+        if (_viewModel.SortedProducts.Count == 0)
+        {
+            await DisplayAlert("Erreur", "La liste des produits est vide", "OK");
+            return;
+        }
+
         // Récupérer le produit sélectionné via le ViewModel
-        if (picker.SelectedIndex >= _viewModel.SortedProducts.Count) return;
+        if (picker.SelectedIndex >= _viewModel.SortedProducts.Count)
+        {
+            await DisplayAlert("Erreur", $"Index {picker.SelectedIndex} hors limites (max: {_viewModel.SortedProducts.Count - 1})", "OK");
+            return;
+        }
 
         var selectedProduct = _viewModel.SortedProducts[picker.SelectedIndex];
-        if (selectedProduct == null) return;
+        if (selectedProduct == null)
+        {
+            await DisplayAlert("Erreur", "Produit null", "OK");
+            return;
+        }
 
         _isNavigating = true;
 
         try
         {
-            Debug.WriteLine($"[PRODUCTS PAGE] Navigation vers produit: {selectedProduct.DisplayName} (ID: {selectedProduct.Id})");
-
-            var parameters = new Dictionary<string, object>
-            {
-                { "ProductId", selectedProduct.Id },
-                { "ProductName", selectedProduct.DisplayName ?? string.Empty }
-            };
-
-            if (Shell.Current != null)
-            {
-                await Shell.Current.GoToAsync(nameof(ProductsEditPage), animate: false, parameters);
-            }
+            // Navigation directe sans paramètres pour tester
+            await Shell.Current.GoToAsync(nameof(ProductsEditPage));
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[PRODUCTS PAGE] Erreur navigation : {ex}");
+            await DisplayAlert("Erreur Navigation", ex.Message, "OK");
         }
         finally
         {
-            // Réinitialise le picker après navigation
             picker.SelectedIndex = -1;
             _isNavigating = false;
         }
