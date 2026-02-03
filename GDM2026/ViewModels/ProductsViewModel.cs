@@ -17,7 +17,7 @@ namespace GDM2026.ViewModels;
 
 public class ProductsViewModel : BaseViewModel
 {
-    private const bool ProductLoadingEnabled = false;
+    private const bool ProductLoadingEnabled = true;
     private const string DefaultCreationMessage = "Remplissez le formulaire pour créer un produit.";
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
@@ -29,6 +29,9 @@ public class ProductsViewModel : BaseViewModel
     private string _searchText = string.Empty;
 
     private bool _isFormVisible;
+    private ProductCatalogItem? _selectedProductFromPicker;
+    private SubCategory? _selectedCatalogCategory;
+    private string _catalogFilterStatus = "Sélectionnez un produit ou filtrez par catégorie";
     private string _newProductName = string.Empty;
     private string _newProductShortDescription = string.Empty;
     private string _newProductFullDescription = string.Empty;
@@ -66,6 +69,7 @@ public class ProductsViewModel : BaseViewModel
         ToggleFormCommand = new Command(async () => await ToggleFormAsync());
         SubmitProductCommand = new Command(async () => await SubmitProductAsync(), CanSubmitProduct);
         ResetFormCommand = new Command(ResetForm);
+        ClearFiltersCommand = new Command(ClearFilters);
 
         RefreshSubmitAvailability();
     }
@@ -87,6 +91,8 @@ public class ProductsViewModel : BaseViewModel
     public ICommand SubmitProductCommand { get; }
 
     public ICommand ResetFormCommand { get; }
+
+    public ICommand ClearFiltersCommand { get; }
 
     public bool IsRefreshing
     {
@@ -122,6 +128,40 @@ public class ProductsViewModel : BaseViewModel
                 _ = EnsureImageLibraryLoadedAsync();
             }
         }
+    }
+
+    public ObservableCollection<ProductCatalogItem> SortedProducts { get; } = new();
+
+    public ObservableCollection<SubCategory> CatalogCategories { get; } = new();
+
+    public ProductCatalogItem? SelectedProductFromPicker
+    {
+        get => _selectedProductFromPicker;
+        set
+        {
+            if (SetProperty(ref _selectedProductFromPicker, value) && value is not null)
+            {
+                ScrollToProduct(value);
+            }
+        }
+    }
+
+    public SubCategory? SelectedCatalogCategory
+    {
+        get => _selectedCatalogCategory;
+        set
+        {
+            if (SetProperty(ref _selectedCatalogCategory, value))
+            {
+                ApplyFilter();
+            }
+        }
+    }
+
+    public string CatalogFilterStatus
+    {
+        get => _catalogFilterStatus;
+        set => SetProperty(ref _catalogFilterStatus, value);
     }
 
     public string NewProductName
@@ -366,15 +406,18 @@ public class ProductsViewModel : BaseViewModel
                 }
 
                 _hasLoaded = true;
+                RefreshSortedProductsAndCategories();
                 ApplyFilter();
 
                 if (!Products.Any())
                 {
                     StatusMessage = "Aucun produit à afficher pour le moment.";
+                    CatalogFilterStatus = "Catalogue vide";
                 }
                 else if (string.IsNullOrWhiteSpace(SearchText))
                 {
-                    StatusMessage = $"{Products.Count} produit(s) chargé(s).";
+                    StatusMessage = $"{Products.Count} produit(s) disponible(s).";
+                    CatalogFilterStatus = $"{SortedProducts.Count} produit(s) • {CatalogCategories.Count} catégorie(s)";
                 }
             });
         }
@@ -454,7 +497,17 @@ public class ProductsViewModel : BaseViewModel
     {
         IEnumerable<ProductCatalogItem> source = Products;
         var query = SearchText?.Trim();
+        var selectedCategoryName = SelectedCatalogCategory?.Name;
 
+        // Filtre par catégorie si sélectionnée
+        if (!string.IsNullOrWhiteSpace(selectedCategoryName))
+        {
+            source = source.Where(p =>
+                !string.IsNullOrWhiteSpace(p.Categorie) &&
+                p.Categorie.Equals(selectedCategoryName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Filtre par texte de recherche
         if (!string.IsNullOrWhiteSpace(query))
         {
             var normalized = query.ToLowerInvariant();
@@ -470,16 +523,90 @@ public class ProductsViewModel : BaseViewModel
             FilteredProducts.Add(item);
         }
 
-        if (!string.IsNullOrWhiteSpace(query))
+        UpdateFilterStatus(query, selectedCategoryName);
+    }
+
+    private void UpdateFilterStatus(string? query, string? categoryName)
+    {
+        var hasQuery = !string.IsNullOrWhiteSpace(query);
+        var hasCategory = !string.IsNullOrWhiteSpace(categoryName);
+
+        if (FilteredProducts.Count == 0)
         {
-            StatusMessage = FilteredProducts.Count == 0
-                ? "Aucun produit ne correspond à cette recherche."
-                : $"{FilteredProducts.Count} résultat(s) pour \"{query}\".";
+            StatusMessage = "Aucun produit ne correspond aux critères.";
+            CatalogFilterStatus = "Aucun résultat trouvé";
+        }
+        else if (hasQuery && hasCategory)
+        {
+            StatusMessage = $"{FilteredProducts.Count} résultat(s) pour \"{query}\" dans {categoryName}.";
+            CatalogFilterStatus = $"Filtré par : {categoryName} + recherche";
+        }
+        else if (hasQuery)
+        {
+            StatusMessage = $"{FilteredProducts.Count} résultat(s) pour \"{query}\".";
+            CatalogFilterStatus = "Résultats de recherche";
+        }
+        else if (hasCategory)
+        {
+            StatusMessage = $"{FilteredProducts.Count} produit(s) dans {categoryName}.";
+            CatalogFilterStatus = $"Filtré par : {categoryName}";
         }
         else if (Products.Count > 0)
         {
-            StatusMessage = $"{Products.Count} produit(s) chargé(s).";
+            StatusMessage = $"{Products.Count} produit(s) disponible(s).";
+            CatalogFilterStatus = "Tous les produits";
         }
+    }
+
+    private void ScrollToProduct(ProductCatalogItem product)
+    {
+        // Réinitialise les filtres pour afficher le produit
+        SearchText = string.Empty;
+        SelectedCatalogCategory = null;
+
+        // Sélectionne le produit dans la liste filtrée
+        var index = FilteredProducts.IndexOf(product);
+        if (index >= 0)
+        {
+            CatalogFilterStatus = $"Produit sélectionné : {product.DisplayName}";
+            StatusMessage = $"Affichage de : {product.DisplayName}";
+        }
+    }
+
+    private void RefreshSortedProductsAndCategories()
+    {
+        // Met à jour la liste triée des produits (ordre alphabétique)
+        SortedProducts.Clear();
+        foreach (var product in Products.OrderBy(p => p.DisplayName, StringComparer.OrdinalIgnoreCase))
+        {
+            SortedProducts.Add(product);
+        }
+
+        // Extrait les catégories uniques des produits
+        var uniqueCategories = Products
+            .Where(p => !string.IsNullOrWhiteSpace(p.Categorie))
+            .Select(p => p.Categorie!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        CatalogCategories.Clear();
+        foreach (var categoryName in uniqueCategories)
+        {
+            CatalogCategories.Add(new SubCategory { Name = categoryName });
+        }
+    }
+
+    private void ClearFilters()
+    {
+        SearchText = string.Empty;
+        SelectedCatalogCategory = null;
+        _selectedProductFromPicker = null;
+        OnPropertyChanged(nameof(SelectedProductFromPicker));
+        ApplyFilter();
+        CatalogFilterStatus = Products.Count > 0
+            ? $"Filtres réinitialisés • {Products.Count} produit(s)"
+            : "Catalogue vide";
     }
 
     private async Task ToggleFormAsync()
