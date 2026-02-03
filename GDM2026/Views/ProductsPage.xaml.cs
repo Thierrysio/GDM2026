@@ -2,8 +2,8 @@ using GDM2026.Models;
 using GDM2026.ViewModels;
 using Microsoft.Maui.Controls;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net;
 
 namespace GDM2026;
 
@@ -50,11 +50,10 @@ public partial class ProductsPage : ContentPage
         // Ignorer si aucune sélection valide
         if (picker.SelectedIndex < 0) return;
 
-        // Récupérer le produit sélectionné via le ViewModel
-        if (picker.SelectedIndex >= _viewModel.SortedProducts.Count) return;
-
-        var selectedProduct = _viewModel.SortedProducts[picker.SelectedIndex];
-        if (selectedProduct == null) return;
+        if (picker.SelectedItem is not ProductCatalogItem selectedProduct)
+        {
+            return;
+        }
 
         _isNavigating = true;
 
@@ -62,15 +61,11 @@ public partial class ProductsPage : ContentPage
         {
             Debug.WriteLine($"[PRODUCTS PAGE] Navigation vers produit: {selectedProduct.DisplayName} (ID: {selectedProduct.Id})");
 
-            var parameters = new Dictionary<string, object>
-            {
-                { "ProductId", selectedProduct.Id },
-                { "ProductName", selectedProduct.DisplayName ?? string.Empty }
-            };
-
             if (Shell.Current != null)
             {
-                await Shell.Current.GoToAsync(nameof(ProductsEditPage), animate: false, parameters);
+                var productName = WebUtility.UrlEncode(selectedProduct.DisplayName ?? string.Empty);
+                var route = $"{nameof(ProductsEditPage)}?ProductId={selectedProduct.Id}&ProductName={productName}";
+                await Shell.Current.GoToAsync(route, animate: false);
             }
         }
         catch (Exception ex)
