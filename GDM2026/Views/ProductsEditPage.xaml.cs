@@ -7,8 +7,6 @@ using System.Threading.Tasks;
 
 namespace GDM2026;
 
-[QueryProperty(nameof(ProductId), "ProductId")]
-[QueryProperty(nameof(ProductName), "ProductName")]
 public partial class ProductsEditPage : ContentPage, IQueryAttributable
 {
     private readonly ProductsEditViewModel _viewModel = new();
