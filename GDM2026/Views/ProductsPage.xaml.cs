@@ -45,34 +45,43 @@ public partial class ProductsPage : ContentPage
     {
         if (_isNavigating) return;
 
-        var picker = sender as Picker;
-        if (picker?.SelectedItem is ProductCatalogItem selectedProduct)
+        if (sender is not Picker picker) return;
+
+        // Ignorer si aucune sélection valide
+        if (picker.SelectedIndex < 0) return;
+
+        // Récupérer le produit sélectionné via le ViewModel
+        if (picker.SelectedIndex >= _viewModel.SortedProducts.Count) return;
+
+        var selectedProduct = _viewModel.SortedProducts[picker.SelectedIndex];
+        if (selectedProduct == null) return;
+
+        _isNavigating = true;
+
+        try
         {
-            _isNavigating = true;
+            Debug.WriteLine($"[PRODUCTS PAGE] Navigation vers produit: {selectedProduct.DisplayName} (ID: {selectedProduct.Id})");
 
-            try
+            var parameters = new Dictionary<string, object>
             {
-                var parameters = new Dictionary<string, object>
-                {
-                    { "ProductId", selectedProduct.Id },
-                    { "ProductName", selectedProduct.DisplayName ?? string.Empty }
-                };
+                { "ProductId", selectedProduct.Id },
+                { "ProductName", selectedProduct.DisplayName ?? string.Empty }
+            };
 
-                if (Shell.Current != null)
-                {
-                    await Shell.Current.GoToAsync(nameof(ProductsEditPage), animate: false, parameters);
-                }
-            }
-            catch (Exception ex)
+            if (Shell.Current != null)
             {
-                Debug.WriteLine($"[PRODUCTS PAGE] Erreur navigation : {ex}");
-                _isNavigating = false;
+                await Shell.Current.GoToAsync(nameof(ProductsEditPage), animate: false, parameters);
             }
-            finally
-            {
-                // Réinitialise le picker après navigation
-                picker.SelectedItem = null;
-            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PRODUCTS PAGE] Erreur navigation : {ex}");
+        }
+        finally
+        {
+            // Réinitialise le picker après navigation
+            picker.SelectedIndex = -1;
+            _isNavigating = false;
         }
     }
 }
