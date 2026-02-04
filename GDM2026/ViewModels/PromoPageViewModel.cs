@@ -235,7 +235,7 @@ public class PromoPageViewModel : BaseViewModel
         {
             if (SetProperty(ref _selectedCategoryPicker, value))
             {
-                OnCategoryPickerChanged(value);
+                _ = HandleCategoryPickerChangedAsync(value);
             }
         }
     }
@@ -478,38 +478,46 @@ public class PromoPageViewModel : BaseViewModel
         }
     }
 
-    private async void OnCategoryPickerChanged(PromoCategory? category)
+    private async Task HandleCategoryPickerChangedAsync(PromoCategory? category)
     {
-        // Reset des modes
-        IsFlashMode = false;
-        IsStandardModeVisible = false;
-        IsFormSectionVisible = false;
-        IsUpdateMode = false;
-
-        if (category == null)
+        try
         {
-            CategoryPickerStatus = "Sélectionnez le type de promotion.";
-            return;
+            // Reset des modes
+            IsFlashMode = false;
+            IsStandardModeVisible = false;
+            IsFormSectionVisible = false;
+            IsUpdateMode = false;
+
+            if (category == null)
+            {
+                CategoryPickerStatus = "Sélectionnez le type de promotion.";
+                return;
+            }
+
+            // Détection du mode flash (nom contient "flash" insensible à la casse)
+            var isFlash = category.Name?.ToLowerInvariant().Contains("flash") ?? false;
+
+            if (isFlash)
+            {
+                IsFlashMode = true;
+                FlashStatusMessage = string.Empty;
+                CategoryPickerStatus = $"Mode Flash activé - Catégorie: {category.DisplayName}";
+
+                // Charger les produits pour le picker flash
+                await LoadFlashProductsAsync();
+            }
+            else
+            {
+                IsStandardModeVisible = true;
+                CategoryPickerStatus = $"Catégorie: {category.DisplayName} - Choisissez une action.";
+                // Pré-sélectionner cette catégorie pour le formulaire standard
+                SelectedCategory = category;
+            }
         }
-
-        // Détection du mode flash (nom contient "flash" insensible à la casse)
-        var isFlash = category.Name?.ToLowerInvariant().Contains("flash") ?? false;
-
-        if (isFlash)
+        catch (Exception ex)
         {
-            IsFlashMode = true;
-            FlashStatusMessage = string.Empty;
-            CategoryPickerStatus = $"Mode Flash activé - Catégorie: {category.DisplayName}";
-
-            // Charger les produits pour le picker flash
-            await LoadFlashProductsAsync();
-        }
-        else
-        {
-            IsStandardModeVisible = true;
-            CategoryPickerStatus = $"Catégorie: {category.DisplayName} - Choisissez une action.";
-            // Pré-sélectionner cette catégorie pour le formulaire standard
-            SelectedCategory = category;
+            Debug.WriteLine($"[PROMO] category picker error: {ex}");
+            CategoryPickerStatus = "Erreur lors du changement de catégorie.";
         }
     }
 
