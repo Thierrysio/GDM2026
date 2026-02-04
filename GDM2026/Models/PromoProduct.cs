@@ -1,9 +1,7 @@
-using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
 
 namespace GDM2026.Models;
 
-[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 public class PromoProduct
 {
     [JsonProperty("id")]
