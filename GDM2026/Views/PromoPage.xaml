@@ -145,7 +145,7 @@
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                 <Entry
                                     Placeholder="Ex: 9.99"
-                                    Keyboard="Numeric"
+                                    Keyboard="Decimal"
                                     Text="{Binding FlashPrix}"
                                     TextColor="{StaticResource GoldText}"
                                     PlaceholderColor="#777"
