@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using GDM2026.ViewModels;
 using Microsoft.Maui.ApplicationModel;
 
@@ -17,7 +18,15 @@ public partial class PromoPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await _viewModel.InitializeAsync();
+        try
+        {
+            await _viewModel.InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PROMO_PAGE] OnAppearing crash: {ex}");
+            await DisplayAlertAsync("Erreur", "Impossible de charger la page promotion.", "OK");
+        }
     }
 
     private void OnPromoSaved(object? sender, string message)
