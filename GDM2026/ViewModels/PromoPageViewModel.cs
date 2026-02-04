@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -66,12 +67,14 @@ public class PromoPageViewModel : BaseViewModel
 
     public event EventHandler<string>? PromoSaved;
 
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
     private sealed class PromoListResponse
     {
         [JsonProperty("data")]
         public List<Promo>? Data { get; set; }
     }
 
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
     private sealed class PromoResponse
     {
         [JsonProperty("message")]
@@ -81,6 +84,7 @@ public class PromoPageViewModel : BaseViewModel
         public Promo? Data { get; set; }
     }
 
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
     private sealed class PromoCategoryListResponse
     {
         [JsonProperty("data")]

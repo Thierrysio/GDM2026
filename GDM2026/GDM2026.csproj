@@ -37,7 +37,15 @@
 
                 <!-- Force APK au lieu de AAB -->
                 <AndroidPackageFormat>apk</AndroidPackageFormat>
+
+                <!-- Utiliser le trimming partiel pour préserver les types utilisés par réflexion -->
+                <TrimMode>partial</TrimMode>
         </PropertyGroup>
+
+        <!-- Préserver Newtonsoft.Json pour éviter les problèmes de sérialisation en Release -->
+        <ItemGroup>
+                <TrimmerRootAssembly Include="Newtonsoft.Json" RootMode="All" />
+        </ItemGroup>
 
 	<ItemGroup>
 		<!-- App Icon -->
