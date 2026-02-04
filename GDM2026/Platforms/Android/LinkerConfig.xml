@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<linker>
+  <!-- Préserver tous les membres de Newtonsoft.Json pour éviter les problèmes de sérialisation en Release -->
+  <assembly fullname="Newtonsoft.Json">
+    <type fullname="*" preserve="all" />
+  </assembly>
+  
+  <!-- Préserver tous les modèles de l'application -->
+  <assembly fullname="GDM2026">
+    <namespace fullname="GDM2026.Models" preserve="all" />
+    <namespace fullname="GDM2026.ViewModels" preserve="all" />
+  </assembly>
+</linker>

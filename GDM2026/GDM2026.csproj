@@ -35,8 +35,32 @@
                 <!-- Suppress warnings from generated Java stubs that use deprecated finalizers -->
                 <AndroidJavaCompileExtraArguments Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">-Xlint:-removal</AndroidJavaCompileExtraArguments>
 
+                <!-- Désactiver le linker agressif en Release pour éviter la suppression de types JSON -->
+                <AndroidLinkMode Condition="'$(Configuration)' == 'Release'">SdkOnly</AndroidLinkMode>
+                
                 <!-- Force APK au lieu de AAB -->
                 <AndroidPackageFormat>apk</AndroidPackageFormat>
+        </PropertyGroup>
+
+        <!-- Configuration spécifique pour le débogage en mode Release -->
+        <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+                <!-- Activer les symboles de débogage en Release -->
+                <DebugSymbols>true</DebugSymbols>
+                <DebugType>portable</DebugType>
+                
+                <!-- Désactiver l'optimisation du code pour faciliter le débogage -->
+                <Optimize>false</Optimize>
+                
+                <!-- Désactiver l'AOT qui est incompatible avec Optimize=false -->
+                <RunAOTCompilation>false</RunAOTCompilation>
+                <EnableLLVM>false</EnableLLVM>
+                
+                <!-- Activer les logs détaillés Android -->
+                <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
+                <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+                
+                <!-- Garder les logs Debug.WriteLine actifs -->
+                <DefineConstants>$(DefineConstants);TRACE</DefineConstants>
         </PropertyGroup>
 
 	<ItemGroup>
@@ -55,6 +79,9 @@
 
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+		
+		<!-- Linker configuration for Android Release builds -->
+		<AndroidLinkDescription Include="Platforms\Android\LinkerConfig.xml" Condition="'$(TargetFramework)' == 'net10.0-android'" />
 	</ItemGroup>
 
         <ItemGroup>

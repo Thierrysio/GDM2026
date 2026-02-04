@@ -424,16 +424,30 @@ public class PromoPageViewModel : BaseViewModel
 
     public async Task InitializeAsync()
     {
+        // Éviter de bloquer le thread UI - charger en parallèle
+        var loadCategoriesTask = Task.CompletedTask;
+        var loadPromosTask = Task.CompletedTask;
+
         // Charger les catégories en premier (nécessaire pour le picker)
         if (!_categoriesLoaded && AvailableCategories.Count == 0)
         {
-            await LoadCategoriesForPickerAsync();
+            loadCategoriesTask = LoadCategoriesForPickerAsync();
         }
 
-        // Puis charger les promos si nécessaire
+        // Charger les promos en parallèle
         if (Promos.Count == 0)
         {
-            await LoadPromosAsync();
+            loadPromosTask = LoadPromosAsync();
+        }
+
+        // Attendre que les deux tâches soient terminées
+        try
+        {
+            await Task.WhenAll(loadCategoriesTask, loadPromosTask).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PROMO] InitializeAsync error: {ex}");
         }
     }
 

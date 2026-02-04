@@ -1,7 +1,9 @@
 using Newtonsoft.Json;
+using PreserveAttribute = Microsoft.Maui.Controls.Internals.PreserveAttribute;
 
 namespace GDM2026.Models;
 
+[Preserve(AllMembers = true)]
 public class PromoProduct
 {
     [JsonProperty("id")]

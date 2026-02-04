@@ -23,7 +23,24 @@ public partial class PromoPage : ContentPage
         base.OnAppearing();
         try
         {
-            await _viewModel.InitializeAsync();
+            // Timeout de 10 secondes pour éviter le blocage en Release
+            var initTask = _viewModel.InitializeAsync();
+            var timeoutTask = Task.Delay(10000);
+
+            var completedTask = await Task.WhenAny(initTask, timeoutTask);
+
+            if (completedTask == timeoutTask)
+            {
+                Debug.WriteLine($"[PROMO_PAGE] OnAppearing timeout after 10s");
+                await DisplayAlertAsync("Avertissement", 
+                    "Le chargement prend plus de temps que prévu. Vérifiez votre connexion.", 
+                    "OK");
+            }
+            else
+            {
+                // La tâche init s'est terminée, vérifier s'il y a eu une exception
+                await initTask; // Propager l'exception éventuelle
+            }
         }
         catch (Exception ex)
         {
