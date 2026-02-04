@@ -117,9 +117,6 @@ public class PromoPageViewModel : BaseViewModel
         SetQuantityCommand = new Command<string>(qty => { if (int.TryParse(qty, out var q)) FlashQuantite = q; });
 
         StatusMessage = "Choisissez un mode pour commencer.";
-
-        // Charger les catégories automatiquement
-        _ = LoadCategoriesForPickerAsync();
     }
 
     public ICommand GoBackCommand { get; }
@@ -428,12 +425,19 @@ public class PromoPageViewModel : BaseViewModel
         ? "Non sélectionnée"
         : SelectedCategory.DisplayName;
 
-    public Task InitializeAsync()
+    public async Task InitializeAsync()
     {
-        if (Promos.Count == 0)
-            return LoadPromosAsync();
+        // Charger les catégories en premier (nécessaire pour le picker)
+        if (!_categoriesLoaded && AvailableCategories.Count == 0)
+        {
+            await LoadCategoriesForPickerAsync();
+        }
 
-        return Task.CompletedTask;
+        // Puis charger les promos si nécessaire
+        if (Promos.Count == 0)
+        {
+            await LoadPromosAsync();
+        }
     }
 
     private async Task LoadCategoriesForPickerAsync()

@@ -319,11 +319,11 @@
                                                     TextColor="{StaticResource GoldText}"
                                                     FontSize="13" />
                                                 <Label
-                                                    Text="{Binding LeProduit.DisplayName}"
+                                                    Text="{Binding DisplayProductName}"
                                                     TextColor="{StaticResource GoldText}"
                                                     FontSize="12" />
                                                 <Label
-                                                    Text="{Binding LaCategoriePromo.DisplayName}"
+                                                    Text="{Binding DisplayCategoryName}"
                                                     TextColor="{StaticResource GoldText}"
                                                     FontSize="12" />
                                             </VerticalStackLayout>
