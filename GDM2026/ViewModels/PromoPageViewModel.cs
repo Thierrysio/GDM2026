@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Globalization;
 using GDM2026.Models;
 using GDM2026.Services;
 using Microsoft.Maui.ApplicationModel;
@@ -1010,7 +1011,7 @@ public class PromoPageViewModel : BaseViewModel
             return;
         }
 
-        if (!double.TryParse(FlashPrix, out var prix) || prix <= 0)
+        if (!TryParsePrice(FlashPrix, out var prix) || prix <= 0)
         {
             FlashStatusMessage = "Prix invalide.";
             return;
@@ -1106,7 +1107,7 @@ public class PromoPageViewModel : BaseViewModel
         debut = DateTime.SpecifyKind(DateDebutDate.Date + DateDebutTime, DateTimeKind.Local);
         fin = DateTime.SpecifyKind(DateFinDate.Date + DateFinTime, DateTimeKind.Local);
 
-        if (!double.TryParse(PrixText, out prix))
+        if (!TryParsePrice(PrixText, out prix))
         {
             StatusMessage = "Prix invalide.";
             return false;
@@ -1119,6 +1120,31 @@ public class PromoPageViewModel : BaseViewModel
         }
 
         return true;
+    }
+
+    private static bool TryParsePrice(string? raw, out double price)
+    {
+        price = default;
+
+        var input = raw?.Trim();
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return false;
+        }
+
+        var styles = NumberStyles.Number;
+        if (double.TryParse(input, styles, CultureInfo.CurrentCulture, out price))
+        {
+            return true;
+        }
+
+        if (double.TryParse(input, styles, CultureInfo.InvariantCulture, out price))
+        {
+            return true;
+        }
+
+        var normalized = input.Replace(',', '.');
+        return double.TryParse(normalized, styles, CultureInfo.InvariantCulture, out price);
     }
 
     private void ApplyPromoSelection(Promo? promo)
