@@ -144,8 +144,8 @@
                             <Label Text="Prix promotionnel" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                 <Entry
-                                    Placeholder="Ex: 9.99"
-                                    Keyboard="Decimal"
+                                    Placeholder="Ex: 10"
+                                    Keyboard="Numeric"
                                     Text="{Binding FlashPrix}"
                                     TextColor="{StaticResource GoldText}"
                                     PlaceholderColor="#777"
@@ -396,7 +396,7 @@
                             <Label Text="Prix promotionnel" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                 <Entry
-                                    Placeholder="Ex: 9.99"
+                                    Placeholder="Ex: 10"
                                     Keyboard="Numeric"
                                     Text="{Binding PrixText}"
                                     TextColor="{StaticResource GoldText}"
