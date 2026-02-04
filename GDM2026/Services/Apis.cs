@@ -62,11 +62,7 @@ namespace GDM2026.Services
                 DateParseHandling = DateParseHandling.DateTime,
                 NullValueHandling = NullValueHandling.Ignore,
                 MissingMemberHandling = MissingMemberHandling.Ignore,
-                Converters =
-                {
-                    new IsoDateTimeConverter { DateTimeFormat = "yyyy-MM-dd HH:mm:ss" },
-                    new FlexibleDoubleConverter()
-                }
+                Converters = { new IsoDateTimeConverter { DateTimeFormat = "yyyy-MM-dd HH:mm:ss" } }
             };
         }
 
