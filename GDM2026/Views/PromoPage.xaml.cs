@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using GDM2026.ViewModels;
 using Microsoft.Maui.ApplicationModel;
+using PreserveAttribute = Microsoft.Maui.Controls.Internals.PreserveAttribute;
 
 namespace GDM2026.Views;
 
+[Preserve(AllMembers = true)]
 public partial class PromoPage : ContentPage
 {
     private readonly PromoPageViewModel _viewModel = new();

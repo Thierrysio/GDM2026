@@ -11,9 +11,11 @@ using GDM2026.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Newtonsoft.Json;
+using PreserveAttribute = Microsoft.Maui.Controls.Internals.PreserveAttribute;
 
 namespace GDM2026.ViewModels;
 
+[Preserve(AllMembers = true)]
 public class PromoPageViewModel : BaseViewModel
 {
     private readonly Apis _apis = new();
