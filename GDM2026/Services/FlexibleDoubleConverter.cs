@@ -32,25 +32,34 @@ public sealed class FlexibleDoubleConverter : JsonConverter
                 return Nullable.GetUnderlyingType(objectType) != null ? null : 0d;
             }
 
-            var styles = NumberStyles.Number;
-            if (double.TryParse(raw, styles, CultureInfo.CurrentCulture, out var current))
+            if (string.Equals(raw, "null", StringComparison.OrdinalIgnoreCase))
+            {
+                return Nullable.GetUnderlyingType(objectType) != null ? null : 0d;
+            }
+
+            var styles = NumberStyles.Number | NumberStyles.AllowCurrencySymbol;
+            var cleaned = raw.Replace("€", string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Replace("eur", string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Trim();
+
+            if (double.TryParse(cleaned, styles, CultureInfo.CurrentCulture, out var current))
             {
                 return current;
             }
 
-            if (double.TryParse(raw, styles, CultureInfo.InvariantCulture, out var invariant))
+            if (double.TryParse(cleaned, styles, CultureInfo.InvariantCulture, out var invariant))
             {
                 return invariant;
             }
 
-            var normalized = raw.Replace(',', '.');
+            var normalized = cleaned.Replace(',', '.');
             if (double.TryParse(normalized, styles, CultureInfo.InvariantCulture, out var normalizedValue))
             {
                 return normalizedValue;
             }
         }
 
-        throw new JsonSerializationException($"Valeur numérique invalide: '{reader.Value}'.");
+        return Nullable.GetUnderlyingType(objectType) != null ? null : 0d;
     }
 
     public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
