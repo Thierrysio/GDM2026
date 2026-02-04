@@ -46,4 +46,8 @@ public class Promo
     }
 
     public string DisplayPrix => Prix > 0 ? $"{Prix:0.##} €" : "Prix non défini";
+
+    public string DisplayProductName => LeProduit?.DisplayName ?? "Produit non défini";
+
+    public string DisplayCategoryName => LaCategoriePromo?.DisplayName ?? "Catégorie non définie";
 }
