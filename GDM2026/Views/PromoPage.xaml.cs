@@ -1,9 +1,12 @@
 using System.Diagnostics;
+using GDM2026.Services;
 using GDM2026.ViewModels;
 using Microsoft.Maui.ApplicationModel;
+using PreserveAttribute = Microsoft.Maui.Controls.Internals.PreserveAttribute;
 
 namespace GDM2026.Views;
 
+[Preserve(AllMembers = true)]
 public partial class PromoPage : ContentPage
 {
     private readonly PromoPageViewModel _viewModel = new();
@@ -25,7 +28,8 @@ public partial class PromoPage : ContentPage
         catch (Exception ex)
         {
             Debug.WriteLine($"[PROMO_PAGE] OnAppearing crash: {ex}");
-            await DisplayAlertAsync("Erreur", "Impossible de charger la page promotion.", "OK");
+            var logPath = await GlobalErrorHandler.LogExceptionAsync(ex, "PromoPage.OnAppearing", showAlert: false);
+            await DisplayAlertAsync("Erreur", $"Impossible de charger la page promotion.\nLog: {logPath}", "OK");
         }
     }
 

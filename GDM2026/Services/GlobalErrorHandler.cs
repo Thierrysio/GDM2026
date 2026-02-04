@@ -13,6 +13,8 @@ public static class GlobalErrorHandler
 {
     private const string CrashLogFileName = "last-crash.log";
 
+    public static string GetCrashLogPath() => Path.Combine(FileSystem.AppDataDirectory, CrashLogFileName);
+
     public static void Register(Application? app)
     {
         try
@@ -48,27 +50,34 @@ public static class GlobalErrorHandler
 
         try
         {
-            var logPath = Path.Combine(FileSystem.AppDataDirectory, CrashLogFileName);
-            var logEntry = $"[{DateTimeOffset.Now:u}] ({source}) {exception}";
-
-            File.WriteAllText(logPath, logEntry);
-            Debug.WriteLine(logEntry);
-
-            if (Application.Current?.Dispatcher != null)
-            {
-                await Application.Current.Dispatcher.DispatchAsync(async () =>
-                {
-                    var page = Application.Current.Windows.FirstOrDefault()?.Page;
-                    if (page != null)
-                    {
-                        await page.DisplayAlertAsync("Erreur inattendue", "Une erreur est survenue. L'application continue à fonctionner.", "OK");
-                    }
-                });
-            }
+            await LogExceptionAsync(exception, source, showAlert: true);
         }
         catch
         {
             // En dernier recours, on évite toute remontée d'exception supplémentaire.
         }
+    }
+
+    public static async Task<string> LogExceptionAsync(Exception exception, string source, bool showAlert)
+    {
+        var logPath = GetCrashLogPath();
+        var logEntry = $"[{DateTimeOffset.Now:u}] ({source}) {exception}";
+
+        File.WriteAllText(logPath, logEntry);
+        Debug.WriteLine(logEntry);
+
+        if (showAlert && Application.Current?.Dispatcher != null)
+        {
+            await Application.Current.Dispatcher.DispatchAsync(async () =>
+            {
+                var page = Application.Current.Windows.FirstOrDefault()?.Page;
+                if (page != null)
+                {
+                    await page.DisplayAlertAsync("Erreur inattendue", "Une erreur est survenue. L'application continue à fonctionner.", "OK");
+                }
+            });
+        }
+
+        return logPath;
     }
 }
