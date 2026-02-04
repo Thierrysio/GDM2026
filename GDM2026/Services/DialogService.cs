@@ -6,6 +6,7 @@ namespace GDM2026.Services;
 
 public static class DialogService
 {
+#pragma warning disable CA1422 // Validate platform compatibility
     public static async Task DisplayAlertAsync(string title, string message, string cancel)
     {
         var page = Application.Current?.Windows.FirstOrDefault()?.Page;
@@ -38,4 +39,5 @@ public static class DialogService
 
         return await page.DisplayAlertAsync(title, message, accept, cancel);
     }
+#pragma warning restore CA1422 // Validate platform compatibility
 }

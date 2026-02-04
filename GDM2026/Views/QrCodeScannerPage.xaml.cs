@@ -56,7 +56,7 @@ public partial class QrCodeScannerPage : ContentPage
         else
         {
             await DisplayAlertAsync("Permission requise",
-                "L'acc�s � la cam�ra est n�cessaire pour scanner les QR codes.", 
+                "L'accès à la caméra est nécessaire pour scanner les QR codes.",
                 "OK");
             await Navigation.PopAsync();
         }

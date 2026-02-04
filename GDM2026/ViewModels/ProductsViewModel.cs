@@ -18,7 +18,6 @@ namespace GDM2026.ViewModels;
 
 public class ProductsViewModel : BaseViewModel
 {
-    private const bool ProductLoadingEnabled = true;
     private const string DefaultCreationMessage = "Remplissez le formulaire pour créer un produit.";
     private const int SearchDebounceMs = 300;
 
@@ -27,7 +26,6 @@ public class ProductsViewModel : BaseViewModel
 
     private CancellationTokenSource? _searchCts;
     private CancellationTokenSource? _imageSearchCts;
-    private CancellationTokenSource? _categoryFilterCts;
 
     private bool _sessionPrepared;
     private bool _hasLoaded;
@@ -375,13 +373,6 @@ public class ProductsViewModel : BaseViewModel
 
     private async Task LoadProductsAsync(bool forceRefresh = false)
     {
-        if (!ProductLoadingEnabled)
-        {
-            CatalogFilterStatus = "Chargement désactivé";
-            IsBusy = false;
-            return;
-        }
-
         if (IsBusy) return;
 
         try

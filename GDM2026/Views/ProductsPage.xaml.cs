@@ -53,21 +53,21 @@ public partial class ProductsPage : ContentPage
         // Vérifier que la liste n'est pas vide
         if (_viewModel.SortedProducts.Count == 0)
         {
-            await DisplayAlert("Erreur", "La liste des produits est vide", "OK");
+            await DisplayAlertAsync("Erreur", "La liste des produits est vide", "OK");
             return;
         }
 
         // Récupérer le produit sélectionné via le ViewModel
         if (picker.SelectedIndex >= _viewModel.SortedProducts.Count)
         {
-            await DisplayAlert("Erreur", $"Index {picker.SelectedIndex} hors limites (max: {_viewModel.SortedProducts.Count - 1})", "OK");
+            await DisplayAlertAsync("Erreur", $"Index {picker.SelectedIndex} hors limites (max: {_viewModel.SortedProducts.Count - 1})", "OK");
             return;
         }
 
         var selectedProduct = _viewModel.SortedProducts[picker.SelectedIndex];
         if (selectedProduct == null)
         {
-            await DisplayAlert("Erreur", "Produit null", "OK");
+            await DisplayAlertAsync("Erreur", "Produit null", "OK");
             return;
         }
 
@@ -82,7 +82,7 @@ public partial class ProductsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Erreur Navigation", ex.Message, "OK");
+            await DisplayAlertAsync("Erreur Navigation", ex.Message, "OK");
         }
         finally
         {
