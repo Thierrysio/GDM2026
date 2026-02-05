@@ -5,12 +5,15 @@
              x:Class="GDM2026.Views.PromoPage"
              x:Name="PromoPageRoot"
              x:DataType="viewModels:PromoPageViewModel"
-             BackgroundColor="#0B0B0B"
+             BackgroundColor="#0D0508"
              Title="Promotions">
 
     <ContentPage.Resources>
-        <Color x:Key="GoldText">#D4AF37</Color>
-        <Color x:Key="CardBackground">#151515</Color>
+        <!-- Saint-Valentin 2026 - Thème romantique mystérieux -->
+        <Color x:Key="GoldText">#E8B4B8</Color>          <!-- Rose poudré -->
+        <Color x:Key="CardBackground">#1A0A0D</Color>    <!-- Bordeaux profond -->
+        <Color x:Key="AccentFlash">#C41E3A</Color>       <!-- Rouge cardinal -->
+        <Color x:Key="AccentGold">#D4A574</Color>        <!-- Or rose -->
     </ContentPage.Resources>
 
     <Shell.BackButtonBehavior>
@@ -30,24 +33,25 @@
 
                 <VerticalStackLayout Spacing="16">
                     <Label
-                        Text="Promotions"
+                        Text="Offres Secrètes"
                         FontSize="28"
                         FontAttributes="Bold"
                         HorizontalTextAlignment="Center"
                         TextColor="{StaticResource GoldText}" />
 
                     <Label
-                        Text="Choisissez d'abord le type de promotion à créer."
+                        Text="Certaines choses ne s'offrent qu'une fois..."
                         FontSize="16"
                         HorizontalTextAlignment="Center"
                         TextColor="{StaticResource GoldText}"
-                        Opacity="0.85" />
+                        Opacity="0.85"
+                        FontAttributes="Italic" />
 
                     <!-- Sélection de la catégorie promo via Picker -->
                     <Border
-                        Background="#1E1E1E"
+                        Background="#1A0A0D"
                         Padding="14"
-                        Stroke="#2D2D2D">
+                        Stroke="#3D1520">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="14" />
                         </Border.StrokeShape>
@@ -69,8 +73,8 @@
                                 ItemDisplayBinding="{Binding DisplayName}"
                                 SelectedItem="{Binding SelectedCategoryPicker}"
                                 TextColor="{StaticResource GoldText}"
-                                TitleColor="#7E7030"
-                                BackgroundColor="#121212"
+                                TitleColor="#8B5A62"
+                                BackgroundColor="#140810"
                                 IsVisible="{Binding IsCategoriesLoaded}" />
 
                             <Label
@@ -86,45 +90,46 @@
                     <VerticalStackLayout Spacing="10" IsVisible="{Binding IsStandardModeVisible}">
                         <Button
                             Text="+ Nouvelle promotion"
-                            BackgroundColor="#303030"
+                            BackgroundColor="#2D1418"
                             TextColor="{StaticResource GoldText}"
                             Command="{Binding ShowCreatePanelCommand}" />
                         <Button
                             Text="Mettre à jour une promotion"
-                            BackgroundColor="#303030"
+                            BackgroundColor="#2D1418"
                             TextColor="{StaticResource GoldText}"
                             Command="{Binding ShowUpdatePanelCommand}" />
                         <Button
                             Text="Recharger les promotions"
-                            BackgroundColor="#252525"
+                            BackgroundColor="#1F0E12"
                             TextColor="{StaticResource GoldText}"
                             Command="{Binding RefreshPromosCommand}" />
                     </VerticalStackLayout>
 
-                    <!-- FORMULAIRE PROMO FLASH -->
+                    <!-- FORMULAIRE PROMO FLASH - Saint-Valentin -->
                     <Border
                         IsVisible="{Binding IsFlashMode}"
-                        Background="#1E1E1E"
+                        Background="#1A0A0D"
                         Padding="14"
-                        Stroke="#C18F1A"
+                        Stroke="{StaticResource AccentFlash}"
                         StrokeThickness="2">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="14" />
                         </Border.StrokeShape>
                         <VerticalStackLayout Spacing="14">
                             <Label
-                                Text="Promotion Flash"
+                                Text="Coup de Coeur"
                                 FontAttributes="Bold"
                                 TextColor="{StaticResource GoldText}"
                                 FontSize="20"
                                 HorizontalTextAlignment="Center" />
 
                             <Label
-                                Text="Créez une offre flash avec quantité limitée et date de disponibilité."
+                                Text="Une surprise éphémère, pour ceux qui savent..."
                                 TextColor="{StaticResource GoldText}"
                                 FontSize="13"
                                 Opacity="0.8"
-                                HorizontalTextAlignment="Center" />
+                                HorizontalTextAlignment="Center"
+                                FontAttributes="Italic" />
 
                             <!-- Sélection du produit -->
                             <Label Text="Produit" TextColor="{StaticResource GoldText}" FontAttributes="Bold" />
@@ -134,8 +139,8 @@
                                 ItemDisplayBinding="{Binding DisplayName}"
                                 SelectedItem="{Binding FlashSelectedProduct}"
                                 TextColor="{StaticResource GoldText}"
-                                TitleColor="#7E7030"
-                                BackgroundColor="#121212" />
+                                TitleColor="#8B5A62"
+                                BackgroundColor="#140810" />
                             <Label
                                 Text="{Binding FlashSelectedProductLabel}"
                                 FontSize="12"
@@ -151,7 +156,7 @@
                                     Text="{Binding FlashPrix}"
                                     TextColor="{StaticResource GoldText}"
                                     PlaceholderColor="#777"
-                                    BackgroundColor="#121212" />
+                                    BackgroundColor="#140810" />
                                 <Label
                                     Grid.Column="1"
                                     Text="EUR"
@@ -168,14 +173,14 @@
                                     Text="-"
                                     WidthRequest="50"
                                     HeightRequest="44"
-                                    BackgroundColor="#303030"
+                                    BackgroundColor="#2D1418"
                                     TextColor="{StaticResource GoldText}"
                                     FontSize="20"
                                     Command="{Binding DecrementQuantityCommand}" />
                                 <Border
                                     Grid.Column="1"
-                                    Background="#121212"
-                                    Stroke="#2D2D2D"
+                                    Background="#140810"
+                                    Stroke="#3D1520"
                                     Padding="10,8">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="8" />
@@ -193,7 +198,7 @@
                                     Text="+"
                                     WidthRequest="50"
                                     HeightRequest="44"
-                                    BackgroundColor="#303030"
+                                    BackgroundColor="#2D1418"
                                     TextColor="{StaticResource GoldText}"
                                     FontSize="20"
                                     Command="{Binding IncrementQuantityCommand}" />
@@ -204,10 +209,10 @@
                                 FontSize="12"
                                 Opacity="0.7" />
                             <HorizontalStackLayout Spacing="8">
-                                <Button Text="10" WidthRequest="55" HeightRequest="36" BackgroundColor="#252525" TextColor="{StaticResource GoldText}" FontSize="14" Command="{Binding SetQuantityCommand}" CommandParameter="10" />
-                                <Button Text="25" WidthRequest="55" HeightRequest="36" BackgroundColor="#252525" TextColor="{StaticResource GoldText}" FontSize="14" Command="{Binding SetQuantityCommand}" CommandParameter="25" />
-                                <Button Text="50" WidthRequest="55" HeightRequest="36" BackgroundColor="#252525" TextColor="{StaticResource GoldText}" FontSize="14" Command="{Binding SetQuantityCommand}" CommandParameter="50" />
-                                <Button Text="100" WidthRequest="55" HeightRequest="36" BackgroundColor="#252525" TextColor="{StaticResource GoldText}" FontSize="14" Command="{Binding SetQuantityCommand}" CommandParameter="100" />
+                                <Button Text="10" WidthRequest="55" HeightRequest="36" BackgroundColor="#1F0E12" TextColor="{StaticResource GoldText}" FontSize="14" Command="{Binding SetQuantityCommand}" CommandParameter="10" />
+                                <Button Text="25" WidthRequest="55" HeightRequest="36" BackgroundColor="#1F0E12" TextColor="{StaticResource GoldText}" FontSize="14" Command="{Binding SetQuantityCommand}" CommandParameter="25" />
+                                <Button Text="50" WidthRequest="55" HeightRequest="36" BackgroundColor="#1F0E12" TextColor="{StaticResource GoldText}" FontSize="14" Command="{Binding SetQuantityCommand}" CommandParameter="50" />
+                                <Button Text="100" WidthRequest="55" HeightRequest="36" BackgroundColor="#1F0E12" TextColor="{StaticResource GoldText}" FontSize="14" Command="{Binding SetQuantityCommand}" CommandParameter="100" />
                             </HorizontalStackLayout>
 
                             <!-- Période de précommande -->
@@ -217,22 +222,22 @@
                                 <DatePicker Grid.Row="1" Grid.Column="0"
                                             Date="{Binding FlashDateDebutDate}"
                                             TextColor="{StaticResource GoldText}"
-                                            BackgroundColor="#121212" />
+                                            BackgroundColor="#140810" />
                                 <TimePicker Grid.Row="1" Grid.Column="1"
                                             Time="{Binding FlashDateDebutTime}"
                                             TextColor="{StaticResource GoldText}"
-                                            BackgroundColor="#121212" />
+                                            BackgroundColor="#140810" />
                             </Grid>
                             <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
                                 <Label Grid.Row="0" Grid.ColumnSpan="2" Text="Fin" TextColor="{StaticResource GoldText}" FontSize="12" Opacity="0.7" />
                                 <DatePicker Grid.Row="1" Grid.Column="0"
                                             Date="{Binding FlashDateFinDate}"
                                             TextColor="{StaticResource GoldText}"
-                                            BackgroundColor="#121212" />
+                                            BackgroundColor="#140810" />
                                 <TimePicker Grid.Row="1" Grid.Column="1"
                                             Time="{Binding FlashDateFinTime}"
                                             TextColor="{StaticResource GoldText}"
-                                            BackgroundColor="#121212" />
+                                            BackgroundColor="#140810" />
                             </Grid>
 
                             <!-- Date de disponibilité -->
@@ -241,11 +246,11 @@
                                 <DatePicker Grid.Column="0"
                                             Date="{Binding FlashDateDispoDate}"
                                             TextColor="{StaticResource GoldText}"
-                                            BackgroundColor="#121212" />
+                                            BackgroundColor="#140810" />
                                 <TimePicker Grid.Column="1"
                                             Time="{Binding FlashDateDispoTime}"
                                             TextColor="{StaticResource GoldText}"
-                                            BackgroundColor="#121212" />
+                                            BackgroundColor="#140810" />
                             </Grid>
 
                             <ActivityIndicator
@@ -254,10 +259,10 @@
                                 Color="{StaticResource GoldText}" />
 
                             <Button
-                                Text="Créer la promo flash"
+                                Text="Révéler l'offre"
                                 Command="{Binding CreateFlashPromoCommand}"
-                                BackgroundColor="#C18F1A"
-                                TextColor="#0B0B0B"
+                                BackgroundColor="{StaticResource AccentFlash}"
+                                TextColor="#FFFFFF"
                                 FontAttributes="Bold"
                                 HeightRequest="50" />
 
@@ -273,9 +278,9 @@
                     <!-- Liste des promos existantes (mode mise à jour standard) -->
                     <Border
                         IsVisible="{Binding IsUpdateMode}"
-                        Background="#1E1E1E"
+                        Background="#1A0A0D"
                         Padding="14"
-                        Stroke="#2D2D2D">
+                        Stroke="#3D1520">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="14" />
                         </Border.StrokeShape>
@@ -307,7 +312,7 @@
                                 </CollectionView.EmptyView>
                                 <CollectionView.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#111" Stroke="#2D2D2D" StrokeThickness="1" Padding="10" Margin="0,4">
+                                        <Border Background="#150808" Stroke="#3D1520" StrokeThickness="1" Padding="10" Margin="0,4">
                                             <Border.StrokeShape>
                                                 <RoundRectangle CornerRadius="12" />
                                             </Border.StrokeShape>
@@ -345,9 +350,9 @@
 
                     <Border
                         IsVisible="{Binding IsFormSectionVisible}"
-                        Background="#1E1E1E"
+                        Background="#1A0A0D"
                         Padding="14"
-                        Stroke="#C18F1A"
+                        Stroke="{StaticResource AccentGold}"
                         StrokeThickness="2">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="14" />
@@ -368,7 +373,7 @@
                                 HorizontalTextAlignment="Center" />
 
                             <!-- Catégorie sélectionnée (lecture seule) -->
-                            <Border Background="#121212" Stroke="#2D2D2D" Padding="12,10">
+                            <Border Background="#140810" Stroke="#3D1520" Padding="12,10">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="10" />
                                 </Border.StrokeShape>
@@ -386,8 +391,8 @@
                                 ItemDisplayBinding="{Binding DisplayName}"
                                 SelectedItem="{Binding SelectedProduct}"
                                 TextColor="{StaticResource GoldText}"
-                                TitleColor="#7E7030"
-                                BackgroundColor="#121212" />
+                                TitleColor="#8B5A62"
+                                BackgroundColor="#140810" />
                             <Label
                                 Text="{Binding SelectedProductPriceLabel}"
                                 FontSize="12"
@@ -403,7 +408,7 @@
                                     Text="{Binding PrixText}"
                                     TextColor="{StaticResource GoldText}"
                                     PlaceholderColor="#777"
-                                    BackgroundColor="#121212" />
+                                    BackgroundColor="#140810" />
                                 <Label
                                     Grid.Column="1"
                                     Text="EUR"
@@ -419,22 +424,22 @@
                                 <DatePicker Grid.Row="1" Grid.Column="0"
                                             Date="{Binding DateDebutDate}"
                                             TextColor="{StaticResource GoldText}"
-                                            BackgroundColor="#121212" />
+                                            BackgroundColor="#140810" />
                                 <TimePicker Grid.Row="1" Grid.Column="1"
                                             Time="{Binding DateDebutTime}"
                                             TextColor="{StaticResource GoldText}"
-                                            BackgroundColor="#121212" />
+                                            BackgroundColor="#140810" />
                             </Grid>
                             <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
                                 <Label Grid.Row="0" Grid.ColumnSpan="2" Text="Fin" TextColor="{StaticResource GoldText}" FontSize="12" Opacity="0.7" />
                                 <DatePicker Grid.Row="1" Grid.Column="0"
                                             Date="{Binding DateFinDate}"
                                             TextColor="{StaticResource GoldText}"
-                                            BackgroundColor="#121212" />
+                                            BackgroundColor="#140810" />
                                 <TimePicker Grid.Row="1" Grid.Column="1"
                                             Time="{Binding DateFinTime}"
                                             TextColor="{StaticResource GoldText}"
-                                            BackgroundColor="#121212" />
+                                            BackgroundColor="#140810" />
                             </Grid>
 
                             <ActivityIndicator
@@ -443,19 +448,19 @@
                                 Color="{StaticResource GoldText}" />
 
                             <Button
-                                Text="Créer la promotion"
+                                Text="Dévoiler"
                                 Command="{Binding CreatePromoCommand}"
-                                BackgroundColor="#C18F1A"
-                                TextColor="#0B0B0B"
+                                BackgroundColor="{StaticResource AccentGold}"
+                                TextColor="#0D0508"
                                 FontAttributes="Bold"
                                 HeightRequest="50"
                                 IsVisible="{Binding IsCreateMode}" />
 
                             <Button
-                                Text="Mettre à jour la promotion"
+                                Text="Transformer"
                                 Command="{Binding UpdatePromoCommand}"
-                                BackgroundColor="#C18F1A"
-                                TextColor="#0B0B0B"
+                                BackgroundColor="{StaticResource AccentGold}"
+                                TextColor="#0D0508"
                                 FontAttributes="Bold"
                                 HeightRequest="50"
                                 IsVisible="{Binding IsUpdateMode}" />
