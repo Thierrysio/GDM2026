@@ -61,9 +61,8 @@
                 <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
                 <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
                 
-                <!-- Désactiver le trimming IL pour éviter les erreurs inattendues d'ILLink -->
-                <PublishTrimmed>false</PublishTrimmed>
-                <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+                <!-- Trimming configuration: AndroidLinkMode=SdkOnly provides safe linking -->
+                <!-- PublishTrimmed can be enabled if needed for size optimization -->
 
                 <!-- Garder les logs Debug.WriteLine actifs -->
                 <DefineConstants>$(DefineConstants);TRACE</DefineConstants>
