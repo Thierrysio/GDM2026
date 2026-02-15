@@ -61,8 +61,9 @@
                 <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
                 <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
                 
-                <!-- Trimming configuration: AndroidLinkMode=SdkOnly provides safe linking -->
-                <!-- PublishTrimmed can be enabled if needed for size optimization -->
+                <!-- Désactiver le IL Trimmer (ILLink) qui plante avec les paquets preview SkiaSharp/ZXing -->
+                <!-- AndroidLinkMode=SdkOnly gère le linking Android de façon sûre -->
+                <PublishTrimmed>false</PublishTrimmed>
 
                 <!-- Garder les logs Debug.WriteLine actifs -->
                 <DefineConstants>$(DefineConstants);TRACE</DefineConstants>
