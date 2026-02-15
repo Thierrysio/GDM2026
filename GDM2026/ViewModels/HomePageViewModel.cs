@@ -9,11 +9,15 @@ using System.Net.Http;
 using System.Windows.Input;
 using GDM2026.Views;
 using System.Diagnostics;
+using Newtonsoft.Json;
+using System.Text;
 
 namespace GDM2026.ViewModels;
 
 public partial class HomePageViewModel : BaseViewModel
 {
+    private const string AdminCleanupTileName = "Réservé aux administrateurs";
+    private const string AdminCleanupPassword = "mayday";
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
     private string _welcomeText = "Bonjour!";
@@ -136,6 +140,7 @@ public partial class HomePageViewModel : BaseViewModel
             new("Catalogue", "Consultation globale des offres."),
             new("Utiliser Points", "Utiliser les points fidélité d'un client."),
             new("Ajouter Points", "Ajouter des points de fidélité à un client."),
+            new(AdminCleanupTileName, "Nettoyage des comptes (accès protégé par mot de passe)."),
         };
 
         foreach (var item in items)
@@ -264,6 +269,11 @@ public partial class HomePageViewModel : BaseViewModel
             return Shell.Current.GoToAsync(nameof(AjouterPointsFidelitePage), animate: false);
         }
 
+        if (string.Equals(card.Title, AdminCleanupTileName, StringComparison.OrdinalIgnoreCase))
+        {
+            return ExecuteAdminCleanupAsync();
+        }
+
         return Shell.Current.GoToAsync(nameof(CategoryDetailPage), animate: false, new Dictionary<string, object>
         {
             { "card", card }
@@ -282,5 +292,115 @@ public partial class HomePageViewModel : BaseViewModel
         {
             { "status", status.Status }
         });
+    }
+
+    private async Task ExecuteAdminCleanupAsync()
+    {
+        if (Shell.Current == null || IsBusy)
+        {
+            return;
+        }
+
+        var password = await Shell.Current.DisplayPromptAsync(
+            "Accès administrateur",
+            "Saisissez le mot de passe pour lancer le nettoyage des comptes.",
+            "Valider",
+            "Annuler",
+            placeholder: "Mot de passe",
+            maxLength: 40,
+            keyboard: Keyboard.Text);
+
+        if (password == null)
+        {
+            return;
+        }
+
+        if (!string.Equals(password.Trim(), AdminCleanupPassword, StringComparison.Ordinal))
+        {
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+                await Shell.Current.DisplayAlert("Accès refusé", "Mot de passe incorrect.", "OK"));
+            return;
+        }
+
+        var confirm = await MainThread.InvokeOnMainThreadAsync(async () =>
+            await Shell.Current.DisplayAlert(
+                "Confirmation",
+                "Cette action va supprimer tous les comptes non whitelistés. Continuer ?",
+                "Oui",
+                "Non"));
+
+        if (!confirm)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://dantecmarket.com/api/mobile/delete-all-accounts-except-whitelist")
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            };
+            request.Headers.TryAddWithoutValidation("User-Agent", "android mobile");
+
+            using var response = await _apis.HttpClient.SendAsync(request).ConfigureAwait(false);
+            var rawBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var apiResponse = JsonConvert.DeserializeObject<DeleteAccountsResponse>(rawBody) ?? new DeleteAccountsResponse();
+
+            var message = BuildCleanupMessage(apiResponse, response.StatusCode, rawBody);
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+                await Shell.Current.DisplayAlert("Nettoyage comptes", message, "OK"));
+        }
+        catch (Exception ex)
+        {
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+                await Shell.Current.DisplayAlert("Nettoyage comptes", $"Erreur inattendue : {ex.Message}", "OK"));
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private static string BuildCleanupMessage(DeleteAccountsResponse response, System.Net.HttpStatusCode statusCode, string rawBody)
+    {
+        if (statusCode == System.Net.HttpStatusCode.OK && response.Success)
+        {
+            var whitelist = response.WhitelistEmails?.Count > 0
+                ? string.Join("\n- ", response.WhitelistEmails)
+                : "(aucun email whitelisté fourni)";
+
+            return $"{response.Message}\n\nConservés : {response.KeptUsers}\nSupprimés : {response.DeletedUsers}\n\nWhitelist :\n- {whitelist}";
+        }
+
+        if (statusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            return response.Message ?? "Route accessible uniquement depuis mobile.";
+        }
+
+        if (statusCode == System.Net.HttpStatusCode.InternalServerError)
+        {
+            return response.Message ?? "Erreur lors du nettoyage côté serveur.";
+        }
+
+        return response.Message ?? $"Réponse inattendue ({(int)statusCode}) : {rawBody}";
+    }
+
+    private sealed class DeleteAccountsResponse
+    {
+        [JsonProperty("success")]
+        public bool Success { get; set; }
+
+        [JsonProperty("message")]
+        public string? Message { get; set; }
+
+        [JsonProperty("keptUsers")]
+        public int KeptUsers { get; set; }
+
+        [JsonProperty("deletedUsers")]
+        public int DeletedUsers { get; set; }
+
+        [JsonProperty("whitelistEmails")]
+        public List<string>? WhitelistEmails { get; set; }
     }
 }
