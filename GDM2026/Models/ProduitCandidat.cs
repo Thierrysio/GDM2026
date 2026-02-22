@@ -28,6 +28,8 @@ public class ProduitCandidat
     [JsonProperty("imageUrl")]
     public string? ImageUrl { get; set; }
 
+    public string FullImageUrl => BuildFullUrl(ImageUrl);
+
     [JsonProperty("categorie")]
     public string? Categorie { get; set; }
 
@@ -73,4 +75,30 @@ public class ProduitCandidat
     public string UserVoteLabel => NoteUtilisateur.HasValue
         ? $"Votre note : {NoteUtilisateur:F0}/5"
         : "Pas encore vote";
+
+    private static string BuildFullUrl(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return string.Empty;
+        }
+
+        var sanitized = path.Replace("\\", "/").Trim();
+
+        if (Uri.TryCreate(sanitized, UriKind.Absolute, out var absolute))
+        {
+            return absolute.ToString();
+        }
+
+        var relative = sanitized.TrimStart('/');
+        if (!relative.Contains('/'))
+        {
+            relative = $"images/{relative}";
+        }
+
+        var baseAddress = Constantes.BaseImagesAddress?.TrimEnd('/') ?? string.Empty;
+        return string.IsNullOrWhiteSpace(baseAddress)
+            ? relative
+            : $"{baseAddress}/{relative}";
+    }
 }

@@ -449,7 +449,7 @@
                                             <RoundRectangle CornerRadius="10" />
                                         </Border.StrokeShape>
                                         <Image
-                                            Source="{Binding ImageUrl}"
+                                            Source="{Binding FullImageUrl}"
                                             Aspect="AspectFill"
                                             HeightRequest="80"
                                             WidthRequest="80" />
