@@ -22,6 +22,8 @@ public class ResultatVote
     [JsonProperty("classement")]
     public int Classement { get; set; }
 
+    public string FullImageUrl => BuildFullUrl(ImageUrl);
+
     public string ClassementLabel => Classement switch
     {
         1 => "1er",
@@ -31,4 +33,30 @@ public class ResultatVote
     public string MoyenneLabel => $"{MoyenneNotes:F1}/5";
 
     public string VotesLabel => NombreVotes == 1 ? "1 vote" : $"{NombreVotes} votes";
+
+    private static string BuildFullUrl(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return string.Empty;
+        }
+
+        var sanitized = path.Replace("\\", "/").Trim();
+
+        if (Uri.TryCreate(sanitized, UriKind.Absolute, out var absolute))
+        {
+            return absolute.ToString();
+        }
+
+        var relative = sanitized.TrimStart('/');
+        if (!relative.Contains('/'))
+        {
+            relative = $"images/{relative}";
+        }
+
+        var baseAddress = Constantes.BaseImagesAddress?.TrimEnd('/') ?? string.Empty;
+        return string.IsNullOrWhiteSpace(baseAddress)
+            ? relative
+            : $"{baseAddress}/{relative}";
+    }
 }
