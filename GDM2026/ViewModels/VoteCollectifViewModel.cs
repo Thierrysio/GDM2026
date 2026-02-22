@@ -221,10 +221,10 @@ public class VoteCollectifViewModel : BaseViewModel
             ShowResultats = false;
 
             var userId = _sessionService.CurrentUser?.Id ?? 0;
-            var body = new { userId };
 
             var produits = await _apis.PostAsync<object, List<ProduitCandidat>>(
-                $"/api/mobile/sessions-vote/{session.Id}/produits", body);
+                "/api/mobile/sessions-vote/produits",
+                new { sessionVoteId = session.Id, userId });
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -386,8 +386,9 @@ public class VoteCollectifViewModel : BaseViewModel
             StatusMessage = "Chargement des resultats...";
             StatusColor = Colors.Gold;
 
-            var resultats = await _apis.GetListAsync<ResultatVote>(
-                $"/api/mobile/sessions-vote/{_currentSession.Id}/resultats");
+            var resultats = await _apis.PostAsync<object, List<ResultatVote>>(
+                "/api/mobile/sessions-vote/resultats",
+                new { sessionVoteId = _currentSession.Id }) ?? new List<ResultatVote>();
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {

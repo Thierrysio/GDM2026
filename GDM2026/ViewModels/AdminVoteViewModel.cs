@@ -388,8 +388,9 @@ public class AdminVoteViewModel : BaseViewModel
             StatusMessage = "Chargement des produits candidats...";
             StatusColor = Colors.Gold;
 
-            var produits = await _apis.GetListAsync<ProduitCandidat>(
-                $"/api/mobile/sessions-vote/{sessionId}/produits-admin");
+            var produits = await _apis.PostAsync<object, List<ProduitCandidat>>(
+                "/api/mobile/sessions-vote/produits-admin",
+                new { sessionVoteId = sessionId }) ?? new List<ProduitCandidat>();
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -513,8 +514,8 @@ public class AdminVoteViewModel : BaseViewModel
             StatusColor = Colors.Gold;
 
             var success = await _apis.PostBoolAsync(
-                $"/api/mobile/sessions-vote/produit-candidat/{produit.Id}/delete",
-                new { sessionVoteId = _selectedSession.Id });
+                "/api/mobile/sessions-vote/produit-candidat/delete",
+                new { produitCandidatId = produit.Id, sessionVoteId = _selectedSession.Id });
 
             if (success)
             {
@@ -561,8 +562,8 @@ public class AdminVoteViewModel : BaseViewModel
             StatusColor = Colors.Gold;
 
             var success = await _apis.PostBoolAsync(
-                $"/api/mobile/sessions-vote/{_selectedSession.Id}/status",
-                new { statut = newStatus });
+                "/api/mobile/sessions-vote/status",
+                new { sessionVoteId = _selectedSession.Id, statut = newStatus });
 
             if (success)
             {
