@@ -1,6 +1,5 @@
 ﻿using GDM2026;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -60,9 +59,9 @@ namespace GDM2026.Services
             _json = new JsonSerializerSettings
             {
                 DateParseHandling = DateParseHandling.DateTime,
+                DateFormatString = "yyyy-MM-dd HH:mm:ss",
                 NullValueHandling = NullValueHandling.Ignore,
-                MissingMemberHandling = MissingMemberHandling.Ignore,
-                Converters = { new IsoDateTimeConverter { DateTimeFormat = "yyyy-MM-dd HH:mm:ss" } }
+                MissingMemberHandling = MissingMemberHandling.Ignore
             };
         }
 
