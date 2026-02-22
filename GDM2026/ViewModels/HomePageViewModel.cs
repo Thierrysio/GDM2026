@@ -141,6 +141,7 @@ public partial class HomePageViewModel : BaseViewModel
             new("Utiliser Points", "Utiliser les points fidélité d'un client."),
             new("Ajouter Points", "Ajouter des points de fidélité à un client."),
             new("Vote Collectif", "Votez pour les produits que vous souhaitez en rayon."),
+            new("Admin Vote", "Gerez les sessions de vote et les produits candidats."),
             new(AdminCleanupTileName, "Nettoyage des comptes (accès protégé par mot de passe)."),
         };
 
@@ -273,6 +274,11 @@ public partial class HomePageViewModel : BaseViewModel
         if (string.Equals(card.Title, "Vote Collectif", StringComparison.OrdinalIgnoreCase))
         {
             return Shell.Current.GoToAsync(nameof(VoteCollectifPage), animate: false);
+        }
+
+        if (string.Equals(card.Title, "Admin Vote", StringComparison.OrdinalIgnoreCase))
+        {
+            return Shell.Current.GoToAsync(nameof(AdminVotePage), animate: false);
         }
 
         if (string.Equals(card.Title, AdminCleanupTileName, StringComparison.OrdinalIgnoreCase))
