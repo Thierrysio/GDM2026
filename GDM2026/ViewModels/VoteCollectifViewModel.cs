@@ -14,7 +14,7 @@ using System.Windows.Input;
 
 namespace GDM2026.ViewModels;
 
-public class VoteCollectifViewModel : BaseViewModel
+public class VoteCollectifViewModel : BaseViewMode
 {
     private readonly Apis _apis = new();
     private readonly SessionService _sessionService = new();
