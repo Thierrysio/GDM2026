@@ -30,6 +30,7 @@ namespace GDM2026
             Routing.RegisterRoute(nameof(UtiliserPointsFidelitePage), typeof(UtiliserPointsFidelitePage));
             Routing.RegisterRoute(nameof(AjouterPointsFidelitePage), typeof(AjouterPointsFidelitePage));
             Routing.RegisterRoute(nameof(VoteCollectifPage), typeof(VoteCollectifPage));
+            Routing.RegisterRoute(nameof(AdminVotePage), typeof(AdminVotePage));
         }
     }
 }

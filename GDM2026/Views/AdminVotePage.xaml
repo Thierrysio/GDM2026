@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GDM2026.AdminVotePage"
+             x:Name="AdminVoteRoot"
+             BackgroundColor="#0B0B0B">
+    <ContentPage.Resources>
+        <Color x:Key="GoldText">#D4AF37</Color>
+        <Color x:Key="CardBackground">#151515</Color>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="18">
+
+            <!-- Header -->
+            <Border
+                Background="{StaticResource CardBackground}"
+                Stroke="#000000"
+                StrokeThickness="1.5"
+                Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <Label
+                        Text="Admin Vote"
+                        FontSize="28"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}" />
+                    <Label
+                        Text="Gerez les sessions de vote et les produits candidats."
+                        FontSize="16"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{StaticResource GoldText}"
+                        Opacity="0.85" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Loading -->
+            <ActivityIndicator
+                IsRunning="{Binding IsLoadingSessions}"
+                IsVisible="{Binding IsLoadingSessions}"
+                Color="{StaticResource GoldText}"
+                HeightRequest="40" />
+
+            <!-- Status Message -->
+            <Label
+                Text="{Binding StatusMessage}"
+                TextColor="{Binding StatusColor}"
+                FontSize="14"
+                HorizontalTextAlignment="Center"
+                LineBreakMode="WordWrap" />
+
+            <!-- ============ SESSION LIST VIEW ============ -->
+            <VerticalStackLayout
+                IsVisible="{Binding ShowSessionList}"
+                Spacing="14">
+
+                <!-- Buttons -->
+                <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                    <Button
+                        Text="Rafraichir"
+                        BackgroundColor="#303030"
+                        TextColor="{StaticResource GoldText}"
+                        Command="{Binding RefreshCommand}"
+                        FontSize="13"
+                        Padding="12,8" />
+                    <Button
+                        Text="+ Nouvelle session"
+                        BackgroundColor="#C18F1A"
+                        TextColor="#0B0B0B"
+                        Command="{Binding ShowSessionFormCommand}"
+                        FontSize="13"
+                        FontAttributes="Bold"
+                        Padding="12,8" />
+                </HorizontalStackLayout>
+
+                <!-- Session Creation Form -->
+                <Border
+                    IsVisible="{Binding ShowSessionForm}"
+                    Background="{StaticResource CardBackground}"
+                    Stroke="#C18F1A"
+                    StrokeThickness="1.5"
+                    Padding="20">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="Creer une session de vote" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
+
+                        <Label Text="Titre *" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.8" />
+                        <Entry
+                            Text="{Binding NewSessionTitre}"
+                            Placeholder="Ex: Vote produits Mars 2026"
+                            PlaceholderColor="#666"
+                            TextColor="{StaticResource GoldText}"
+                            BackgroundColor="#1E1E1E"
+                            FontSize="14" />
+
+                        <Label Text="Description" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.8" />
+                        <Editor
+                            Text="{Binding NewSessionDescription}"
+                            Placeholder="Decrivez l'objectif du vote..."
+                            PlaceholderColor="#666"
+                            TextColor="{StaticResource GoldText}"
+                            BackgroundColor="#1E1E1E"
+                            FontSize="14"
+                            HeightRequest="80"
+                            AutoSize="TextChanges" />
+
+                        <HorizontalStackLayout Spacing="16">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Date debut" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.8" />
+                                <DatePicker
+                                    Date="{Binding NewSessionDateDebut}"
+                                    TextColor="{StaticResource GoldText}"
+                                    BackgroundColor="#1E1E1E"
+                                    FontSize="14" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Date fin" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.8" />
+                                <DatePicker
+                                    Date="{Binding NewSessionDateFin}"
+                                    TextColor="{StaticResource GoldText}"
+                                    BackgroundColor="#1E1E1E"
+                                    FontSize="14" />
+                            </VerticalStackLayout>
+                        </HorizontalStackLayout>
+
+                        <Button
+                            Text="Creer la session"
+                            BackgroundColor="#C18F1A"
+                            TextColor="#0B0B0B"
+                            FontSize="14"
+                            FontAttributes="Bold"
+                            Padding="14,8"
+                            HorizontalOptions="Center"
+                            Command="{Binding CreateSessionCommand}" />
+
+                        <ActivityIndicator
+                            IsRunning="{Binding IsCreatingSession}"
+                            IsVisible="{Binding IsCreatingSession}"
+                            Color="{StaticResource GoldText}"
+                            HeightRequest="30" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Session List -->
+                <CollectionView
+                    ItemsSource="{Binding Sessions}"
+                    SelectionMode="None">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.EmptyView>
+                        <Label
+                            Text="Aucune session de vote."
+                            TextColor="{StaticResource GoldText}"
+                            HorizontalTextAlignment="Center"
+                            Opacity="0.6"
+                            Margin="0,20" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border
+                                Background="{StaticResource CardBackground}"
+                                Stroke="#2D2D2D"
+                                StrokeThickness="1"
+                                Padding="16">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding BindingContext.SelectSessionCommand, Source={x:Reference AdminVoteRoot}}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout Spacing="6">
+                                    <Label
+                                        Text="{Binding Titre}"
+                                        FontSize="18"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource GoldText}" />
+                                    <Label
+                                        Text="{Binding Description}"
+                                        FontSize="13"
+                                        TextColor="{StaticResource GoldText}"
+                                        Opacity="0.75"
+                                        LineBreakMode="TailTruncation"
+                                        MaxLines="2" />
+                                    <HorizontalStackLayout Spacing="16">
+                                        <Label
+                                            Text="{Binding PeriodeLabel}"
+                                            FontSize="12"
+                                            TextColor="{StaticResource GoldText}"
+                                            Opacity="0.6" />
+                                        <Label
+                                            Text="{Binding StatutLabel}"
+                                            FontSize="12"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource GoldText}" />
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <!-- ============ SESSION DETAIL VIEW ============ -->
+            <VerticalStackLayout
+                IsVisible="{Binding ShowSessionDetail}"
+                Spacing="14">
+
+                <!-- Session Info -->
+                <Border
+                    Background="{StaticResource CardBackground}"
+                    Stroke="#C18F1A"
+                    StrokeThickness="1.5"
+                    Padding="20">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="10">
+                        <Label
+                            Text="{Binding SessionTitle}"
+                            FontSize="22"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource GoldText}" />
+                        <Label
+                            Text="{Binding SessionDescription}"
+                            FontSize="14"
+                            TextColor="{StaticResource GoldText}"
+                            Opacity="0.85"
+                            LineBreakMode="WordWrap" />
+                        <HorizontalStackLayout Spacing="16">
+                            <Label
+                                Text="{Binding SessionPeriode}"
+                                FontSize="13"
+                                TextColor="{StaticResource GoldText}"
+                                Opacity="0.7" />
+                            <Label
+                                Text="{Binding SessionStatut}"
+                                FontSize="13"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource GoldText}" />
+                        </HorizontalStackLayout>
+
+                        <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                            <Button
+                                Text="Retour"
+                                BackgroundColor="#303030"
+                                TextColor="{StaticResource GoldText}"
+                                Command="{Binding RetourListeCommand}"
+                                FontSize="13"
+                                Padding="12,8" />
+                            <Button
+                                Text="Activer"
+                                BackgroundColor="#2E7D32"
+                                TextColor="White"
+                                Command="{Binding ActivateSessionCommand}"
+                                IsVisible="{Binding CanActivate}"
+                                FontSize="13"
+                                Padding="12,8" />
+                            <Button
+                                Text="Cloturer"
+                                BackgroundColor="#C62828"
+                                TextColor="White"
+                                Command="{Binding CloseSessionCommand}"
+                                IsVisible="{Binding CanClose}"
+                                FontSize="13"
+                                Padding="12,8" />
+                            <Button
+                                Text="+ Produit"
+                                BackgroundColor="#C18F1A"
+                                TextColor="#0B0B0B"
+                                Command="{Binding ShowProduitFormCommand}"
+                                FontSize="13"
+                                FontAttributes="Bold"
+                                Padding="12,8" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Product Creation Form -->
+                <Border
+                    IsVisible="{Binding ShowProduitForm}"
+                    Background="{StaticResource CardBackground}"
+                    Stroke="#C18F1A"
+                    StrokeThickness="1.5"
+                    Padding="20">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="Ajouter un produit candidat" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource GoldText}" />
+
+                        <Label Text="Nom du produit *" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.8" />
+                        <Entry
+                            Text="{Binding NewProduitNom}"
+                            Placeholder="Ex: Cafe bio equitable"
+                            PlaceholderColor="#666"
+                            TextColor="{StaticResource GoldText}"
+                            BackgroundColor="#1E1E1E"
+                            FontSize="14" />
+
+                        <Label Text="Description courte" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.8" />
+                        <Entry
+                            Text="{Binding NewProduitDescription}"
+                            Placeholder="Description en quelques mots"
+                            PlaceholderColor="#666"
+                            TextColor="{StaticResource GoldText}"
+                            BackgroundColor="#1E1E1E"
+                            FontSize="14" />
+
+                        <Label Text="Prix estime (EUR)" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.8" />
+                        <Entry
+                            Text="{Binding NewProduitPrix}"
+                            Placeholder="Ex: 4,90"
+                            PlaceholderColor="#666"
+                            TextColor="{StaticResource GoldText}"
+                            BackgroundColor="#1E1E1E"
+                            FontSize="14"
+                            Keyboard="Numeric" />
+
+                        <Label Text="Categorie" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.8" />
+                        <Picker
+                            ItemsSource="{Binding AvailableCategories}"
+                            SelectedItem="{Binding SelectedCategorie}"
+                            ItemDisplayBinding="{Binding DisplayName}"
+                            TextColor="{StaticResource GoldText}"
+                            BackgroundColor="#1E1E1E"
+                            FontSize="14"
+                            Title="Choisir une categorie" />
+
+                        <Label Text="Image" FontSize="13" TextColor="{StaticResource GoldText}" Opacity="0.8" />
+                        <Entry
+                            Text="{Binding ImageSearchTerm}"
+                            Placeholder="Rechercher une image..."
+                            PlaceholderColor="#666"
+                            TextColor="{StaticResource GoldText}"
+                            BackgroundColor="#1E1E1E"
+                            FontSize="14" />
+
+                        <CollectionView
+                            ItemsSource="{Binding FilteredImageLibrary}"
+                            SelectedItem="{Binding SelectedLibraryImage}"
+                            SelectionMode="Single"
+                            HeightRequest="120">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border
+                                        Background="#1E1E1E"
+                                        Stroke="#2D2D2D"
+                                        StrokeThickness="1"
+                                        Padding="4"
+                                        WidthRequest="90"
+                                        HeightRequest="110">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="8" />
+                                        </Border.StrokeShape>
+                                        <VerticalStackLayout Spacing="4">
+                                            <Image
+                                                Source="{Binding FullUrl}"
+                                                Aspect="AspectFill"
+                                                HeightRequest="70"
+                                                WidthRequest="80" />
+                                            <Label
+                                                Text="{Binding DisplayName}"
+                                                FontSize="10"
+                                                TextColor="{StaticResource GoldText}"
+                                                HorizontalTextAlignment="Center"
+                                                LineBreakMode="TailTruncation"
+                                                MaxLines="1" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                        <Label
+                            Text="{Binding NewProduitImageUrl, StringFormat='Image : {0}'}"
+                            FontSize="11"
+                            TextColor="{StaticResource GoldText}"
+                            Opacity="0.6" />
+
+                        <Button
+                            Text="Ajouter le produit"
+                            BackgroundColor="#C18F1A"
+                            TextColor="#0B0B0B"
+                            FontSize="14"
+                            FontAttributes="Bold"
+                            Padding="14,8"
+                            HorizontalOptions="Center"
+                            Command="{Binding CreateProduitCommand}" />
+
+                        <ActivityIndicator
+                            IsRunning="{Binding IsCreatingProduit}"
+                            IsVisible="{Binding IsCreatingProduit}"
+                            Color="{StaticResource GoldText}"
+                            HeightRequest="30" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Products List -->
+                <Label
+                    Text="Produits candidats"
+                    FontSize="20"
+                    FontAttributes="Bold"
+                    TextColor="{StaticResource GoldText}" />
+
+                <CollectionView
+                    ItemsSource="{Binding Produits}"
+                    SelectionMode="None">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.EmptyView>
+                        <Label
+                            Text="Aucun produit candidat dans cette session."
+                            TextColor="{StaticResource GoldText}"
+                            HorizontalTextAlignment="Center"
+                            Opacity="0.6"
+                            Margin="0,20" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border
+                                Background="{StaticResource CardBackground}"
+                                Stroke="#2D2D2D"
+                                StrokeThickness="1"
+                                Padding="16">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="80,*,Auto" ColumnSpacing="12">
+                                    <!-- Image -->
+                                    <Border
+                                        Grid.Column="0"
+                                        Background="#1E1E1E"
+                                        HeightRequest="80"
+                                        WidthRequest="80"
+                                        StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Image
+                                            Source="{Binding ImageUrl}"
+                                            Aspect="AspectFill"
+                                            HeightRequest="80"
+                                            WidthRequest="80" />
+                                    </Border>
+
+                                    <!-- Info -->
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="4"
+                                        VerticalOptions="Center">
+                                        <Label
+                                            Text="{Binding DisplayName}"
+                                            FontSize="16"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource GoldText}"
+                                            LineBreakMode="TailTruncation" />
+                                        <Label
+                                            Text="{Binding DescriptionCourte}"
+                                            FontSize="12"
+                                            TextColor="{StaticResource GoldText}"
+                                            Opacity="0.75"
+                                            LineBreakMode="TailTruncation" />
+                                        <HorizontalStackLayout Spacing="10">
+                                            <Label
+                                                Text="{Binding DisplayCategorie}"
+                                                FontSize="11"
+                                                TextColor="{StaticResource GoldText}"
+                                                Opacity="0.6" />
+                                            <Label
+                                                Text="{Binding DisplayPrix}"
+                                                FontSize="11"
+                                                TextColor="{StaticResource GoldText}"
+                                                Opacity="0.6" />
+                                        </HorizontalStackLayout>
+                                        <HorizontalStackLayout Spacing="10">
+                                            <Label
+                                                Text="{Binding MoyenneLabel}"
+                                                FontSize="13"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource GoldText}" />
+                                            <Label
+                                                Text="{Binding VotesLabel}"
+                                                FontSize="11"
+                                                TextColor="{StaticResource GoldText}"
+                                                Opacity="0.7" />
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+
+                                    <!-- Delete -->
+                                    <Button
+                                        Grid.Column="2"
+                                        Text="X"
+                                        BackgroundColor="#C62828"
+                                        TextColor="White"
+                                        FontSize="13"
+                                        FontAttributes="Bold"
+                                        WidthRequest="40"
+                                        HeightRequest="40"
+                                        Padding="0"
+                                        VerticalOptions="Center"
+                                        Command="{Binding BindingContext.DeleteProduitCommand, Source={x:Reference AdminVoteRoot}}"
+                                        CommandParameter="{Binding .}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
