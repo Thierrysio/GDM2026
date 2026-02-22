@@ -152,7 +152,7 @@
                                         <RoundRectangle CornerRadius="10" />
                                     </Border.StrokeShape>
                                     <Image
-                                        Source="{Binding ImageUrl}"
+                                        Source="{Binding FullImageUrl}"
                                         Aspect="AspectFill"
                                         HeightRequest="90"
                                         WidthRequest="90" />
@@ -288,7 +288,7 @@
                                             <RoundRectangle CornerRadius="10" />
                                         </Border.StrokeShape>
                                         <Image
-                                            Source="{Binding ImageUrl}"
+                                            Source="{Binding FullImageUrl}"
                                             Aspect="AspectFill"
                                             HeightRequest="70"
                                             WidthRequest="70" />
